@@ -200,10 +200,7 @@
                 <a href="services.html" class="dd-all">Voir tous les services <i data-i="arrow"></i></a>
               </div>
             </li>
-            <li><a href="marketing/forfaits.html" class="nav-link${active === "forfaits" ? " active" : ""}">Forfaits</a></li>
             <li><a href="services.html#realisations" class="nav-link${active === "realisations" ? " active" : ""}">Réalisation</a></li>
-            <li><a href="index.html" class="nav-link">À propos</a></li>
-            <li><a href="informations.html" class="nav-link">Contact</a></li>
           </ul>
           <div class="nav-actions">
             <a href="projet.html" class="projet-link${active === "projet" ? " active" : ""}"><i data-i="clapper"></i><span class="projet-count-label">Mon projet</span><span class="projet-badge" hidden>0</span></a>
@@ -249,6 +246,7 @@
       <section class="svc-hero stars">
         <div class="container svc-hero-grid">
           <div class="svc-copy">
+            <a href="marketing.html" class="back-link"><i data-i="arrow-left"></i> Retour</a>
             <nav class="crumbs" aria-label="Fil d'Ariane"><a href="marketing.html">Accueil</a><i data-i="chev-right"></i><a href="services.html">Services</a><i data-i="chev-right"></i><span aria-current="page">${esc(s.name)}</span></nav>
             <h1 class="svc-title">${esc(top)}<br><span class="gold">${esc(s.gold)}</span></h1>
             <p class="svc-lead">${esc(s.description)}</p>

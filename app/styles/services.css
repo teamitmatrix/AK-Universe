@@ -101,6 +101,9 @@
 .examples-grid.compact { grid-template-columns: 1fr 1fr; }
 
 /* ---------- Liste des services ---------- */
+.back-link { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 0 0 18px; color: #fff; font-weight: 600; }
+.back-link:hover { color: var(--gold); }
+.page-hero .back-link { margin-right: auto; margin-bottom: 8px; }
 .page-hero { text-align: center; padding: 50px 0 34px; }
 .page-hero h1 { font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 800; }
 .page-hero p { color: #e6ded2; font-size: 1.15rem; max-width: 640px; margin: 14px auto 0; }

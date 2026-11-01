@@ -4,8 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { agents } from "@/config/agents";
 import { Icon } from "@/components/ui/Icon";
+import { nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
 
 const DESKTOP = "(min-width: 981px)";
+
+/** French is the source; English is written out so it stays "Digital marketing". */
+const MARKETING_LABEL = { fr: "Marketing Digital", en: "Digital marketing" };
 
 /** "Tarifs" dropdown: Agents IA prices and the Marketing packages (moved here from the marketing menu). */
 const PRICING_LINKS = [
@@ -22,6 +26,8 @@ type Props = {
 
 /** Main site header (home, agents IA). Mirrors initNav() from the static main.js. */
 export function SiteHeader({ active = "home", signedIn = false }: Props) {
+  const [lang] = useLang();
+  const marketingLabel = MARKETING_LABEL[textLang(lang)];
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<Menu | null>(null);
   const navRef = useRef<HTMLUListElement>(null);
@@ -116,8 +122,12 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
               </div>
             </li>
             <li>
-              <a href="/marketing.html" className={`nav-link${active === "marketing" ? " active" : ""}`}>
-                Marketing
+              <a
+                href="/marketing.html"
+                className={`nav-link${active === "marketing" ? " active" : ""}${lang === "en" ? " notranslate" : ""}`}
+                translate={nativeTranslate(lang)}
+              >
+                {marketingLabel}
               </a>
             </li>
             <li {...dropdown("tarifs")}>
@@ -140,6 +150,16 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                   ))}
                 </ul>
               </div>
+            </li>
+            <li>
+              <Link href="/" className="nav-link" onClick={closeAll}>
+                À propos
+              </Link>
+            </li>
+            <li>
+              <a href="/informations.html" className="nav-link" onClick={closeAll}>
+                Contact
+              </a>
             </li>
           </ul>
           <div className="nav-actions">
