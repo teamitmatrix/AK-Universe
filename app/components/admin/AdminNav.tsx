@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LangSwitch, textLang, useLang } from "@/components/ui/LangSwitch";
 import { ADMIN_TEXT } from "./adminText";
 
-const TABS = ["prix", "demandes"] as const;
+const TABS = ["prix", "demandes", "chatbot"] as const;
 
 /** Admin tabs + French/English switch (same language choice as the rest of the site). */
 export function AdminNav({ tab }: { tab: (typeof TABS)[number] }) {

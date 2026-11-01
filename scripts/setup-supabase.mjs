@@ -49,6 +49,12 @@ else {
   await sql(read("config/supabase/migrations/002_site_settings_delete.sql"));
   console.log("  ✅ 002_site_settings_delete appliquée");
 }
+const [{ exists: hasPrivate }] = await sql("select to_regclass('public.private_settings') is not null as exists");
+if (hasPrivate) console.log("  ✅ 003_private_settings déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/003_private_settings.sql"));
+  console.log("  ✅ 003_private_settings appliquée");
+}
 
 // ---------- 2–5. Auth ----------
 const site = (env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
