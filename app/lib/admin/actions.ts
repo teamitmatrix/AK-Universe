@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { PROJECT_STATUS } from "@/config/projects";
 import { isAdmin } from "@/lib/auth/session";
+import { CHATBOT_KEY, MAX_KNOWLEDGE_CHARS, type ChatbotSettings } from "@/lib/chatbot/knowledge";
 import { createClient } from "@/lib/supabase/server";
 import { PRICING_KEY, applyOverrides, loadDefaultConfig, type PricingOverrides } from "@/lib/video-config";
 
@@ -76,6 +77,29 @@ export async function updateProjectStatus(id: string, status: string) {
   if (error) {
     console.error("updateProjectStatus failed:", error.message);
     return { success: false as const, error: "updateFailed" as const };
+  }
+  revalidatePath("/admin.html");
+  return { success: true as const };
+}
+
+/** "Chatbot" tab: on/off switch and the knowledge text the site assistant answers from. */
+export async function saveChatbot(input: ChatbotSettings) {
+  if (!(await isAdmin())) return { success: false as const, error: "forbidden" as const };
+  const knowledge = String(input.knowledge ?? "");
+  if (knowledge.length > MAX_KNOWLEDGE_CHARS) return { success: false as const, error: "tooLong" as const };
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  // RLS (private_settings: admin insert/update) re-checks the admin role in the database.
+  const { error } = await supabase.from("private_settings").upsert({
+    key: CHATBOT_KEY,
+    value: { enabled: input.enabled === true, knowledge },
+    updated_at: new Date().toISOString(),
+    updated_by: auth.user?.id,
+  });
+  if (error) {
+    console.error("saveChatbot failed:", error.message);
+    return { success: false as const, error: "failed" as const };
   }
   revalidatePath("/admin.html");
   return { success: true as const };

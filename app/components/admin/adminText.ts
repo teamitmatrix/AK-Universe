@@ -3,7 +3,7 @@ import type { TextLang } from "@/config/languages";
 /** Admin texts in French and English (switch at the top of /admin.html). Catalogue names stay as on the site. */
 export const ADMIN_TEXT = {
   fr: {
-    tabs: { prix: "Prix des services vidéo", demandes: "Demandes vidéo" },
+    tabs: { prix: "Prix des services vidéo", demandes: "Demandes vidéo", chatbot: "Chatbot" },
     viewSite: "Voir le site",
     errors: {
       forbidden: "Accès réservé aux administrateurs.",
@@ -11,6 +11,7 @@ export const ADMIN_TEXT = {
       resetFailed: "Réinitialisation impossible. Veuillez réessayer.",
       unknownStatus: "Statut inconnu.",
       updateFailed: "Mise à jour impossible. Veuillez réessayer.",
+      tooLong: "Texte trop long : 120 000 caractères maximum.",
     },
     pricing: {
       title: ["Admin — ", "prix des services vidéo"],
@@ -38,6 +39,20 @@ export const ADMIN_TEXT = {
       saved: "Prix enregistrés : ils sont en ligne d'ici une minute.",
       resetConfirm: "Revenir aux prix par défaut de config/services-data.js ?",
       resetDone: "Prix par défaut rétablis.",
+    },
+    chatbot: {
+      title: ["Admin — ", "chatbot du site"],
+      note: "L'assistant répond aux visiteurs à partir de ce texte et du catalogue actuel (prix des services vidéo et des agents IA, ajoutés automatiquement). Collez ici tout ce qu'il doit savoir : présentation, délais, déroulement d'un projet, zones d'intervention, FAQ, contact… Il répond dans la langue du visiteur.",
+      enabled: "Afficher le chatbot sur le site",
+      knowledge: "Base de connaissances",
+      placeholder: "Ex. :\nQui sommes-nous ? …\nDélais de livraison : …\nFAQ\nQ : Vous déplacez-vous partout en France ?\nR : …",
+      chars: (n: number, max: number) => `${n.toLocaleString("fr-FR")} / ${max.toLocaleString("fr-FR")} caractères`,
+      importFile: "Importer un fichier .txt / .md",
+      importDone: "Fichier ajouté à la fin du texte. Pensez à enregistrer.",
+      save: "Enregistrer",
+      saving: "Enregistrement…",
+      saved: "Chatbot enregistré : en ligne d'ici une minute.",
+      noKey: "OPENAI_API_KEY manque dans les variables d'environnement : le chatbot reste masqué.",
     },
     projects: {
       title: ["Admin — ", "demandes vidéo"],
@@ -70,7 +85,7 @@ export const ADMIN_TEXT = {
     },
   },
   en: {
-    tabs: { prix: "Video service prices", demandes: "Video requests" },
+    tabs: { prix: "Video service prices", demandes: "Video requests", chatbot: "Chatbot" },
     viewSite: "View site",
     errors: {
       forbidden: "Administrators only.",
@@ -78,6 +93,7 @@ export const ADMIN_TEXT = {
       resetFailed: "Could not reset. Please try again.",
       unknownStatus: "Unknown status.",
       updateFailed: "Could not update. Please try again.",
+      tooLong: "Text too long: 120,000 characters maximum.",
     },
     pricing: {
       title: ["Admin — ", "video service prices"],
@@ -105,6 +121,20 @@ export const ADMIN_TEXT = {
       saved: "Prices saved: they will be live within a minute.",
       resetConfirm: "Restore the default prices from config/services-data.js?",
       resetDone: "Default prices restored.",
+    },
+    chatbot: {
+      title: ["Admin — ", "site chatbot"],
+      note: "The assistant answers visitors from this text and the current catalogue (video service and AI agent prices, added automatically). Paste everything it should know here: about us, lead times, how a project runs, areas covered, FAQ, contact… It replies in the visitor's language.",
+      enabled: "Show the chatbot on the site",
+      knowledge: "Knowledge base",
+      placeholder: "E.g.:\nAbout us: …\nDelivery times: …\nFAQ\nQ: Do you travel anywhere in France?\nA: …",
+      chars: (n: number, max: number) => `${n.toLocaleString("en-GB")} / ${max.toLocaleString("en-GB")} characters`,
+      importFile: "Import a .txt / .md file",
+      importDone: "File appended to the text. Remember to save.",
+      save: "Save",
+      saving: "Saving…",
+      saved: "Chatbot saved: live within a minute.",
+      noKey: "OPENAI_API_KEY is missing from the environment variables: the chatbot stays hidden.",
     },
     projects: {
       title: ["Admin — ", "video requests"],

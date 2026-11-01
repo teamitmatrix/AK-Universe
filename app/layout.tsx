@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
+import { ChatWidget } from "@/components/ui/ChatWidget";
 import { CookieNotice } from "@/components/ui/CookieNotice";
 import { SiteTranslator } from "@/components/ui/SiteTranslator";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default function RootLayout({
         {children}
         <SiteTranslator />
         <CookieNotice />
+        <ChatWidget />
       </body>
     </html>
   );
