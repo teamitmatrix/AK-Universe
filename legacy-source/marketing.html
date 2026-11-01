@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketing Digital — AK Universe</title>
+  <meta name="description" content="Vidéos et outils marketing propulsés par l'IA pour attirer plus de clients et développer votre visibilité.">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/services.css">
+</head>
+<body>
+
+<header data-nav="video" data-active=""></header>
+
+<main class="mk-hero stars">
+  <svg class="mk-waves" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="w1" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0" stop-color="#fdb942" stop-opacity=".9"/>
+        <stop offset=".5" stop-color="#f59e0b" stop-opacity=".35"/>
+        <stop offset="1" stop-color="#fdb942" stop-opacity=".8"/>
+      </linearGradient>
+      <radialGradient id="rg" cx=".3" cy="1" r=".8">
+        <stop offset="0" stop-color="#3a2408"/>
+        <stop offset="1" stop-color="#070504" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="blur"><feGaussianBlur stdDeviation="6"/></filter>
+    </defs>
+    <path d="M0 900 C 300 620, 600 700, 820 440 S 1120 60, 1260 0 L 1600 0 L 1600 900 Z" fill="url(#rg)" opacity=".8"/>
+    <path d="M-20 880 C 280 640, 560 700, 800 460 S 1140 80, 1270 -10" stroke="url(#w1)" stroke-width="10" fill="none" filter="url(#blur)" opacity=".7"/>
+    <path d="M-20 880 C 280 640, 560 700, 800 460 S 1140 80, 1270 -10" stroke="#ffd27a" stroke-width="2" fill="none"/>
+    <path d="M200 900 C 600 760, 900 800, 1600 520" stroke="#fdb942" stroke-opacity=".25" stroke-width="1.5" fill="none"/>
+  </svg>
+
+  <div class="container mk-grid">
+    <div class="mk-copy">
+      <h1 class="mk-title">Marketing<br><span class="gold">Digital</span></h1>
+      <p>Attirez plus de clients, développez votre visibilité et automatisez votre communication grâce à des outils marketing simples et puissants, propulsés par l'IA.</p>
+      <a href="services.html" class="btn btn-primary btn-lg">Commencer maintenant <i data-i="arrow"></i></a>
+    </div>
+
+    <div class="video-card">
+      <!-- Remplacez l'aperçu par votre vidéo : déposez-la dans assets/video/presentation.mp4 -->
+      <div class="video-stage">
+        <div class="ph ph-m2 ph-video" aria-hidden="true"></div>
+        <video src="assets/video/presentation.mp4" preload="none" playsinline></video>
+        <button class="video-big-play" aria-label="Lire la vidéo"><i data-i="play"></i></button>
+      </div>
+      <div class="video-controls">
+        <button class="v-toggle" aria-label="Lecture / pause"><i data-i="play"></i></button>
+        <div class="progress" role="presentation"><span></span></div>
+        <span class="video-time">0:00 / 1:24</span>
+        <button class="v-full" aria-label="Plein écran"><i data-i="fullscreen"></i></button>
+      </div>
+      <div class="video-msg" role="status"></div>
+    </div>
+  </div>
+</main>
+
+<footer data-footer></footer>
+
+<script src="assets/js/services-data.js"></script>
+<script src="assets/js/projet.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

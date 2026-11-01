@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Créez votre organisation — AK Universe</title>
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="light">
+
+<div class="auth">
+  <aside class="auth-side">
+    <div class="ph ph-m9 ph-man" aria-hidden="true"></div>
+    <a href="index.html" class="logo"><img src="assets/img/logo.svg" alt=""><span><span class="ak">AK</span> UNIVERSE</span></a>
+    <div class="copy">
+      <h2>Créez votre<br><span class="gold">organisation</span></h2>
+      <p>Structurez votre espace et collaborez avec votre équipe pour gérer vos agents IA en toute simplicité.</p>
+      <div class="auth-feats">
+        <div><span class="icon-box"><i data-i="rocket"></i></span>Tous vos agents IA<br>au même endroit</div>
+        <div><span class="icon-box"><i data-i="chart"></i></span>Suivi en temps réel<br>de vos résultats</div>
+        <div><span class="icon-box"><i data-i="gear"></i></span>Gestion simple<br>et collaborative</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="light-top">
+      <a href="verification.html" class="back"><i data-i="arrow-left"></i> Retour</a>
+      <div class="lang">
+        <button class="lang-btn" aria-haspopup="true" aria-expanded="false"><span class="flag"><i style="background:#1f4fb4"></i><i style="background:#fff"></i><i style="background:#e03a3e"></i></span><span class="lang-label">Français</span> <i data-i="chev-down"></i></button>
+        <ul class="lang-menu">
+          <li><button data-label="Français"><span class="flag"><i style="background:#1f4fb4"></i><i style="background:#fff"></i><i style="background:#e03a3e"></i></span> Français</button></li>
+          <li><button data-label="English"><span class="flag" style="flex-direction:column"><i style="background:#c8102e"></i><i style="background:#fff"></i><i style="background:#012169"></i></span> English</button></li>
+        </ul>
+      </div>
+    </div>
+
+    <form class="auth-form" id="org-form">
+      <ol class="steps" aria-label="Étapes">
+        <li class="done"><span class="n"><i data-i="check"></i></span>Compte</li>
+        <li class="current" aria-current="step"><span class="n">2</span>Organisation</li>
+        <li><span class="n">3</span>Équipe</li>
+        <li><span class="n">4</span>Confirmation</li>
+      </ol>
+
+      <h1 class="center">Créez votre <span class="text-grad">organisation</span></h1>
+      <p class="sub center">Créez une organisation pour organiser vos agents IA et collaborer avec votre équipe.</p>
+
+      <div class="field">
+        <label for="org-name">Nom de l'organisation</label>
+        <div class="input"><i data-i="building"></i><input id="org-name" type="text" required placeholder="Ex. Ma Société, AK Consulting…" autocomplete="organization"></div>
+      </div>
+      <div class="field">
+        <label for="org-sector">Secteur d'activité</label>
+        <div class="input">
+          <i data-i="briefcase"></i>
+          <select id="org-sector" required>
+            <option value="" disabled selected>Sélectionnez un secteur d'activité</option>
+            <option>Commerce &amp; e-commerce</option>
+            <option>Conseil &amp; services aux entreprises</option>
+            <option>Immobilier</option>
+            <option>Santé &amp; bien-être</option>
+            <option>Restauration &amp; hôtellerie</option>
+            <option>Industrie &amp; BTP</option>
+            <option>Technologie &amp; logiciels</option>
+            <option>Éducation &amp; formation</option>
+            <option>Autre</option>
+          </select>
+          <span class="after"><i data-i="chev-down"></i></span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="org-size">Taille de l'organisation</label>
+        <div class="input">
+          <i data-i="users"></i>
+          <select id="org-size" required>
+            <option value="" disabled selected>Sélectionnez une taille</option>
+            <option>Indépendant (1)</option>
+            <option>2 – 10 personnes</option>
+            <option>11 – 50 personnes</option>
+            <option>51 – 200 personnes</option>
+            <option>Plus de 200 personnes</option>
+          </select>
+          <span class="after"><i data-i="chev-down"></i></span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-light-primary btn-block" style="margin-top:16px;font-size:1.35rem">Créer l'organisation <i data-i="arrow"></i></button>
+    </form>
+  </main>
+</div>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

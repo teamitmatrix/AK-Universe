@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Se connecter — AK Universe</title>
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="light">
+
+<div class="auth auth-login">
+  <aside class="auth-side">
+    <a href="index.html" class="logo"><img src="assets/img/logo.svg" alt=""><span><span class="ak">AK</span> UNIVERSE</span></a>
+
+    <div class="login-hero-wrap">
+      <img class="login-hero-img" src="assets/img/hero-man-arms-crossed.png" alt="">
+    </div>
+
+    <div class="copy">
+      <h2>Bienvenue dans<br><span class="gold">votre espace<br>AK Universe.</span></h2>
+      <p>Connectez-vous pour accéder à vos agents IA, gérer vos projets et profiter de toutes les fonctionnalités de votre compte.</p>
+    </div>
+
+    <div class="login-benefits">
+      <div class="login-benefit"><span class="icon-box"><i data-i="bolt"></i></span><div><strong>Vos agents IA</strong><span>Toujours disponibles 24/7</span></div></div>
+      <div class="login-benefit"><span class="icon-box"><i data-i="chart"></i></span><div><strong>Vos projets</strong><span>Suivi et gestion simplifiée</span></div></div>
+      <div class="login-benefit"><span class="icon-box"><i data-i="gear"></i></span><div><strong>Vos paramètres</strong><span>Personnalisez votre expérience</span></div></div>
+      <div class="login-benefit"><span class="icon-box"><i data-i="calendar"></i></span><div><strong>Un écosystème complet</strong><span>Marketing, vidéos et plus encore</span></div></div>
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="light-top">
+      <div class="lang">
+        <button class="lang-btn" aria-haspopup="true" aria-expanded="false"><span class="flag"><i style="background:#1f4fb4"></i><i style="background:#fff"></i><i style="background:#e03a3e"></i></span><span class="lang-label">Français</span> <i data-i="chev-down"></i></button>
+        <ul class="lang-menu">
+          <li><button data-label="Français"><span class="flag"><i style="background:#1f4fb4"></i><i style="background:#fff"></i><i style="background:#e03a3e"></i></span> Français</button></li>
+          <li><button data-label="English"><span class="flag" style="flex-direction:column"><i style="background:#c8102e"></i><i style="background:#fff"></i><i style="background:#012169"></i></span> English</button></li>
+        </ul>
+      </div>
+    </div>
+
+    <form class="auth-form" id="login-form" style="max-width:545px">
+      <h1 class="center">Se <span class="text-grad">connecter</span></h1>
+      <p class="sub center">Accédez à votre espace AK Universe.</p>
+
+      <div class="account-switch" role="group" aria-label="Type de compte">
+        <button type="button" class="account-switch-btn active" data-account="client" aria-pressed="true"><i data-i="user"></i> Compte client</button>
+        <button type="button" class="account-switch-btn" data-account="entreprise" aria-pressed="false"><i data-i="building"></i> Compte entreprise</button>
+      </div>
+
+      <div class="field">
+        <label for="email">Adresse e-mail</label>
+        <div class="input"><i data-i="mail"></i><input id="email" type="email" required placeholder="votre@email.com" autocomplete="email"></div>
+      </div>
+      <div class="field">
+        <label for="pw">Mot de passe</label>
+        <div class="input">
+          <i data-i="lock"></i>
+          <input id="pw" type="password" required placeholder="Votre mot de passe" autocomplete="current-password">
+          <button type="button" class="after pw-toggle" aria-label="Afficher le mot de passe"><i data-i="eye"></i></button>
+        </div>
+      </div>
+
+      <div class="remember-row">
+        <label class="remember-check"><input type="checkbox" id="remember" checked> Se souvenir de moi</label>
+        <a href="#" id="forgot" class="link-orange">Mot de passe oublié ?</a>
+      </div>
+
+      <button type="submit" class="btn btn-light-primary btn-block">Se connecter <i data-i="arrow"></i></button>
+      <div class="or">ou continuer avec</div>
+      <div class="social-row">
+        <button type="button" class="btn btn-light-outline btn-block social-btn google-btn">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+          Google
+        </button>
+        <button type="button" class="btn btn-light-outline btn-block social-btn apple-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#000" d="M16.365 1.43c0 1.14-.47 2.1-1.14 2.82-.75.8-1.98 1.42-3.08 1.33-.12-1.1.46-2.22 1.15-2.93.76-.8 2.03-1.4 3.07-1.22zM20.5 17.4c-.5 1.17-.74 1.68-1.38 2.7-.9 1.44-2.17 3.23-3.73 3.24-1.39.02-1.75-.9-3.64-.89-1.89.01-2.28.91-3.67.9-1.57-.02-2.77-1.63-3.67-3.07-2.5-3.98-2.76-8.65-1.22-11.14 1.09-1.78 2.82-2.83 4.44-2.83 1.65 0 2.69.9 4.06.9 1.33 0 2.13-.9 4.04-.9 1.44 0 2.96.78 4.04 2.14-3.55 1.95-2.97 7.02.73 8.95z"/></svg>
+          Apple
+        </button>
+        <button type="button" class="btn btn-light-outline btn-block social-btn microsoft-btn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" fill="#F25022"/><rect x="13" y="2" width="9" height="9" fill="#7FBA00"/><rect x="2" y="13" width="9" height="9" fill="#00A4EF"/><rect x="13" y="13" width="9" height="9" fill="#FFB900"/></svg>
+          Microsoft
+        </button>
+      </div>
+
+      <p class="alt">Vous n'avez pas encore de compte ?<br><a href="inscription.html" class="link-orange">Créer un compte <i data-i="arrow"></i></a></p>
+    </form>
+  </main>
+</div>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

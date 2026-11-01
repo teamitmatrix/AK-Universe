@@ -1,0 +1,2 @@
+-- Promote an existing account to admin (run after that user has signed up):
+-- update public.profiles set role = 'admin' where email = 'admin@example.com';
