@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactCard } from "@/components/layout/ContactCard";
 import { InfosView } from "@/components/video/InfosView";
 import { VideoShell } from "@/components/video/VideoShell";
 import { getVideoConfig } from "@/lib/video-config";
@@ -14,6 +15,7 @@ export default async function Page() {
   return (
     <VideoShell config={config}>
       <InfosView />
+      <ContactCard />
     </VideoShell>
   );
 }

@@ -228,6 +228,16 @@ body.modal-open { overflow: hidden; }
 .dark-card .btn-block { margin-top: 6px; }
 .dark-card .muted-note { margin-top: 12px; }
 
+/* Contact (under the /informations form) */
+.contact-section { max-width: 1060px; margin: 0 auto 60px; }
+.contact-card > h2 { text-align: center; }
+.contact-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.contact-list li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.contact-list small { display: block; color: #d6cdbf; font-size: .82rem; }
+.contact-list a { color: #fff; font-weight: 600; overflow-wrap: anywhere; }
+.contact-list a:hover { color: var(--gold, #fdb942); }
+@media (max-width: 860px) { .contact-list { grid-template-columns: 1fr; } }
+
 .choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto; }
 .choice { display: flex; flex-direction: column; gap: 16px; padding: 28px; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, #15100b, #0c0906); text-align: center; }
 .choice.featured { border: 1.5px solid var(--gold); box-shadow: 0 0 40px rgba(253,185,66,.15); }

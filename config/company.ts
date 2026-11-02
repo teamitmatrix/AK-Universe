@@ -12,7 +12,7 @@ export const COMPANY = {
   /** Legal form and share capital, e.g. "SAS au capital de 1 000 €" or "Entrepreneur individuel". */
   legalForm: TODO,
   /** Head office address. */
-  address: TODO,
+  address: "8 rue Pierre Moulie, 94200 Ivry-sur-Seine",
   /** SIRET (14 digits). */
   siret: TODO,
   /** RCS city + number, e.g. "RCS Paris 123 456 789" (leave TODO if not registered at the RCS). */
@@ -21,13 +21,16 @@ export const COMPANY = {
   vat: TODO,
   /** Person legally responsible for the content of the site. */
   publicationDirector: TODO,
-  email: TODO,
-  phone: TODO,
+  email: "Akuniverse.official@gmail.com",
+  phone: "+33 6 50 92 86 38",
   /** Last time the legal texts were reviewed (shown at the top of each page). */
   updatedAt: "30 octobre 2026",
   /** Consumer mediator (mandatory in France when selling to individuals), e.g. "CM2C, 49 rue de Ponthieu, 75008 Paris — www.cm2c.net". */
   mediator: TODO,
 };
+
+/** tel: link for COMPANY.phone ("+33 06 …" → "+336…": the trunk 0 is dropped after a country code). */
+export const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "").replace(/^(\+\d{2})0/, "$1")}`;
 
 /** The site host (fixed: the site is deployed on Vercel). */
 export const HOST = {
