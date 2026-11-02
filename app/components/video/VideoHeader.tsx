@@ -130,12 +130,6 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
             <Link href="/services" className="btn btn-primary" onClick={closeAll}>
               Devis gratuit <Icon name="arrow" />
             </Link>
-            <a href="#" className="social" aria-label="LinkedIn">
-              <Icon name="linkedin" />
-            </a>
-            <a href="#" className="social" aria-label="Instagram">
-              <Icon name="instagram" />
-            </a>
           </div>
         </div>
       </div>
