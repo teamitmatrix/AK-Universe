@@ -2,11 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { textLang, useLang } from "./LangSwitch";
+import { nativeTranslate, textLang, useLang } from "./LangSwitch";
 
 /*
- * Floating site assistant, above the language switch. Answers come from /api/chat
- * (knowledge edited on /admin?vue=chatbot); the widget stays hidden until it is switched on there.
+ * Floating site assistant, above the language switch. Answers come from /api/chat in the language chosen
+ * on the site (knowledge edited on /admin?vue=chatbot); the widget stays hidden until it is switched on there.
  */
 
 const STORAGE_KEY = "aku-chat";
@@ -138,7 +138,8 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="chat-widget notranslate" translate="no">
+    // The widget's own texts follow the page translation; answers already come in the site language (/api/chat).
+    <div className="chat-widget" translate={nativeTranslate(lang)}>
       {open && (
         <section
           className="chat-panel"
@@ -177,7 +178,7 @@ export function ChatWidget() {
               </div>
             )}
             {messages.map((m, i) => (
-              <p key={i} className={`chat-msg ${m.role}`}>
+              <p key={i} className={`chat-msg ${m.role} notranslate`} translate="no">
                 {m.content ? linkify(m.content) : <span className="chat-typing" aria-label="…" />}
               </p>
             ))}

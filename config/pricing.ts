@@ -6,6 +6,59 @@ export const PLAN = {
   features: ["Agents IA illimités", "Toutes les fonctionnalités", "Support prioritaire", "Mises à jour incluses"],
 };
 
+/** Offers shown on /agents-ia/tarifs (also read by the site chatbot). price/setupFrom null = on quote. */
+export const AGENT_TIERS = [
+  {
+    name: "Starter",
+    desc: "Pour bien commencer avec l'IA.",
+    price: 490,
+    setupFrom: 390,
+    features: ["1 agent IA au choix", "Tâches essentielles", "Support par email", "Idéal pour les petites entreprises"],
+  },
+  {
+    name: "Pro",
+    desc: "Pour accélérer votre croissance.",
+    price: 990,
+    setupFrom: 590,
+    popular: true,
+    features: [
+      "Jusqu'à 3 agents IA",
+      "Automatisation avancée",
+      "Intégrations (CRM, outils…)",
+      "Support prioritaire",
+      "Rapports de performance",
+    ],
+  },
+  {
+    name: "Pro Business",
+    desc: "Pour les entreprises en pleine expansion.",
+    price: 1690,
+    setupFrom: 990,
+    features: [
+      "Jusqu'à 5 agents IA",
+      "Solutions personnalisées",
+      "Intégrations avancées",
+      "Support dédié",
+      "Suivi et optimisation",
+      "Reporting avancé",
+    ],
+  },
+  {
+    name: "Sur devis",
+    desc: "Pour les grandes équipes et projets spécifiques.",
+    price: null,
+    setupFrom: null,
+    features: [
+      "Agents IA illimités",
+      "Solutions sur mesure",
+      "Intégrations spécifiques",
+      "Accompagnement dédié",
+      "Formation et suivi",
+      "Accès à la roadmap produit",
+    ],
+  },
+] as const;
+
 export const USER_PRICE = 9.9;
 export const MAX_EXTRA_USERS = 500;
 export const ANNUAL_DISCOUNT = 0.2;

@@ -42,7 +42,7 @@ export const ADMIN_TEXT = {
     },
     chatbot: {
       title: ["Admin — ", "chatbot du site"],
-      note: "L'assistant répond aux visiteurs à partir de ce texte et du catalogue actuel (prix des services vidéo et des agents IA, ajoutés automatiquement). Collez ici tout ce qu'il doit savoir : présentation, délais, déroulement d'un projet, zones d'intervention, FAQ, contact… Il répond dans la langue du visiteur.",
+      note: "L'assistant répond uniquement à partir du contenu du site (services vidéo et prix actuels, forfaits, agents IA, FAQ, CGV — ajoutés automatiquement) et de ce texte. Tout est découpé en passages et indexé (embeddings) : pour chaque question, seuls les passages les plus proches sont utilisés. Ajoutez ici ce que le site ne dit pas : présentation, délais, zones d'intervention, contact… Séparez les sujets par une ligne vide ou un titre « # ». Il répond dans la langue du visiteur et refuse les questions hors sujet.",
       enabled: "Afficher le chatbot sur le site",
       knowledge: "Base de connaissances",
       placeholder: "Ex. :\nQui sommes-nous ? …\nDélais de livraison : …\nFAQ\nQ : Vous déplacez-vous partout en France ?\nR : …",
@@ -124,7 +124,7 @@ export const ADMIN_TEXT = {
     },
     chatbot: {
       title: ["Admin — ", "site chatbot"],
-      note: "The assistant answers visitors from this text and the current catalogue (video service and AI agent prices, added automatically). Paste everything it should know here: about us, lead times, how a project runs, areas covered, FAQ, contact… It replies in the visitor's language.",
+      note: "The assistant only answers from the site content (video services and current prices, packages, AI agents, FAQ, terms — added automatically) and this text. Everything is split into passages and indexed (embeddings): each question only uses the closest passages. Add here what the site does not say: about us, lead times, areas covered, contact… Separate topics with a blank line or a \"#\" heading. It replies in the visitor's language and declines off-topic questions.",
       enabled: "Show the chatbot on the site",
       knowledge: "Knowledge base",
       placeholder: "E.g.:\nAbout us: …\nDelivery times: …\nFAQ\nQ: Do you travel anywhere in France?\nA: …",

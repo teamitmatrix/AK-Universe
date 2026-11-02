@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { isLang, SOURCE_LANG } from "@/config/languages";
-import { buildSystemPrompt, getChatbotSettings } from "@/lib/chatbot/knowledge";
+import { buildCorpus, OVERVIEW } from "@/lib/chatbot/corpus";
+import { buildSystemPrompt, getChatbotSettings, languageReminder } from "@/lib/chatbot/knowledge";
+import { ensureIndex, retrieve } from "@/lib/chatbot/rag";
 
 /*
  * Site chatbot (components/ui/ChatWidget.tsx). Public endpoint:
  * GET tells the widget whether to show itself, POST streams the answer as plain text.
+ * Each answer only sees the site passages closest to the question (lib/chatbot/rag.ts).
  */
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
@@ -28,6 +31,19 @@ function rateLimited(ip: string) {
 }
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+
+/** Overview + passages retrieved for the question; the whole corpus if the index is unavailable. */
+async function contextFor(messages: ChatMessage[]) {
+  const questions = messages.filter((m) => m.role === "user").map((m) => m.content);
+  try {
+    await ensureIndex();
+    const passages = await retrieve(questions.at(-1)!, questions.at(-2));
+    return [OVERVIEW, ...passages.filter((p) => p.title !== OVERVIEW.title)];
+  } catch (cause) {
+    console.error("Chatbot retrieval failed, sending the whole corpus:", cause);
+    return buildCorpus();
+  }
+}
 
 function parseMessages(raw: unknown): ChatMessage[] | null {
   if (!Array.isArray(raw)) return null;
@@ -78,7 +94,11 @@ export async function POST(request: Request) {
       model: MODEL,
       stream: true,
       max_completion_tokens: MAX_ANSWER_TOKENS,
-      messages: [{ role: "system", content: await buildSystemPrompt(settings.knowledge, lang) }, ...messages],
+      messages: [
+        { role: "system", content: buildSystemPrompt(await contextFor(messages), lang) },
+        ...messages,
+        { role: "system", content: languageReminder(lang) },
+      ],
     }),
     signal: request.signal,
   }).catch((cause) => {

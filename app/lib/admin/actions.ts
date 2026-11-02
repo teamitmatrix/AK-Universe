@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { PROJECT_STATUS } from "@/config/projects";
 import { isAdmin } from "@/lib/auth/session";
 import { CHATBOT_KEY, MAX_KNOWLEDGE_CHARS, type ChatbotSettings } from "@/lib/chatbot/knowledge";
+import { ensureIndex } from "@/lib/chatbot/rag";
 import { createClient } from "@/lib/supabase/server";
 import { PRICING_KEY, applyOverrides, loadDefaultConfig, type PricingOverrides } from "@/lib/video-config";
 
@@ -11,6 +13,10 @@ const num = (v: unknown) => {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined;
 };
+
+/** New prices or knowledge reach the chatbot right away instead of at its next periodic sync. */
+const reindexChatbot = () =>
+  after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
 
 /** Keeps only known keys and valid numbers, so the stored JSON can never break the catalogue. */
 function sanitize(input: PricingOverrides): PricingOverrides {
@@ -54,6 +60,7 @@ export async function savePricing(input: PricingOverrides) {
     return { success: false as const, error: "failed" as const };
   }
 
+  reindexChatbot();
   revalidatePath("/admin");
   return { success: true as const, config: applyOverrides(loadDefaultConfig(), value) };
 }
@@ -63,6 +70,7 @@ export async function resetPricing() {
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").delete().eq("key", PRICING_KEY);
   if (error) return { success: false as const, error: "resetFailed" as const };
+  reindexChatbot();
   revalidatePath("/admin");
   return { success: true as const, config: loadDefaultConfig() };
 }
@@ -101,6 +109,7 @@ export async function saveChatbot(input: ChatbotSettings) {
     console.error("saveChatbot failed:", error.message);
     return { success: false as const, error: "failed" as const };
   }
+  reindexChatbot();
   revalidatePath("/admin");
   return { success: true as const };
 }

@@ -55,6 +55,12 @@ else {
   await sql(read("config/supabase/migrations/003_private_settings.sql"));
   console.log("  ✅ 003_private_settings appliquée");
 }
+const [{ exists: hasChunks }] = await sql("select to_regclass('public.chatbot_chunks') is not null as exists");
+if (hasChunks) console.log("  ✅ 004_chatbot_rag déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/004_chatbot_rag.sql"));
+  console.log("  ✅ 004_chatbot_rag appliquée");
+}
 
 // ---------- 2–5. Auth ----------
 const site = (env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
