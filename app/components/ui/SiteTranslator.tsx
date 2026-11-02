@@ -7,16 +7,16 @@ import { LangSwitch, setTranslateCookie, useLang } from "./LangSwitch";
 
 /** Pages that already show the language switch in their own layout. */
 const INLINE_SWITCH = [
-  "/connexion.html",
-  "/inscription.html",
-  "/verification.html",
-  "/organisation.html",
-  "/abonnement.html",
-  "/paiement.html",
+  "/connexion",
+  "/inscription",
+  "/verification",
+  "/organisation",
+  "/abonnement",
+  "/paiement",
   "/auth/reset-password",
 ];
 /** Back-office stays in French. */
-const NO_SWITCH = ["/admin.html"];
+const NO_SWITCH = ["/admin"];
 
 declare global {
   interface Window {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { agents } from "@/config/agents";
 import { Icon } from "@/components/ui/Icon";
@@ -13,8 +14,8 @@ const MARKETING_LABEL = { fr: "Marketing Digital", en: "Digital marketing" };
 
 /** "Tarifs" dropdown: Agents IA prices and the Marketing packages (moved here from the marketing menu). */
 const PRICING_LINKS = [
-  { href: "/agents-ia/tarifs.html", label: "Forfaits IA" },
-  { href: "/marketing/forfaits.html", label: "Forfaits Marketing" },
+  { href: "/agents-ia/tarifs", label: "Forfaits IA" },
+  { href: "/marketing/forfaits", label: "Forfaits Marketing" },
 ];
 
 type Menu = "agents" | "tarifs";
@@ -26,6 +27,7 @@ type Props = {
 
 /** Main site header (home, agents IA). Mirrors initNav() from the static main.js. */
 export function SiteHeader({ active = "home", signedIn = false }: Props) {
+  const pathname = usePathname();
   const [lang] = useLang();
   const marketingLabel = MARKETING_LABEL[textLang(lang)];
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,7 +125,7 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
             </li>
             <li>
               <a
-                href="/marketing.html"
+                href="/marketing"
                 className={`nav-link${active === "marketing" ? " active" : ""}${lang === "en" ? " notranslate" : ""}`}
                 translate={nativeTranslate(lang)}
               >
@@ -143,7 +145,12 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                 <ul className="dropdown-list">
                   {PRICING_LINKS.map((link) => (
                     <li key={link.href}>
-                      <a href={link.href} onClick={closeAll}>
+                      <a
+                        href={link.href}
+                        className={pathname === link.href ? "current" : undefined}
+                        aria-current={pathname === link.href ? "page" : undefined}
+                        onClick={closeAll}
+                      >
                         {link.label} <Icon name="chev-right" />
                       </a>
                     </li>
@@ -157,7 +164,7 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
               </Link>
             </li>
             <li>
-              <a href="/informations.html" className="nav-link" onClick={closeAll}>
+              <a href="/informations" className="nav-link" onClick={closeAll}>
                 Contact
               </a>
             </li>
@@ -170,16 +177,16 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                 </button>
               </form>
             ) : (
-              <Link href="/connexion.html" className="btn btn-outline">
+              <Link href="/connexion" className="btn btn-outline">
                 Se connecter
               </Link>
             )}
             {signedIn ? (
-              <Link href="/compte.html" className="btn btn-primary">
+              <Link href="/compte" className="btn btn-primary">
                 Mon compte <Icon name="arrow" />
               </Link>
             ) : (
-              <Link href="/inscription.html" className="btn btn-primary">
+              <Link href="/inscription" className="btn btn-primary">
                 Essayer gratuitement <Icon name="arrow" />
               </Link>
             )}

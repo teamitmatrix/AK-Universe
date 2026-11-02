@@ -25,7 +25,7 @@ _Last updated: 2026-10-30_
 | Admin: list of received video requests + status | ✅ Built — ⏳ needs DB to test |
 | Apple / Microsoft login | ✅ Wired — off until enabled in Supabase (`NEXT_PUBLIC_OAUTH_PROVIDERS`) |
 | Setup guide + automatic setup check | ✅ `SETUP.md`, `npm run check:setup` |
-| Remaining pages rebuilt in React | ❌ Not started (run through the legacy bridge, working) |
+| Remaining pages rebuilt in React | ✅ Marketing, services, forfaits, tarifs and the quote flow are React pages |
 
 Legend: ✅ done · ⏳ done in code, waiting for setup/testing · ❌ to do
 
@@ -60,15 +60,15 @@ Apple / Microsoft buttons show a "coming soon" toast, as the doc specifies (real
 | `organisation.html` | React | `create_organization()` | Login required, FR/EN |
 | `abonnement.html` | React | Prices in `config/pricing.ts` | Login required, FR/EN |
 | `paiement.html` | React | Stripe Checkout (subscription) + promo codes | Login required, price recomputed on server, FR/EN (Stripe page opens in the same language) |
-| `agents-ia/tarifs.html` | Legacy | — | |
-| `marketing.html` | Legacy | — | |
-| `marketing/forfaits.html` | Legacy | — | |
-| `services.html` + 17 `services/*.html` | Legacy | Prices from DB (admin) | |
-| `projet.html` | Legacy | localStorage cart | Public (no login) |
-| `informations.html` | Legacy | — | Public |
-| `finaliser.html` | Legacy | `POST /api/projects` (devis) | Saved in `video_projects` |
-| `acompte.html` | Legacy | `POST /api/projects` → Stripe Checkout (deposit) or bank transfer | |
-| `confirmation.html` | Legacy | Reads `?paid=1` after Stripe | |
+| `agents-ia/tarifs.html` | React | — | Same plans as the static page |
+| `marketing.html` | React | — | |
+| `marketing/forfaits.html` | React | — | Adds the chosen plan to the project |
+| `services.html` + 17 `services/*.html` | React | Prices from DB (admin) | |
+| `projet.html` | React | localStorage cart | Public (no login) |
+| `informations.html` | React | — | Public |
+| `finaliser.html` | React | `POST /api/projects` (devis) | Saved in `video_projects` |
+| `acompte.html` | React | `POST /api/projects` → Stripe Checkout (deposit) or bank transfer | |
+| `confirmation.html` | React | Reads `?paid=1` after Stripe | |
 | `admin.html` | React | `site_settings` (Supabase) | Admins only |
 | `tarifs.html`, `marketing/mon-projet.html` | Redirects | — | Were meta-refresh pages |
 
@@ -200,7 +200,7 @@ Apple / Microsoft buttons show a "coming soon" toast, as the doc specifies (real
 - [ ] "Remember me" checkbox is visual only (as in the static site)
 
 ### Could do later (not required by the doc)
-- [ ] Rebuild the legacy pages in React (marketing, services, projet flow, tarifs) — they work today through the bridge
+- [x] Rebuild the legacy pages in React (marketing, services, projet flow, tarifs)
 - [ ] Hand-written translations (instead of Google) for the static pages, if the client wants better quality than machine translation
 
 ---
@@ -229,7 +229,7 @@ Short version below — the full click-by-click guide is in **`SETUP.md`**.
 | Admin stores only price overrides, not the whole catalogue | Texts keep living in one file; a later text edit is never hidden by an old DB copy | — |
 | Languages other than FR/EN use Google Translate | 24 languages × all pages cannot be hand-translated in the deadline; Google loads only when a visitor asks for it | Replace with hand-written dictionaries page by page |
 | Card deposits are e-mailed only once paid (webhook) | An unpaid Stripe checkout is not a confirmed project | — |
-| Remaining pages kept on the legacy bridge | Doc: "do not modify pages not covered"; fastest safe path | Rebuild page by page (§5) |
+| Video pages are React, with the same URLs and the same cart in localStorage | The static HTML bridge is gone | — |
 
 ---
 
@@ -237,7 +237,7 @@ Short version below — the full click-by-click guide is in **`SETUP.md`**.
 
 | File | Role |
 |---|---|
-| `app/components/legacy/LegacyPage.tsx` | Renders not-yet-rebuilt static pages |
+| `app/components/video/` | Marketing, services, forfaits and the quote flow |
 | `config/services-data.js` | Video services catalogue (texts + default prices) |
 | `app/lib/video-config.ts` | Defaults + admin price overrides |
 | `config/pricing.ts` | Agents IA subscription prices |

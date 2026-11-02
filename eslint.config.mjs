@@ -10,8 +10,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "node_modules/**",
-    // Original static-site scripts, served as-is to legacy pages.
-    "legacy-source/**",
+    // Original static-site scripts, kept as the reference the React pages were ported from.
     "public/assets/js/**"
   ])
 ]);

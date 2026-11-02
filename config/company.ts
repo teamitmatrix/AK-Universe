@@ -1,5 +1,5 @@
 /*
- * Legal identity of the company, shown on /mentions-legales.html, /confidentialite.html and /cgv.html.
+ * Legal identity of the company, shown on /mentions-legales, /confidentialite and /cgv.
  * Every value marked "À COMPLÉTER" must be filled in by AK Universe before going live
  * (French law: LCEN art. 6 for the legal notice, GDPR art. 13 for the privacy policy).
  */

@@ -6,31 +6,59 @@ import { createPublicClient } from "@/lib/supabase/server";
 
 /*
  * Video services catalogue = config/services-data.js (texts + default prices)
- * merged with the price overrides saved from /admin.html (site_settings "video_pricing").
+ * merged with the price overrides saved from /admin (site_settings "video_pricing").
  */
 
 export const PRICING_KEY = "video_pricing";
 
 export type Duration = { label: string; extra: number };
 export type OptionDef = { label: string; price: number; per?: "video" | "projet"; icon?: string };
+export type OptionRef = string | ({ id: string } & Partial<OptionDef>);
+export type MarketingItem = { icon: string; title: string; text: string };
+export type Plan = {
+  key: string;
+  name: string;
+  price: number;
+  tagline: string;
+  popular?: boolean;
+  features?: string[];
+};
 export type Service = {
   slug: string;
   name: string;
-  unit?: string;
+  gold?: string;
+  titleTop?: string;
+  description?: string;
+  benefits?: [string, string][];
   price: number;
-  options?: (string | ({ id: string } & Partial<OptionDef>))[];
+  unit?: string;
+  priceNote?: string;
+  includesTitle?: [string, string];
+  includesText?: string;
+  includes?: string[];
+  priceList?: string[];
+  options?: OptionRef[];
   durations?: Duration[];
   qtyChoices?: number[];
   qtyDiscounts?: Record<string, number>;
   qtyLabel?: string;
+  mockup?: number | null;
+  duration?: string;
+  realisations?: string;
 };
-export type Plan = { key: string; name: string; price: number; tagline: string };
 export type VideoConfig = {
   depositPercent: number;
   qtyDiscounts: Record<string, number>;
   defaultDurations: Duration[];
   options: Record<string, OptionDef>;
-  marketing?: { plans?: Plan[] };
+  clients?: string[];
+  faq?: { q: string; a: string }[];
+  marketing?: {
+    benefits?: MarketingItem[];
+    plans?: Plan[];
+    included?: MarketingItem[];
+    customQuote?: { title: string; text: string; primaryCta: string; secondaryCta: string };
+  };
   services: Service[];
   [key: string]: unknown;
 };

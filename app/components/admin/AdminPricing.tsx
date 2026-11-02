@@ -192,7 +192,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
         <button className="btn btn-outline" onClick={reset} disabled={pending}>
           {t.reset}
         </button>
-        <a className="btn btn-outline" href="/services.html">
+        <a className="btn btn-outline" href="/services">
           {all.viewSite}
         </a>
       </div>

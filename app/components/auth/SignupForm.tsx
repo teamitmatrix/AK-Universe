@@ -111,9 +111,9 @@ export function SignupForm() {
         return;
       }
       if (result.needsVerification) {
-        router.push(`/verification.html?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+        router.push(`/verification?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
       } else {
-        router.push("/organisation.html");
+        router.push("/organisation");
         router.refresh();
       }
     } catch {
@@ -126,7 +126,7 @@ export function SignupForm() {
   async function handleGoogle() {
     const { error: oauthError } = await createClient().auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirectTo=/organisation.html` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirectTo=/organisation` },
     });
     if (oauthError) setError("googleFailed");
   }
@@ -208,7 +208,7 @@ export function SignupForm() {
       <p className="alt">
         {t.haveAccount}
         <br />
-        <Link href="/connexion.html" className="link-orange">
+        <Link href="/connexion" className="link-orange">
           {t.login} <Icon name="arrow" />
         </Link>
       </p>

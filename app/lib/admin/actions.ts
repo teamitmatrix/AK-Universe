@@ -54,7 +54,7 @@ export async function savePricing(input: PricingOverrides) {
     return { success: false as const, error: "failed" as const };
   }
 
-  revalidatePath("/admin.html");
+  revalidatePath("/admin");
   return { success: true as const, config: applyOverrides(loadDefaultConfig(), value) };
 }
 
@@ -63,7 +63,7 @@ export async function resetPricing() {
   const supabase = await createClient();
   const { error } = await supabase.from("site_settings").delete().eq("key", PRICING_KEY);
   if (error) return { success: false as const, error: "resetFailed" as const };
-  revalidatePath("/admin.html");
+  revalidatePath("/admin");
   return { success: true as const, config: loadDefaultConfig() };
 }
 
@@ -78,7 +78,7 @@ export async function updateProjectStatus(id: string, status: string) {
     console.error("updateProjectStatus failed:", error.message);
     return { success: false as const, error: "updateFailed" as const };
   }
-  revalidatePath("/admin.html");
+  revalidatePath("/admin");
   return { success: true as const };
 }
 
@@ -101,6 +101,6 @@ export async function saveChatbot(input: ChatbotSettings) {
     console.error("saveChatbot failed:", error.message);
     return { success: false as const, error: "failed" as const };
   }
-  revalidatePath("/admin.html");
+  revalidatePath("/admin");
   return { success: true as const };
 }

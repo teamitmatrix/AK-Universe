@@ -1,6 +1,6 @@
 import type { TextLang } from "@/config/languages";
 
-/** Admin texts in French and English (switch at the top of /admin.html). Catalogue names stay as on the site. */
+/** Admin texts in French and English (switch at the top of /admin). Catalogue names stay as on the site. */
 export const ADMIN_TEXT = {
   fr: {
     tabs: { prix: "Prix des services vidéo", demandes: "Demandes vidéo", chatbot: "Chatbot" },

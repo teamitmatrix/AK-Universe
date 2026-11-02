@@ -130,7 +130,7 @@ export function ResetPasswordForm() {
         {success ? (
           <>
             <p role="status">{t.done}</p>
-            <Link className="btn btn-light-primary btn-block" href="/connexion.html">
+            <Link className="btn btn-light-primary btn-block" href="/connexion">
               {t.backToLogin}
             </Link>
           </>
@@ -174,7 +174,7 @@ export function ResetPasswordForm() {
               <p role="status">{t.checking}</p>
             )}
             <p className="alt">
-              <Link href="/connexion.html" className="link-orange">
+              <Link href="/connexion" className="link-orange">
                 {t.backToLogin}
               </Link>
             </p>

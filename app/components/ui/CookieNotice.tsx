@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "aku-cookie-notice";
-const HIDDEN_ON = ["/admin.html"];
+const HIDDEN_ON = ["/admin"];
 
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {
@@ -43,7 +43,7 @@ export function CookieNotice() {
     <div className="cookie-notice" role="region" aria-label="Cookies">
       <p>
         Ce site utilise uniquement des cookies nécessaires à son fonctionnement (session, langue, paiement), sans
-        publicité ni mesure d&apos;audience. <a href="/confidentialite.html#cookies">En savoir plus</a>
+        publicité ni mesure d&apos;audience. <a href="/confidentialite#cookies">En savoir plus</a>
       </p>
       <button type="button" className="btn btn-primary" onClick={close}>
         OK

@@ -5,30 +5,32 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   allowedDevOrigins: ["192.168.100.46"],
 
-  // Legacy pages are read from disk by app/components/legacy/LegacyPage.tsx.
+  // The video catalogue is read from disk by app/lib/video-config.ts.
   outputFileTracingIncludes: {
-    "/**": ["./legacy-source/**/*.html", "./config/services-data.js"],
+    "/**": ["./config/services-data.js"],
   },
 
   async redirects() {
     return [
       { source: "/index.html", destination: "/", permanent: true },
       // Aliases kept from the static site (they were meta-refresh pages).
-      { source: "/tarifs.html", destination: "/agents-ia/tarifs.html", permanent: true },
-      { source: "/marketing/mon-projet.html", destination: "/projet.html", permanent: true },
+      { source: "/tarifs.html", destination: "/agents-ia/tarifs", permanent: true },
+      { source: "/marketing/mon-projet.html", destination: "/projet", permanent: true },
       // Old typo / duplicate URLs that may already have been shared.
-      { source: "/information.html", destination: "/informations.html", permanent: true },
-      { source: "/marketing/mon-project.html", destination: "/projet.html", permanent: true },
-      { source: "/marketing/index.html", destination: "/marketing.html", permanent: true },
-      { source: "/marketing/services.html", destination: "/services.html", permanent: true },
-      { source: "/agents-ia/index.html", destination: "/agents-ia/tarifs.html", permanent: true },
-      { source: "/agents-ia/marketing.html", destination: "/marketing.html", permanent: true },
+      { source: "/information.html", destination: "/informations", permanent: true },
+      { source: "/marketing/mon-project.html", destination: "/projet", permanent: true },
+      { source: "/marketing/index.html", destination: "/marketing", permanent: true },
+      { source: "/marketing/services.html", destination: "/services", permanent: true },
+      { source: "/agents-ia/index.html", destination: "/agents-ia/tarifs", permanent: true },
+      { source: "/agents-ia/marketing.html", destination: "/marketing", permanent: true },
       { source: "/agents-ia/services/:slug", destination: "/services/:slug", permanent: true },
       {
         source: "/services/video-recurutment-marque-employeur.html",
-        destination: "/services/video-recrutement-marque-employeur.html",
+        destination: "/services/video-recrutement-marque-employeur",
         permanent: true,
       },
+      // Every former .html page now lives at the same path without the suffix.
+      { source: "/:path*.html", destination: "/:path*", permanent: true },
     ];
   },
 

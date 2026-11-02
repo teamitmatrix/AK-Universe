@@ -153,8 +153,8 @@ export async function POST(request: Request) {
       ],
       metadata: { kind: "deposit", project_id: project.id, reference, lang },
       payment_intent_data: { metadata: { kind: "deposit", project_id: project.id, reference } },
-      success_url: `${site}/confirmation.html?paid=1`,
-      cancel_url: `${site}/acompte.html`,
+      success_url: `${site}/confirmation?paid=1`,
+      cancel_url: `${site}/acompte`,
     });
   } catch (cause) {
     console.error("Stripe deposit checkout failed:", cause);

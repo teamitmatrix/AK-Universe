@@ -13,7 +13,7 @@ export async function createOrganization(input: { name: string; sector: string; 
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/connexion.html?redirectTo=/organisation.html");
+  if (!auth.user) redirect("/connexion?redirectTo=/organisation");
   await ensureProfile(auth.user);
 
   const { error } = await supabase.rpc("create_organization", {
@@ -25,5 +25,5 @@ export async function createOrganization(input: { name: string; sector: string; 
     console.error("create_organization failed:", error.message);
     return { success: false as const, code: "failed" as const };
   }
-  redirect("/abonnement.html");
+  redirect("/abonnement");
 }

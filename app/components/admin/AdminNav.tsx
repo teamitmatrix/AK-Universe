@@ -16,7 +16,7 @@ export function AdminNav({ tab }: { tab: (typeof TABS)[number] }) {
       {TABS.map((id) => (
         <Link
           key={id}
-          href={id === "prix" ? "/admin.html" : `/admin.html?vue=${id}`}
+          href={id === "prix" ? "/admin" : `/admin?vue=${id}`}
           className={`btn ${tab === id ? "btn-primary" : "btn-outline"}`}
           aria-current={tab === id ? "page" : undefined}
         >

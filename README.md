@@ -2,7 +2,7 @@
 
 Marketing site for AK Universe: video services, AI agent subscriptions, quotes, bookings, and customer accounts. It is a Next.js app written in TypeScript and styled with Tailwind. Accounts and data use Supabase, payments use Stripe, and transactional email uses Resend. Production hosting is Vercel.
 
-Pages that have not been rebuilt in React still run from the original static site in `legacy-source/`.
+Every public page is a React route. Catalogue texts and default prices live in `config/services-data.js`.
 
 ## Local development
 

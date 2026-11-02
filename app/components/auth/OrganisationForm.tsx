@@ -62,7 +62,7 @@ export function OrganisationForm() {
     event.preventDefault();
     setError("");
     startTransition(async () => {
-      // Redirects to /abonnement.html on success.
+      // Redirects to /abonnement on success.
       const result = await createOrganization({ name, sector, size });
       if (result && !result.success) setError(result.code);
     });

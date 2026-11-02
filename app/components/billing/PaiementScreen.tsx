@@ -199,7 +199,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
     <div className="theme-light" translate={nativeTranslate(lang)}>
       <div className="container" id="paiement">
         <div className="light-top" style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <Link href="/abonnement.html" className="back">
+          <Link href="/abonnement" className="back">
             <Icon name="arrow-left" /> {t.back}
           </Link>
           <LangSwitch lang={lang} onChange={setLang} />
@@ -353,7 +353,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
   );
 }
 
-/** Shown on /paiement.html?success=1 after Stripe Checkout. */
+/** Shown on /paiement?success=1 after Stripe Checkout. */
 export function PaiementSuccess() {
   const [lang] = useLang();
   const t = TEXT[textLang(lang)].success;

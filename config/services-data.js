@@ -3,7 +3,7 @@
    ---------------------------------------------------------
    Tout le contenu des pages services et du configurateur vient
    d'ici : titres, textes, options, images et PRIX PAR DÉFAUT.
-   Les prix modifiés dans /admin.html sont enregistrés dans Supabase
+   Les prix modifiés dans /admin sont enregistrés dans Supabase
    (table site_settings, clé "video_pricing") et remplacent ceux-ci.
    Servi au navigateur par app/assets/js/services-data.js/route.ts.
    ========================================================= */
@@ -51,9 +51,9 @@ window.AKU_CONFIG = {
   ],
 
   /* =======================================================
-     Forfaits Marketing (page /marketing/forfaits.html)
+     Forfaits Marketing (page /marketing/forfaits)
      Univers 100% séparé des abonnements Agents IA
-     (voir assets/js/marketing-forfaits.js et agents-ia/tarifs.html).
+     (voir assets/js/marketing-forfaits.js et agents-ia/tarifs).
      Modifiable à la main pour ajuster prix, textes et inclus.
      ======================================================= */
   marketing: {

@@ -38,7 +38,7 @@ export async function startSubscriptionCheckout(input: {
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/connexion.html?redirectTo=/abonnement.html");
+  if (!auth.user) redirect("/connexion?redirectTo=/abonnement");
   await ensureProfile(auth.user);
 
   // Never trust client totals: recompute from the sanitized selection.
@@ -100,8 +100,8 @@ export async function startSubscriptionCheckout(input: {
       discounts: input.promotionCodeId ? [{ promotion_code: input.promotionCodeId }] : undefined,
       metadata: { kind: "subscription", subscription_id: subscription.id, user_id: auth.user.id },
       subscription_data: { metadata: { subscription_id: subscription.id, user_id: auth.user.id } },
-      success_url: `${site}/paiement.html?success=1`,
-      cancel_url: `${site}/abonnement.html`,
+      success_url: `${site}/paiement?success=1`,
+      cancel_url: `${site}/abonnement`,
     });
   } catch (cause) {
     console.error("Stripe checkout failed:", cause);
@@ -117,7 +117,7 @@ export async function openBillingPortal() {
   const stripe = getStripe();
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/connexion.html?redirectTo=/compte.html");
+  if (!auth.user) redirect("/connexion?redirectTo=/compte");
 
   const { data: subscription } = await supabase
     .from("subscriptions")
@@ -127,19 +127,19 @@ export async function openBillingPortal() {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!stripe || !subscription?.stripe_customer_id) redirect("/compte.html?portal=unavailable");
+  if (!stripe || !subscription?.stripe_customer_id) redirect("/compte?portal=unavailable");
 
   let url: string;
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
-      return_url: `${getSiteUrl()}/compte.html`,
+      return_url: `${getSiteUrl()}/compte`,
       locale: "auto",
     });
     url = session.url;
   } catch (cause) {
     console.error("Stripe billing portal failed:", cause);
-    redirect("/compte.html?portal=unavailable");
+    redirect("/compte?portal=unavailable");
   }
   redirect(url);
 }

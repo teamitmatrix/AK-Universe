@@ -6,11 +6,11 @@ import { textLang, useLang } from "./LangSwitch";
 
 /*
  * Floating site assistant, above the language switch. Answers come from /api/chat
- * (knowledge edited on /admin.html?vue=chatbot); the widget stays hidden until it is switched on there.
+ * (knowledge edited on /admin?vue=chatbot); the widget stays hidden until it is switched on there.
  */
 
 const STORAGE_KEY = "aku-chat";
-const HIDDEN_ON = ["/admin.html"];
+const HIDDEN_ON = ["/admin"];
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -25,7 +25,7 @@ const TEXT = {
     placeholder: "Écrivez votre message…",
     send: "Envoyer",
     reset: "Nouvelle conversation",
-    error: "Désolé, je ne peux pas répondre pour le moment. Réessayez dans un instant ou demandez un devis sur /projet.html.",
+    error: "Désolé, je ne peux pas répondre pour le moment. Réessayez dans un instant ou demandez un devis sur /projet.",
     rateLimited: "Vous avez envoyé beaucoup de messages. Merci de patienter quelques minutes.",
     disclaimer: "Assistant IA : vérifiez les informations importantes sur votre devis.",
   },
@@ -39,15 +39,15 @@ const TEXT = {
     placeholder: "Type your message…",
     send: "Send",
     reset: "New conversation",
-    error: "Sorry, I can't answer right now. Please try again shortly or request a quote at /projet.html.",
+    error: "Sorry, I can't answer right now. Please try again shortly or request a quote at /projet.",
     rateLimited: "You've sent a lot of messages. Please wait a few minutes.",
     disclaimer: "AI assistant: check important details on your quote.",
   },
 };
 
-/** Turns site paths (/services.html) and full URLs in an answer into links. */
+/** Turns site paths (/services) and full URLs in an answer into links. */
 function linkify(text: string): ReactNode[] {
-  return text.split(/(https?:\/\/[^\s)]+|\/[\w\-/]+\.html(?:[?#][^\s).,]*)?)/g).map((part, i) =>
+  return text.split(/(https?:\/\/[^\s)]+|\/[\w\-/]+(?:\.html)?(?:[?#][^\s).,]*)?)/g).map((part, i) =>
     i % 2 ? (
       <a key={i} href={part} {...(part.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
         {part}

@@ -13,15 +13,15 @@ export function SiteFooter() {
         </Link>
         <nav className="footer-links" aria-label="Liens de pied de page">
           <Link href="/#agents">Agents IA</Link>
-          <a href="/marketing.html">Marketing</a>
-          <a href="/agents-ia/tarifs.html">Tarifs</a>
-          <Link href="/connexion.html">Se connecter</Link>
+          <a href="/marketing">Marketing</a>
+          <a href="/agents-ia/tarifs">Tarifs</a>
+          <Link href="/connexion">Se connecter</Link>
         </nav>
         <span>© {new Date().getFullYear()} AK Universe</span>
         <nav className="footer-legal" aria-label="Informations légales">
-          <a href="/mentions-legales.html">Mentions légales</a>
-          <a href="/confidentialite.html">Confidentialité</a>
-          <a href="/cgv.html">CGV</a>
+          <a href="/mentions-legales">Mentions légales</a>
+          <a href="/confidentialite">Confidentialité</a>
+          <a href="/cgv">CGV</a>
         </nav>
       </div>
     </footer>

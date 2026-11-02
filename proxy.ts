@@ -3,22 +3,22 @@ import { updateSession } from "@/lib/supabase/proxy";
 
 /** Pages that require a signed-in user. */
 const PROTECTED_ROUTES = [
-  "/compte.html",
-  "/organisation.html",
-  "/abonnement.html",
-  "/paiement.html",
-  "/admin.html",
+  "/compte",
+  "/organisation",
+  "/abonnement",
+  "/paiement",
+  "/admin",
 ];
 
 /** Signed-in users are sent away from these. */
-const GUEST_ONLY_ROUTES = ["/connexion.html", "/inscription.html"];
+const GUEST_ONLY_ROUTES = ["/connexion", "/inscription"];
 
 export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
   if (!user && PROTECTED_ROUTES.includes(pathname)) {
-    const url = new URL("/connexion.html", request.url);
+    const url = new URL("/connexion", request.url);
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }

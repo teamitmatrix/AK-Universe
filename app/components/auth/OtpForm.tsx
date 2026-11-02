@@ -110,7 +110,7 @@ export function OtpForm() {
         setError(result.code === "otp_expired" ? "expired" : "failed");
         return;
       }
-      router.replace(loginStep ? safeRedirect(params.get("redirectTo")) : "/organisation.html");
+      router.replace(loginStep ? safeRedirect(params.get("redirectTo")) : "/organisation");
       router.refresh();
     } finally {
       setLoading(false);

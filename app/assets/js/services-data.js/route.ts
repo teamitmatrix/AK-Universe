@@ -1,8 +1,8 @@
 import { getVideoConfig } from "@/lib/video-config";
 
 /*
- * Replaces the static services-data.js: the legacy pages (services, projet, admin…)
- * still load /assets/js/services-data.js, now built from defaults + admin prices.
+ * Catalogue endpoint kept for anything that still requests /assets/js/services-data.js.
+ * The React pages read the same config on the server (defaults + admin prices).
  */
 export async function GET() {
   const config = await getVideoConfig();

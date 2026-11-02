@@ -138,7 +138,7 @@ export function LoginScreen() {
       const next = safeRedirect(params.get("redirectTo"));
       if (result.step === "code") {
         // Two-factor: the 6-digit code was e-mailed (Resend).
-        router.push(`/verification.html?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
+        router.push(`/verification?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
         return;
       }
       router.replace(next);
@@ -364,7 +364,7 @@ export function LoginScreen() {
             <p className="alt">
               {t.signup}
               <br />
-              <Link href="/inscription.html" className="link-orange">
+              <Link href="/inscription" className="link-orange">
                 {t.signupLink} <Icon name="arrow" />
               </Link>
             </p>

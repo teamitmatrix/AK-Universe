@@ -76,14 +76,14 @@ export function AbonnementScreen() {
 
   function goToPayment() {
     const params = new URLSearchParams({ cycle, users: String(users), options: options.join(",") });
-    router.push(`/paiement.html?${params}`);
+    router.push(`/paiement?${params}`);
   }
 
   return (
     <div className="theme-light" translate={nativeTranslate(lang)}>
       <div className="container" id="abonnement">
         <div className="light-top">
-          <Link href="/organisation.html" className="back">
+          <Link href="/organisation" className="back">
             <Icon name="arrow-left" /> {t.back}
           </Link>
           <LangSwitch lang={lang} onChange={setLang} />

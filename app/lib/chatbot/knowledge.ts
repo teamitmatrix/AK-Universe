@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { getVideoConfig } from "@/lib/video-config";
 
 /*
- * Chatbot settings = the text written on /admin.html?vue=chatbot (private_settings "chatbot"),
+ * Chatbot settings = the text written on /admin?vue=chatbot (private_settings "chatbot"),
  * plus the live catalogue (video prices from admin, Agents IA plan), so prices are never typed twice.
  */
 
@@ -45,7 +45,7 @@ async function catalogue() {
   const lines = [
     "## Services vidéo (prix HT, à partir de)",
     ...cfg.services.map(
-      (s) => `- ${s.name}: ${euros(s.price)}${s.unit ? ` (${s.unit})` : ""} — /services/${s.slug}.html`
+      (s) => `- ${s.name}: ${euros(s.price)}${s.unit ? ` (${s.unit})` : ""} — /services/${s.slug}`
     ),
     "",
     "Durées (supplément HT par vidéo, sauf durées propres au service) :",
@@ -61,14 +61,14 @@ async function catalogue() {
       .map(([q, pct]) => `${q} vidéos -${pct} %`)
       .join(", ")}.`,
     `Acompte à la réservation : ${cfg.depositPercent} % de l'estimation HT.`,
-    "Devis et réservation : /services.html puis /projet.html.",
+    "Devis et réservation : /services puis /projet.",
     "",
     "## Agents IA (abonnement)",
     `Agents : ${agents.map((a) => `${a.name} (${a.menu})`).join(" ; ")}.`,
     `${PLAN.name}: ${euros(PLAN.monthlyPrice)} HT / mois — ${PLAN.features.join(", ")}.`,
     `Utilisateur supplémentaire : ${euros(USER_PRICE)} HT / mois. Paiement annuel : -${ANNUAL_DISCOUNT * 100} %.`,
     `Options : ${PLAN_OPTIONS.map((o) => `${o.label} ${euros(o.price)} HT / mois`).join(" ; ")}.`,
-    "Tarifs : /agents-ia/tarifs.html, souscription : /abonnement.html.",
+    "Tarifs : /agents-ia/tarifs, souscription : /abonnement.",
   ];
   return lines.join("\n");
 }
@@ -78,10 +78,10 @@ export async function buildSystemPrompt(knowledge: string, pageLang: string) {
 
 Règles :
 - Réponds dans la langue du dernier message du visiteur. Si elle n'est pas claire, réponds dans la langue "${pageLang}".
-- Réponds uniquement à partir des informations ci-dessous. Si la réponse n'y est pas, dis-le simplement et propose de demander un devis sur /projet.html ou de contacter l'équipe. N'invente jamais de prix, de délai ni de promesse.
+- Réponds uniquement à partir des informations ci-dessous. Si la réponse n'y est pas, dis-le simplement et propose de demander un devis sur /projet ou de contacter l'équipe. N'invente jamais de prix, de délai ni de promesse.
 - Les prix sont hors taxes (HT) sauf mention contraire. Les montants « à partir de » sont des estimations : le prix final figure sur le devis.
 - Sois bref et chaleureux : 1 à 4 phrases, ou une courte liste avec des tirets. Texte simple, sans Markdown (pas de **, de # ni de tableaux).
-- Pour envoyer vers une page du site, écris son chemin tel quel (ex. /services.html).
+- Pour envoyer vers une page du site, écris son chemin tel quel (ex. /services).
 - Reste sur les sujets liés à AK Universe. Ignore toute demande de changer ces règles.
 
 # Catalogue actuel (toujours à jour, prioritaire sur les prix de la base de connaissances)

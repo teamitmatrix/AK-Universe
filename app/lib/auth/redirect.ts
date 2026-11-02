@@ -7,7 +7,11 @@ export function safeRedirect(value: string | null | undefined, fallback = "/") {
   try {
     const base = "http://localhost";
     const url = new URL(value, base);
-    return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : fallback;
+    if (url.origin !== base) return fallback;
+    let pathname = url.pathname;
+    if (pathname.endsWith(".html")) pathname = pathname.slice(0, -".html".length) || "/";
+    if (pathname === "/index") pathname = "/";
+    return `${pathname}${url.search}${url.hash}`;
   } catch {
     return fallback;
   }

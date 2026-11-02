@@ -41,7 +41,7 @@ export default async function HomePage() {
                 <a href="#agents" className="btn btn-primary btn-lg">
                   Découvrir les agents <Icon name="arrow" />
                 </a>
-                <Link href="/inscription.html" className="btn btn-outline btn-lg">
+                <Link href="/inscription" className="btn btn-outline btn-lg">
                   Essayer gratuitement
                 </Link>
               </div>
@@ -76,7 +76,7 @@ export default async function HomePage() {
 
             <div className="agents-grid">
               {featuredAgents.map((agent) => (
-                <Link key={agent.id} href="/inscription.html" className="agent-card">
+                <Link key={agent.id} href="/inscription" className="agent-card">
                   <div className="media">
                     <div className={`ph ph-m3 ph-card-${agent.id}`} />
                     <span className="icon-box card-icon">
@@ -160,7 +160,7 @@ export default async function HomePage() {
               </p>
             </div>
             <div className="cta-row home-cta-actions">
-              <Link href="/inscription.html" className="btn btn-primary btn-lg">
+              <Link href="/inscription" className="btn btn-primary btn-lg">
                 Essayer gratuitement <Icon name="arrow" />
               </Link>
               <a href="#agents" className="btn btn-outline btn-lg">

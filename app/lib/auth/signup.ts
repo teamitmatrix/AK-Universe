@@ -32,7 +32,7 @@ export async function signUp(input: SignupInput) {
       password: input.password,
       options: {
         data: { first_name: firstName, last_name: lastName },
-        emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation.html`,
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation`,
       },
     });
     if (error) return { success: false as const, code: error.code ?? "unknown" };
@@ -75,7 +75,7 @@ export async function resendSignupCode(email: string, lang?: string) {
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation.html` },
+      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation` },
     });
     return error ? { success: false as const, code: error.code ?? "unknown" } : { success: true as const };
   }
