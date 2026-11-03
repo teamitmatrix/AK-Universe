@@ -3,33 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { agents } from "@/config/agents";
 import { Icon } from "@/components/ui/Icon";
 import { nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+import { NAV_MENUS, type NavMenu } from "@/config/navigation";
 
 const DESKTOP = "(min-width: 981px)";
 
-/** French is the source; English is written out so it stays "Digital marketing". */
-const MARKETING_LABEL = { fr: "Marketing Digital", en: "Digital marketing" };
+/** Top-level labels; in English they are written out (Google Translate makes "Accueil" "Welcome"). */
+const LABELS = {
+  fr: { home: "Accueil", about: "À propos", contact: "Contact" },
+  en: { home: "Home", about: "About Us", contact: "Contact" },
+};
 
-/** "Tarifs" dropdown: Agents IA prices and the Marketing packages (moved here from the marketing menu). */
-const PRICING_LINKS = [
-  { href: "/agents-ia/tarifs", label: "Forfaits IA" },
-  { href: "/marketing/forfaits", label: "Forfaits Marketing" },
-];
-
-type Menu = "agents" | "tarifs";
+type Menu = NavMenu["id"];
 
 type Props = {
-  active?: "home" | "marketing" | "tarifs" | "none";
+  active?: "home" | Menu | "none";
   signedIn?: boolean;
 };
 
-/** Main site header (home, agents IA). Mirrors initNav() from the static main.js. */
+/** Main site header (home, agents IA, digital). Mirrors initNav() from the static main.js. */
 export function SiteHeader({ active = "home", signedIn = false }: Props) {
   const pathname = usePathname();
   const [lang] = useLang();
-  const marketingLabel = MARKETING_LABEL[textLang(lang)];
+  const en = textLang(lang) === "en";
+  const labels = LABELS[textLang(lang)];
+  /** Keeps Google Translate off the written-out English labels. */
+  const translate = nativeTranslate(lang);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<Menu | null>(null);
   const navRef = useRef<HTMLUListElement>(null);
@@ -37,7 +37,11 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (!(e.target as Element).closest?.(".has-dropdown") || !navRef.current?.contains(e.target as Node)) setOpenMenu(null);
+      if (
+        !(e.target as Element).closest?.(".has-dropdown") ||
+        !navRef.current?.contains(e.target as Node)
+      )
+        setOpenMenu(null);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
@@ -48,7 +52,8 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
     setOpenMenu(null);
     setMenuOpen(false);
   };
-  const toggle = (menu: Menu) => setOpenMenu((current) => (current === menu ? null : menu));
+  const toggle = (menu: Menu) =>
+    setOpenMenu((current) => (current === menu ? null : menu));
 
   /** Hover on desktop, click everywhere, Escape closes — as initNav() in main.js. */
   const dropdown = (menu: Menu) => ({
@@ -59,15 +64,21 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
       setOpenMenu(menu);
     },
     onMouseLeave: () => {
-      if (isDesktop()) closeTimer.current = setTimeout(() => setOpenMenu(null), 120);
+      if (isDesktop())
+        closeTimer.current = setTimeout(() => setOpenMenu(null), 120);
     },
-    onKeyDown: (e: React.KeyboardEvent) => e.key === "Escape" && setOpenMenu(null),
+    onKeyDown: (e: React.KeyboardEvent) =>
+      e.key === "Escape" && setOpenMenu(null),
   });
 
   return (
     <header className="site-header">
       <div className="container nav">
-        <Link href="/" className="logo notranslate" aria-label="AK Universe — accueil">
+        <Link
+          href="/"
+          className="logo notranslate"
+          aria-label="AK Universe — accueil"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
           <img src="/assets/img/logo.svg" alt="" />
         </Link>
@@ -82,90 +93,82 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
         <div className={`nav-menu${menuOpen ? " open" : ""}`}>
           <ul className="nav-links" ref={navRef}>
             <li>
-              <Link href="/" className={`nav-link${active === "home" ? " active" : ""}`} onClick={closeAll}>
-                Accueil
+              <Link
+                href="/"
+                className={`nav-link${active === "home" ? " active" : ""}${en ? " notranslate" : ""}`}
+                translate={translate}
+                onClick={closeAll}
+              >
+                {labels.home}
               </Link>
             </li>
-            <li {...dropdown("agents")}>
-              <button
-                className="nav-link"
-                aria-expanded={openMenu === "agents"}
-                aria-haspopup="true"
-                onClick={() => toggle("agents")}
-              >
-                Agents IA <Icon name="chev-down" className="chev" />
-              </button>
-              <div className="dropdown mega">
+            {NAV_MENUS.map((menu) => (
+              <li key={menu.id} {...dropdown(menu.id)}>
+                {/* The label opens the section page; the chevron opens the menu (on mobile there is no hover). */}
+                <Link
+                  href={menu.href}
+                  className={`nav-link${active === menu.id ? " active" : ""}${en ? " notranslate" : ""}`}
+                  translate={translate}
+                  onClick={closeAll}
+                >
+                  {en ? menu.labelEn : menu.label}
+                </Link>
                 <button
                   type="button"
-                  className="mega-close"
-                  aria-label="Fermer le menu Agents IA"
-                  onClick={() => setOpenMenu(null)}
+                  className="nav-chev"
+                  aria-label={
+                    en ? `${menu.labelEn} submenu` : `Sous-menu ${menu.label}`
+                  }
+                  aria-expanded={openMenu === menu.id}
+                  aria-haspopup="true"
+                  onClick={() => toggle(menu.id)}
                 >
-                  <Icon name="close" />
+                  <Icon name="chev-down" className="chev" />
                 </button>
-                <div className="mega-scroll">
-                  {agents.map((agent) => (
-                    <Link key={agent.id} href="/#agents" className="mega-item" onClick={closeAll}>
-                      <span className={`avatar ph ph-m11 ph-av ph-av-${agent.id}`} />
-                      <span className="icon-box">
-                        <Icon name={agent.icon} />
-                      </span>
-                      <span>
-                        <strong>{agent.name}</strong>
-                        <small>{agent.menu}</small>
-                      </span>
-                      <span className="round-arrow">
-                        <Icon name="arrow" />
-                      </span>
-                    </Link>
-                  ))}
+                <div className="dropdown nav-dd">
+                  <ul className="dropdown-list">
+                    {menu.links.map((link) => (
+                      <li key={link.href}>
+                        <Link
+                          href={link.href}
+                          className={
+                            pathname === link.href ? "current" : undefined
+                          }
+                          aria-current={
+                            pathname === link.href ? "page" : undefined
+                          }
+                          onClick={closeAll}
+                        >
+                          <span>
+                            <strong>{link.label}</strong>
+                            <small>{link.text}</small>
+                          </span>
+                          <Icon name="chev-right" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
+              </li>
+            ))}
+            <li>
+              <Link
+                href="/"
+                className={`nav-link${en ? " notranslate" : ""}`}
+                translate={translate}
+                onClick={closeAll}
+              >
+                {labels.about}
+              </Link>
             </li>
             <li>
               <a
-                href="/marketing"
-                className={`nav-link${active === "marketing" ? " active" : ""}${lang === "en" ? " notranslate" : ""}`}
-                translate={nativeTranslate(lang)}
+                href="/informations"
+                className={`nav-link${en ? " notranslate" : ""}`}
+                translate={translate}
+                onClick={closeAll}
               >
-                {marketingLabel}
-              </a>
-            </li>
-            <li {...dropdown("tarifs")}>
-              <button
-                className={`nav-link${active === "tarifs" ? " active" : ""}`}
-                aria-expanded={openMenu === "tarifs"}
-                aria-haspopup="true"
-                onClick={() => toggle("tarifs")}
-              >
-                Tarifs <Icon name="chev-down" className="chev" />
-              </button>
-              <div className="dropdown tarifs-dd">
-                <ul className="dropdown-list">
-                  {PRICING_LINKS.map((link) => (
-                    <li key={link.href}>
-                      <a
-                        href={link.href}
-                        className={pathname === link.href ? "current" : undefined}
-                        aria-current={pathname === link.href ? "page" : undefined}
-                        onClick={closeAll}
-                      >
-                        {link.label} <Icon name="chev-right" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-            <li>
-              <Link href="/" className="nav-link" onClick={closeAll}>
-                À propos
-              </Link>
-            </li>
-            <li>
-              <a href="/informations" className="nav-link" onClick={closeAll}>
-                Contact
+                {labels.contact}
               </a>
             </li>
           </ul>

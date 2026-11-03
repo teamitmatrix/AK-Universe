@@ -1,6 +1,7 @@
 import "server-only";
-import { agents, featuredAgents } from "@/config/agents";
+import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
+import { DIGITAL_GROUPS, DIGITAL_OFFERS } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
 import { AGENT_TIERS, ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, USER_PRICE } from "@/config/pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
@@ -26,9 +27,10 @@ export const OVERVIEW: Doc = {
   source: "site",
   title: "Présentation d'AK Universe",
   url: "/",
-  content: `AK Universe propose aux entreprises deux univers séparés :
-1) Agents IA par abonnement (ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia/tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
+  content: `AK Universe propose aux entreprises trois univers (menu : Agents IA, Marketing, Digital) :
+1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia/tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
 2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Pages : /services (catalogue), /services/<service>, /marketing/forfaits, /projet (mon projet), /informations (demande de devis).
+3) Solutions digitales (sites web, applications mobiles, SEO, fiche Google Business Profile, CRM), sur devis. Page : /digital.
 Mentions : /cgv, /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
 };
 
@@ -137,14 +139,23 @@ function marketingDocs(cfg: VideoConfig): Doc[] {
 }
 
 function agentDocs(): Doc[] {
-  const described = new Map(featuredAgents.map((a) => [a.id, a.description]));
   return [
     {
       source: "agents",
       title: "Liste des agents IA",
-      url: "/#agents",
-      content: `Agents IA disponibles :\n${list(agents.map((a) => `${a.name} : ${described.get(a.id) ?? a.menu}`))}`,
+      url: "/agents-ia",
+      content: `Agents IA disponibles (page /agents-ia, par catégorie) :\n${list(
+        AGENT_CATEGORIES.map(
+          (c) => `${c.name} : ${agents.filter((a) => a.category === c.id).map((a) => `${a.name} (${a.menu})`).join(", ")}`
+        )
+      )}`,
     },
+    ...agents.map((a) => ({
+      source: "agents",
+      title: a.name,
+      url: `/agents-ia/${a.id}`,
+      content: `${a.name} — ${a.description}\nFonctionnalités :\n${list(a.features)}\nCapacités :\n${list(a.capabilities)}\nIntégrations : ${a.integrations.join(", ")}.\nLangues : ${AGENT_LANGUAGES.join(", ")}.\nDisponible dans toutes les offres (voir /agents-ia/tarifs).`,
+    })),
     {
       source: "agents",
       title: "Offres Agents IA (page Tarifs)",
@@ -176,6 +187,25 @@ function faqDocs(): Doc[] {
       content: `${topic.topic}\nQuestion : ${e.q}\nRéponse : ${e.a}`,
     }))
   );
+}
+
+function digitalDocs(): Doc[] {
+  return [
+    ...DIGITAL_GROUPS.map((g) => ({
+      source: "digital",
+      title: `Digital — ${g.title} ${g.gold}`,
+      url: `/digital#${g.id}`,
+      content: `${g.text}\n${list(g.services.map((s) => `${s.name} : ${s.text} (${s.points.join(", ")})`))}`,
+    })),
+    {
+      source: "digital",
+      title: "Tarifs des solutions digitales",
+      url: "/digital#tarifs",
+      content: `Toutes les solutions digitales sont sur devis (pas de prix publié) :\n${list(
+        DIGITAL_OFFERS.map((o) => `${o.name} : ${o.text}`)
+      )}\nDemande de devis gratuite sur /informations.`,
+    },
+  ];
 }
 
 function companyDoc(): Doc | null {
@@ -243,6 +273,7 @@ export async function buildCorpus(): Promise<Doc[]> {
     ...videoDocs(cfg),
     ...marketingDocs(cfg),
     ...agentDocs(),
+    ...digitalDocs(),
     ...faqDocs(),
     ...[companyDoc()].filter((d): d is Doc => d !== null),
     ...splitPassages(settings.knowledge).map((p) => ({ source: "admin", ...p })),

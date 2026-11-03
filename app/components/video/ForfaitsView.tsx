@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
 
@@ -65,7 +66,9 @@ export function ForfaitsView() {
       <section className="pricing stars">
         <div className="container">
           <nav className="crumbs crumbs-center" aria-label="Fil d'Ariane">
-            <Link href="/marketing">Accueil</Link>
+            <Link href="/marketing">
+              <HomeLabel />
+            </Link>
             <Icon name="chev-right" />
             <Link href="/marketing">Marketing</Link>
             <Icon name="chev-right" />

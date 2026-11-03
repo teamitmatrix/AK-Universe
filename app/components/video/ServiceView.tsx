@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { HomeLabel } from "@/components/ui/LangSwitch";
 import { serviceOf } from "./cart";
 import { useVideo } from "./context";
 import { Examples } from "./Examples";
@@ -35,7 +36,9 @@ export function ServiceView({ slug }: { slug: string }) {
               <Icon name="arrow-left" /> Retour
             </Link>
             <nav className="crumbs" aria-label="Fil d'Ariane">
-              <Link href="/marketing">Accueil</Link>
+              <Link href="/marketing">
+                <HomeLabel />
+              </Link>
               <Icon name="chev-right" />
               <Link href="/services">Services</Link>
               <Icon name="chev-right" />

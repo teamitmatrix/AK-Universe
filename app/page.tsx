@@ -76,7 +76,7 @@ export default async function HomePage() {
 
             <div className="agents-grid">
               {featuredAgents.map((agent) => (
-                <Link key={agent.id} href="/inscription" className="agent-card">
+                <Link key={agent.id} href={`/agents-ia/${agent.id}`} className="agent-card">
                   <div className="media">
                     <div className={`ph ph-m3 ph-card-${agent.id}`} />
                     <span className="icon-box card-icon">

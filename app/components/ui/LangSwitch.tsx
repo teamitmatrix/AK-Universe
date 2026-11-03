@@ -200,3 +200,15 @@ export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
     </div>
   );
 }
+
+/** "Accueil", or "Home" in English: Google Translate would make it "Welcome". */
+export function HomeLabel() {
+  const [lang] = useLang();
+  return lang === "en" ? (
+    <span className="notranslate" translate="no">
+      Home
+    </span>
+  ) : (
+    <>Accueil</>
+  );
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
@@ -45,7 +46,8 @@ export default async function Page() {
 
   return (
     <>
-      <SiteHeader active="tarifs" signedIn={!!user} />
+      <SiteHeader active="agents" signedIn={!!user} />
+      <AgentsSubnav active="tarifs" />
       <main className="pricing stars">
         <div className="container">
           <div className="pricing-head">

@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
       { source: "/marketing/mon-project.html", destination: "/projet", permanent: true },
       { source: "/marketing/index.html", destination: "/marketing", permanent: true },
       { source: "/marketing/services.html", destination: "/services", permanent: true },
-      { source: "/agents-ia/index.html", destination: "/agents-ia/tarifs", permanent: true },
+      { source: "/agents-ia/index.html", destination: "/agents-ia", permanent: true },
       { source: "/agents-ia/marketing.html", destination: "/marketing", permanent: true },
       { source: "/agents-ia/services/:slug", destination: "/services/:slug", permanent: true },
       {

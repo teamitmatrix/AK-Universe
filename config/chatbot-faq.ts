@@ -6,6 +6,7 @@
  * generates them from the live catalogue. Change an answer here when the matching page changes.
  */
 
+import { agents } from "./agents";
 import { COMPANY } from "./company";
 
 export type FaqEntry = { q: string; a: string; url?: string };
@@ -44,8 +45,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
     entries: [
       {
         q: "Quels agents IA proposez-vous ?",
-        a: "8 agents spécialisés : Agent Ventes (prospection, relance, prise de RDV), Agent Marketing (réseaux sociaux, SEO, contenu, campagnes), Agent Support Client (FAQ, tickets, SAV, assistance 24/7), Agent Productivité (planification, email, tâches), Agent Commercial (devis, contrats, suivi client), Agent Analyse (rapports, données, performance), Agent Technique (automatisations, intégrations) et Agent Recrutement (sourcing, présélection, entretiens).",
-        url: "/#agents",
+        a: `${agents.length} agents spécialisés : ${agents.map((agent) => `${agent.name} (${agent.menu})`).join(", ")}. Chaque agent a sa page avec ses fonctionnalités, intégrations, langues et tarifs sur /agents-ia.`,
+        url: "/agents-ia",
       },
       {
         q: "Combien de temps faut-il pour mettre en place / livrer un agent IA ?",

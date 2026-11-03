@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
 
@@ -65,7 +66,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
           <ul className="nav-links" ref={navRef}>
             <li>
               <Link href="/" className="nav-link" onClick={closeAll}>
-                Accueil
+                <HomeLabel />
               </Link>
             </li>
             <li
