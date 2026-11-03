@@ -208,7 +208,7 @@ export function LoginScreen() {
               alt=""
               width={1198}
               height={1137}
-              sizes="340px"
+              sizes="620px"
               priority
             />
           </div>

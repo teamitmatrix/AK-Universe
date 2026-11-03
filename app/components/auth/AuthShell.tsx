@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
@@ -74,8 +75,7 @@ export function AuthShell({ page, backHref, children }: Props) {
   return (
     <div className="theme-light" translate={nativeTranslate(lang)}>
       <div className="auth">
-        <aside className="auth-side">
-          <div className="ph ph-m9 ph-man" aria-hidden="true" />
+        <aside className="auth-side auth-side-hero">
           <Link href="/" className="logo notranslate">
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
             <img src="/assets/img/logo.svg" alt="" />
@@ -83,6 +83,18 @@ export function AuthShell({ page, backHref, children }: Props) {
               <span className="ak">AK</span> UNIVERSE
             </span>
           </Link>
+          {/* Same picture and size as the sign-in page (LoginScreen). */}
+          <div className="login-hero-wrap">
+            <Image
+              className="login-hero-img"
+              src="/assets/img/hero-man-arms-crossed.png"
+              alt=""
+              width={1198}
+              height={1137}
+              sizes="620px"
+              priority
+            />
+          </div>
           <div className="copy">
             <h2>
               {heading[0]}
