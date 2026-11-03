@@ -21,7 +21,7 @@ export const COMPANY = {
   vat: TODO,
   /** Person legally responsible for the content of the site. */
   publicationDirector: TODO,
-  email: "Akuniverse.official@gmail.com",
+  email: "Contact@akuniverse.com",
   phone: "+33 6 50 92 86 38",
   /** Last time the legal texts were reviewed (shown at the top of each page). */
   updatedAt: "30 octobre 2026",
