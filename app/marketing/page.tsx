@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { MarketingSubnav } from "@/components/layout/AgentsSubnav";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { MarketingView } from "@/components/video/MarketingView";
-import { VideoShell } from "@/components/video/VideoShell";
-import { getVideoConfig } from "@/lib/video-config";
+import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: { absolute: "Marketing Digital — AK Universe" },
@@ -10,10 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const config = await getVideoConfig();
+  const user = await getCurrentUser();
   return (
-    <VideoShell config={config}>
+    <>
+      <SiteHeader active="marketing" signedIn={!!user} />
+      <MarketingSubnav active="marketing" />
       <MarketingView />
-    </VideoShell>
+      <SiteFooter />
+    </>
   );
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { ContactCard } from "@/components/layout/ContactCard";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { InfosView } from "@/components/video/InfosView";
 import { VideoShell } from "@/components/video/VideoShell";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getVideoConfig } from "@/lib/video-config";
 
 export const metadata: Metadata = {
@@ -10,12 +12,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/** Checkout step after /projet. The public quote page is the placeholder at /devis. */
 export default async function Page() {
-  const config = await getVideoConfig();
+  const [config, user] = await Promise.all([getVideoConfig(), getCurrentUser()]);
   return (
-    <VideoShell config={config}>
-      <InfosView />
-      <ContactCard />
-    </VideoShell>
+    <>
+      <SiteHeader active="none" signedIn={!!user} />
+      <VideoShell config={config} header={false}>
+        <InfosView />
+        <ContactCard />
+      </VideoShell>
+    </>
   );
 }

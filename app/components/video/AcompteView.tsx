@@ -21,7 +21,7 @@ export function AcompteView() {
   const client = mounted ? readClient() : null;
 
   useEffect(() => {
-    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/informations");
+    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/projet/informations");
   }, [mounted, cart.items.length, router]);
 
   const fail = (message: string) => {
@@ -55,7 +55,7 @@ export function AcompteView() {
                 <div className="dark-card">
                   <div className="recap-head">
                     <h2>Vos informations</h2>
-                    <Link href="/informations" className="link-gold">
+                    <Link href="/projet/informations" className="link-gold">
                       Modifier
                     </Link>
                   </div>

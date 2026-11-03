@@ -55,7 +55,7 @@ export const NAV_MENUS: NavMenu[] = [
         text: "Gestion des réseaux sociaux, création de contenu et campagnes publicitaires.",
       },
       {
-        href: "/services#realisations",
+        href: "/marketing/realisations",
         label: "Nos réalisations",
         text: "Projets, campagnes marketing et contenus créatifs déjà réalisés.",
       },

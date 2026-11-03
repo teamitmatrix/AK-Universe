@@ -1,7 +1,7 @@
 import { COMPANY, phoneHref, TODO } from "@/config/company";
 import { Icon } from "@/components/ui/Icon";
 
-/** Address, phone and e-mail from config/company.ts, under the "Contact" page form (/informations). */
+/** Address, phone and e-mail from config/company.ts, under the project details step (/projet/informations). */
 export function ContactCard() {
   const rows = [
     {

@@ -58,7 +58,7 @@ export default async function Page({ params }: Props) {
                 <Link href={user ? "/abonnement" : "/inscription"} className="btn btn-primary btn-lg">
                   Essayer gratuitement <Icon name="arrow" />
                 </Link>
-                <Link href="/informations" className="btn btn-outline btn-lg">
+                <Link href="/devis" className="btn btn-outline btn-lg">
                   Demander une démo
                 </Link>
               </div>

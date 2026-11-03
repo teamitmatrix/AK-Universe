@@ -29,7 +29,7 @@ export const OVERVIEW: Doc = {
   url: "/",
   content: `AK Universe propose aux entreprises trois univers (menu : Agents IA, Marketing, Digital) :
 1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia/tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
-2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Pages : /services (catalogue), /services/<service>, /marketing/forfaits, /projet (mon projet), /informations (demande de devis).
+2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Pages : /services (catalogue), /services/<service>, /marketing/realisations (portfolio pas encore publié), /marketing/forfaits, /projet (mon projet), /projet/informations (coordonnées du projet), /devis (page devis, contenu à venir).
 3) Solutions digitales (sites web, applications mobiles, SEO, fiche Google Business Profile, CRM), sur devis. Page : /digital.
 Mentions : /cgv, /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
 };
@@ -130,7 +130,7 @@ function marketingDocs(cfg: VideoConfig): Doc[] {
         `Forfaits Marketing mensuels : ${m.plans.map((p) => `${p.name} ${euros(p.price)} HT / mois`).join(" ; ")}.`,
         `Inclus dans tous les forfaits :\n${list((m.included ?? []).map((i) => `${i.title} — ${i.text}`))}`,
         `Bénéfices :\n${list((m.benefits ?? []).map((i) => `${i.title} — ${i.text}`))}`,
-        m.customQuote ? `${m.customQuote.title} ${m.customQuote.text} (${m.customQuote.primaryCta} : /informations)` : "",
+        m.customQuote ? `${m.customQuote.title} ${m.customQuote.text} (${m.customQuote.primaryCta} : /devis, page pas encore publiée)` : "",
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -203,7 +203,7 @@ function digitalDocs(): Doc[] {
       url: "/digital#tarifs",
       content: `Toutes les solutions digitales sont sur devis (pas de prix publié) :\n${list(
         DIGITAL_OFFERS.map((o) => `${o.name} : ${o.text}`)
-      )}\nDemande de devis gratuite sur /informations.`,
+      )}\nLa page de devis /devis n'est pas encore publiée.`,
     },
   ];
 }

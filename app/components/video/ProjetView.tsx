@@ -144,10 +144,10 @@ export function ProjetView() {
                 Cette estimation n&apos;est pas un devis définitif : le prix final est confirmé après étude de votre projet.
               </p>
               <div className="cta-row">
-                <Link href="/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
+                <Link href="/projet/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
                   <Icon name="mail" /> Demander un devis
                 </Link>
-                <Link href="/informations" className="btn btn-primary btn-lg" style={{ flex: 1 }}>
+                <Link href="/projet/informations" className="btn btn-primary btn-lg" style={{ flex: 1 }}>
                   <Icon name="lock" /> Réserver et payer un acompte
                 </Link>
               </div>

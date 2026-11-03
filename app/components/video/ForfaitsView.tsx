@@ -138,7 +138,7 @@ export function ForfaitsView() {
               <h2>{marketing.customQuote.title}</h2>
               <p className="cta-box-text">{marketing.customQuote.text}</p>
               <div className="cta-row cta-row-center">
-                <Link href="/informations" className="btn btn-primary btn-lg">
+                <Link href="/devis" className="btn btn-primary btn-lg">
                   {marketing.customQuote.primaryCta} <Icon name="arrow" />
                 </Link>
                 <button type="button" className="btn btn-outline btn-lg" onClick={() => toast("La prise de rendez-vous avec un expert sera bientôt disponible.")}>

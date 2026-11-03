@@ -18,7 +18,7 @@ const LABELS = {
 type Menu = NavMenu["id"];
 
 type Props = {
-  active?: "home" | Menu | "none";
+  active?: "home" | "about" | "contact" | Menu | "none";
   signedIn?: boolean;
 };
 
@@ -153,8 +153,8 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
             ))}
             <li>
               <Link
-                href="/"
-                className={`nav-link${en ? " notranslate" : ""}`}
+                href="/a-propos"
+                className={`nav-link${active === "about" ? " active" : ""}${en ? " notranslate" : ""}`}
                 translate={translate}
                 onClick={closeAll}
               >
@@ -162,14 +162,14 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
               </Link>
             </li>
             <li>
-              <a
-                href="/informations"
-                className={`nav-link${en ? " notranslate" : ""}`}
+              <Link
+                href="/contact"
+                className={`nav-link${active === "contact" ? " active" : ""}${en ? " notranslate" : ""}`}
                 translate={translate}
                 onClick={closeAll}
               >
                 {labels.contact}
-              </a>
+              </Link>
             </li>
           </ul>
           <div className="nav-actions">

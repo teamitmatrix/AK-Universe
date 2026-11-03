@@ -10,7 +10,7 @@ export function ServicesList() {
   const { config, openConfig } = useVideo();
 
   return (
-    <main id="realisations">
+    <main>
       <section className="page-hero stars" style={{ position: "relative" }}>
         <div className="container">
           <Link href="/marketing" className="back-link">

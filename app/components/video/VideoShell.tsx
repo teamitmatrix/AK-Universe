@@ -14,11 +14,17 @@ export function VideoShell({
   config,
   active = "",
   currentSlug,
+  bare = false,
+  header = true,
   children,
 }: {
   config: VideoConfig;
   active?: VideoNav;
   currentSlug?: string;
+  /** Page supplies the main site header and footer (marketing section). */
+  bare?: boolean;
+  /** The video catalogue bar. The information step does not show it. */
+  header?: boolean;
   children: React.ReactNode;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -31,9 +37,9 @@ export function VideoShell({
 
   return (
     <VideoProvider value={value}>
-      <VideoHeader active={active} currentSlug={currentSlug} />
+      {bare || !header ? null : <VideoHeader active={active} currentSlug={currentSlug} />}
       {children}
-      <VideoFooter />
+      {bare ? null : <VideoFooter />}
       {draft && (
         <Configurator
           slug={draft.slug}

@@ -104,7 +104,7 @@ export default async function Page() {
               ))}
             </div>
             <div className="agents-cta">
-              <Link href="/informations" className="btn btn-primary btn-lg">
+              <Link href="/devis" className="btn btn-primary btn-lg">
                 Demander une démo personnalisée <Icon name="arrow" />
               </Link>
             </div>

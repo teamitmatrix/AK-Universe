@@ -47,7 +47,7 @@ export default async function Page() {
               <p className="section-sub">{group.text}</p>
               <div className="agent-tiles">
                 {group.services.map((service) => (
-                  <Link key={service.name} href="/informations" className="agent-tile">
+                  <Link key={service.name} href="/devis" className="agent-tile">
                     <span className="agent-tile-top">
                       <span className="icon-box">
                         <Icon name={service.icon} />
@@ -91,7 +91,7 @@ export default async function Page() {
               ))}
             </div>
             <div className="agents-cta">
-              <Link href="/informations" className="btn btn-primary btn-lg">
+              <Link href="/devis" className="btn btn-primary btn-lg">
                 Demander un devis gratuit <Icon name="arrow" />
               </Link>
             </div>

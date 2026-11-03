@@ -100,8 +100,12 @@ iframe.skiptranslate,
   display: none !important;
 }
 .VIpgJd-yAWNEb-OiiCO,
-.goog-text-highlight {
-  background: none !important;
+.VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q,
+.VIpgJd-yAWNEb-fmcmS-sn54Q,
+.goog-text-highlight,
+font {
+  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: none !important;
 }
 

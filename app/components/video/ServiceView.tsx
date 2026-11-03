@@ -135,7 +135,7 @@ export function ServiceView({ slug }: { slug: string }) {
           <h2>
             Nos réalisations <span className="gold">{service.realisations}</span>
           </h2>
-          <Link href="/services#realisations" className="link-gold">
+          <Link href="/marketing/realisations" className="link-gold">
             Voir toutes les réalisations <Icon name="arrow" />
           </Link>
         </div>

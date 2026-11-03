@@ -18,7 +18,7 @@ export function FinaliserView() {
   const client = mounted ? readClient() : null;
 
   useEffect(() => {
-    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/informations");
+    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/projet/informations");
   }, [mounted, cart.items.length, router]);
 
   return (

@@ -17,7 +17,8 @@ const nextConfig: NextConfig = {
       { source: "/tarifs.html", destination: "/agents-ia/tarifs", permanent: true },
       { source: "/marketing/mon-projet.html", destination: "/projet", permanent: true },
       // Old typo / duplicate URLs that may already have been shared.
-      { source: "/information.html", destination: "/informations", permanent: true },
+      { source: "/information.html", destination: "/devis", permanent: false },
+      { source: "/informations", destination: "/devis", permanent: false },
       { source: "/marketing/mon-project.html", destination: "/projet", permanent: true },
       { source: "/marketing/index.html", destination: "/marketing", permanent: true },
       { source: "/marketing/services.html", destination: "/services", permanent: true },

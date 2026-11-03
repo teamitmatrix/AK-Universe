@@ -38,3 +38,16 @@ export function Subnav({ label, links, active }: { label: string; links: readonl
 export function AgentsSubnav({ active = "agents" }: { active?: (typeof AGENT_LINKS)[number]["id"] }) {
   return <Subnav label="Agents IA" links={AGENT_LINKS} active={active} />;
 }
+
+const MARKETING_LINKS = [
+  { id: "marketing", href: "/marketing", label: "Marketing" },
+  { id: "services", href: "/services", label: "Tous les services" },
+  { id: "social", href: "/services/video-reseaux-sociaux", label: "Réseaux sociaux" },
+  { id: "realisations", href: "/marketing/realisations", label: "Réalisations" },
+  { id: "forfaits", href: "/marketing/forfaits", label: "Tarifs" },
+] as const;
+
+/** Bar of the marketing pages, under the same site header as Agents IA and Digital. */
+export function MarketingSubnav({ active = "marketing" }: { active?: (typeof MARKETING_LINKS)[number]["id"] }) {
+  return <Subnav label="Marketing" links={MARKETING_LINKS} active={active} />;
+}

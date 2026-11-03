@@ -79,7 +79,7 @@ export function Configurator({
     if (editId) cart.update(editId, data);
     else cart.add(data);
     if (mode === "quote") {
-      router.push("/informations");
+      router.push("/projet/informations");
       return;
     }
     if (editId) {
