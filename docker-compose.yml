@@ -19,4 +19,4 @@ services:
       - .env
     ports:
       # Localhost only. Point this site's domain at 127.0.0.1:${HOST_PORT:-3010}.
-      - "127.0.0.1:${HOST_PORT:-3010}:3000"
+      - "3010:3000"
