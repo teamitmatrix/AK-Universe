@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+out
+build
+dist
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+npm-debug.log*
+README.md
+SETUP.md
+PROGRESS.md
+AGENTS.md

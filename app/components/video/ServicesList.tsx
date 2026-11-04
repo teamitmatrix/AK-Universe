@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { useVideo } from "./context";
 import { Mockup } from "./Mockup";
 
@@ -47,6 +48,9 @@ export function ServicesList() {
                   <div className="svc-card-actions">
                     <Link href={`/services/${service.slug}`} className="btn btn-outline btn-sm">
                       Découvrir
+                    </Link>
+                    <Link href={quoteHref(service.slug)} className="btn btn-outline btn-sm">
+                      Devis
                     </Link>
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => openConfig(service.slug)}>
                       <Icon name="plus" /> Ajouter

@@ -1,0 +1,22 @@
+# Own project name, network, and host port so this site never shares
+# the other app's containers.
+name: ak-universe
+
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_OAUTH_PROVIDERS: ${NEXT_PUBLIC_OAUTH_PROVIDERS:-}
+    image: ak-universe:latest
+    container_name: ak-universe
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    ports:
+      # Localhost only. Point this site's domain at 127.0.0.1:${HOST_PORT:-3010}.
+      - "127.0.0.1:${HOST_PORT:-3010}:3000"

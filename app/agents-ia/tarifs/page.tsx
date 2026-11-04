@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { AGENT_TIERS } from "@/config/pricing";
+import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ const LOOK = [
   { image: "ph-plan-starter", cta: "Commencer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "rocket" },
   { image: "ph-plan-pro", cta: "Essayer gratuitement", ctaClass: "btn btn-primary btn-block", setupIcon: "gear" },
   { image: "ph-plan-business", cta: "Essayer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "chart" },
-  { image: "ph-plan-devis", cta: "Nous contacter", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: "/devis" },
+  { image: "ph-plan-devis", cta: "Nous contacter", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: quoteHref() },
 ];
 
 const PLANS = AGENT_TIERS.map((tier, i) => ({

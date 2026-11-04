@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { AGENT_CATEGORIES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
+import { contactHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default async function Page() {
   return (
     <>
       <SiteHeader active="agents" signedIn={!!user} />
-      <AgentsSubnav active="agents" />
+      <AgentsSubnav active="tous" />
       <main>
         <section className="pricing stars agents-hero">
           <div className="container pricing-head">
@@ -104,7 +105,7 @@ export default async function Page() {
               ))}
             </div>
             <div className="agents-cta">
-              <Link href="/devis" className="btn btn-primary btn-lg">
+              <Link href={contactHref("Agents IA")} className="btn btn-primary btn-lg">
                 Demander une démo personnalisée <Icon name="arrow" />
               </Link>
             </div>

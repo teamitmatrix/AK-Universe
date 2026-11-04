@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { isForfait, itemName, itemPrice, itemSummary, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
@@ -144,7 +145,7 @@ export function ProjetView() {
                 Cette estimation n&apos;est pas un devis définitif : le prix final est confirmé après étude de votre projet.
               </p>
               <div className="cta-row">
-                <Link href="/projet/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
+                <Link href={quoteHref()} className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
                   <Icon name="mail" /> Demander un devis
                 </Link>
                 <Link href="/projet/informations" className="btn btn-primary btn-lg" style={{ flex: 1 }}>

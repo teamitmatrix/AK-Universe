@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agentById, agents } from "@/config/agents";
 import { AGENT_TIERS } from "@/config/pricing";
+import { contactHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 
 type Props = { params: Promise<{ id: string }> };
@@ -58,7 +59,7 @@ export default async function Page({ params }: Props) {
                 <Link href={user ? "/abonnement" : "/inscription"} className="btn btn-primary btn-lg">
                   Essayer gratuitement <Icon name="arrow" />
                 </Link>
-                <Link href="/devis" className="btn btn-outline btn-lg">
+                <Link href={contactHref("Agents IA")} className="btn btn-outline btn-lg">
                   Demander une démo
                 </Link>
               </div>

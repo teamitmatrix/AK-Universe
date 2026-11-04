@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { HomeLabel } from "@/components/ui/LangSwitch";
 import { serviceOf } from "./cart";
 import { useVideo } from "./context";
@@ -64,9 +65,9 @@ export function ServiceView({ slug }: { slug: string }) {
               <button type="button" className="btn btn-primary btn-lg" onClick={() => openConfig(service.slug)}>
                 <Icon name="plus" /> Ajouter à mon projet
               </button>
-              <button type="button" className="btn btn-outline-gold btn-lg" onClick={() => openConfig(service.slug, { mode: "quote" })}>
+              <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-lg">
                 Demander un devis
-              </button>
+              </Link>
             </div>
           </div>
           <VideoPlayer
@@ -124,9 +125,9 @@ export function ServiceView({ slug }: { slug: string }) {
           <button type="button" className="btn btn-primary btn-block" onClick={() => openConfig(service.slug)}>
             Ajouter à mon projet <Icon name="arrow" />
           </button>
-          <button type="button" className="btn btn-outline-gold btn-block" onClick={() => openConfig(service.slug, { mode: "quote" })}>
+          <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-block">
             Demander un devis
-          </button>
+          </Link>
         </aside>
       </section>
 

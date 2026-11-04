@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { discountOf, durationsOf, euro, qtyChoicesOf, qtyWord, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { isForfait, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { Examples } from "./Examples";
@@ -79,7 +80,7 @@ export function Configurator({
     if (editId) cart.update(editId, data);
     else cart.add(data);
     if (mode === "quote") {
-      router.push("/projet/informations");
+      router.push(quoteHref(service.slug));
       return;
     }
     if (editId) {

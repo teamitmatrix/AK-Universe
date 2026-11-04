@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
@@ -128,7 +129,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
                 {count}
               </span>
             </Link>
-            <Link href="/services" className="btn btn-primary" onClick={closeAll}>
+            <Link href={quoteHref()} className="btn btn-primary" onClick={closeAll}>
               Devis gratuit <Icon name="arrow" />
             </Link>
           </div>

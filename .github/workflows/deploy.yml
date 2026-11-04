@@ -1,0 +1,52 @@
+# Rebuilds this site on the IONOS server from the clone you keep there.
+# The other app is not touched.
+#
+# Repository secrets:
+#   IONOS_HOST      server IP or hostname
+#   IONOS_USER      SSH user
+#   IONOS_SSH_KEY   private key (the server has the matching public key)
+#   IONOS_APP_DIR   absolute path of this repo on the server
+#   IONOS_SSH_PORT  optional, defaults to 22
+#
+# On the server, once: install Docker, clone this repo into IONOS_APP_DIR,
+# and create a .env there from .env.example. Do not commit that file.
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  deploy:
+    name: Deploy on IONOS
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild this site's container
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.IONOS_HOST }}
+          username: ${{ secrets.IONOS_USER }}
+          key: ${{ secrets.IONOS_SSH_KEY }}
+          port: ${{ secrets.IONOS_SSH_PORT || 22 }}
+          script_stop: true
+          script: |
+            cd "${{ secrets.IONOS_APP_DIR }}"
+            git pull --ff-only
+            docker compose up -d --build --remove-orphans
+            docker image prune -f

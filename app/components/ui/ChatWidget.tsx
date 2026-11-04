@@ -25,7 +25,7 @@ const TEXT = {
     placeholder: "Écrivez votre message…",
     send: "Envoyer",
     reset: "Nouvelle conversation",
-    error: "Désolé, je ne peux pas répondre pour le moment. Réessayez dans un instant ou demandez un devis sur /projet.",
+    error: "Désolé, je ne peux pas répondre pour le moment. Réessayez dans un instant ou demandez un devis sur /contact.",
     rateLimited: "Vous avez envoyé beaucoup de messages. Merci de patienter quelques minutes.",
     disclaimer: "Assistant IA : vérifiez les informations importantes sur votre devis.",
   },

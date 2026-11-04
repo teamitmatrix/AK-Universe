@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { DIGITAL_GROUPS, DIGITAL_OFFERS } from "@/config/digital";
+import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export default async function Page() {
               <p className="section-sub">{group.text}</p>
               <div className="agent-tiles">
                 {group.services.map((service) => (
-                  <Link key={service.name} href="/devis" className="agent-tile">
+                  <Link key={service.name} href={quoteHref(`digital:${service.name}`)} className="agent-tile">
                     <span className="agent-tile-top">
                       <span className="icon-box">
                         <Icon name={service.icon} />
@@ -91,7 +92,7 @@ export default async function Page() {
               ))}
             </div>
             <div className="agents-cta">
-              <Link href="/devis" className="btn btn-primary btn-lg">
+              <Link href={quoteHref()} className="btn btn-primary btn-lg">
                 Demander un devis gratuit <Icon name="arrow" />
               </Link>
             </div>

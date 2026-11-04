@@ -30,8 +30,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Comment contacter AK Universe ? Adresse, téléphone, e-mail ?",
-        a: `Par téléphone au ${COMPANY.phone}, par e-mail à ${COMPANY.email}, ou à notre adresse : ${COMPANY.address}. La page de devis (/devis) sera complétée prochainement.`,
-        url: "/devis",
+        a: `Par téléphone au ${COMPANY.phone}, par e-mail à ${COMPANY.email}, ou à notre adresse : ${COMPANY.address}. Une demande de devis se fait directement sur /contact, sans créer de projet au préalable.`,
+        url: "/contact",
       },
       {
         q: "Avec quels clients avez-vous travaillé ? Avez-vous des références ?",
@@ -147,8 +147,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
     entries: [
       {
         q: "Comment commander une vidéo / demander un devis ?",
-        a: "1) Choisissez un ou plusieurs services sur /services. 2) Personnalisez chaque service (quantité, durée, options) et ajoutez-le à votre projet. 3) Vérifiez votre projet sur /projet. 4) Renseignez vos informations (nom, e-mail, téléphone, lieu et date souhaitée du tournage). 5) Choisissez : recevoir un devis personnalisé gratuit, ou réserver directement votre date avec un acompte.",
-        url: "/services",
+        a: "Pour un devis : ouvrez /contact (sujet « Demande de devis ») et décrivez votre projet. Aucun service ni projet n'est obligatoire. Depuis une fiche ou une carte de service, le formulaire est déjà rempli avec ce service, que vous pouvez changer. Pour composer plusieurs services et réserver une date avec un acompte, utilisez « Mon projet » (/projet, puis /projet/informations).",
+        url: "/contact",
       },
       {
         q: "Le devis est-il gratuit ? Est-ce que je m'engage ?",
@@ -158,7 +158,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       {
         q: "En combien de temps recevrai-je mon devis ?",
         a: "Vous recevez une réponse sous 24 à 48 h, avec une étude personnalisée de votre projet et un prix final adapté à vos besoins.",
-        url: "/finaliser",
+        url: "/contact",
       },
       {
         q: "Le prix affiché est-il définitif ?",
@@ -186,8 +186,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Puis-je demander un projet vidéo sur-mesure qui n'est pas dans la liste ?",
-        a: "Oui, nous créons aussi des packs sur-mesure selon vos besoins. La page de devis (/devis) sera complétée prochainement. En attendant, composez un projet sur /services puis /projet.",
-        url: "/devis",
+        a: "Oui, nous créons aussi des packs sur-mesure selon vos besoins. Demandez un devis sur /contact en décrivant votre projet : aucun service ni projet n'est obligatoire. Depuis une page de service, le formulaire est déjà rempli avec ce service.",
+        url: "/contact",
       },
     ],
   },
@@ -270,8 +270,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Puis-je avoir un échange avec un expert marketing ?",
-        a: "La prise de rendez-vous en ligne avec un expert sera bientôt disponible. La page de devis (/devis) sera complétée prochainement.",
-        url: "/devis",
+        a: "La prise de rendez-vous en ligne avec un expert sera bientôt disponible. En attendant, demandez un devis sur /contact en décrivant vos objectifs.",
+        url: "/contact",
       },
     ],
   },

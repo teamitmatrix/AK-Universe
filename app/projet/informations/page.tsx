@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Checkout step after /projet. The public quote page is the placeholder at /devis. */
+/** Checkout step after /projet. A quote request uses the contact form instead. */
 export default async function Page() {
   const [config, user] = await Promise.all([getVideoConfig(), getCurrentUser()]);
   return (

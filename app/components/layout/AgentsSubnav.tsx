@@ -3,7 +3,6 @@ import Link from "next/link";
 type SubnavLink = { id: string; href: string; label: string };
 
 const AGENT_LINKS = [
-  { id: "agents", href: "/agents-ia", label: "Nos agents IA" },
   { id: "tous", href: "/agents-ia#tous", label: "Tous les agents" },
   { id: "categories", href: "/agents-ia#categories", label: "Catégories" },
   { id: "demos", href: "/agents-ia#demos", label: "Démos" },
@@ -35,7 +34,7 @@ export function Subnav({ label, links, active }: { label: string; links: readonl
 }
 
 /** Bar of the AI agents pages (/agents-ia, /agents-ia/<id>, /agents-ia/tarifs). */
-export function AgentsSubnav({ active = "agents" }: { active?: (typeof AGENT_LINKS)[number]["id"] }) {
+export function AgentsSubnav({ active = "tous" }: { active?: (typeof AGENT_LINKS)[number]["id"] }) {
   return <Subnav label="Agents IA" links={AGENT_LINKS} active={active} />;
 }
 

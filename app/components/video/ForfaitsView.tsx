@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { quoteHref } from "@/lib/contact/quote";
 import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
@@ -138,7 +139,7 @@ export function ForfaitsView() {
               <h2>{marketing.customQuote.title}</h2>
               <p className="cta-box-text">{marketing.customQuote.text}</p>
               <div className="cta-row cta-row-center">
-                <Link href="/devis" className="btn btn-primary btn-lg">
+                <Link href={quoteHref()} className="btn btn-primary btn-lg">
                   {marketing.customQuote.primaryCta} <Icon name="arrow" />
                 </Link>
                 <button type="button" className="btn btn-outline btn-lg" onClick={() => toast("La prise de rendez-vous avec un expert sera bientôt disponible.")}>

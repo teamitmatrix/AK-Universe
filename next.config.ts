@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-contained server bundle used by the Docker image.
+  output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
   allowedDevOrigins: ["192.168.100.46"],
@@ -17,8 +19,9 @@ const nextConfig: NextConfig = {
       { source: "/tarifs.html", destination: "/agents-ia/tarifs", permanent: true },
       { source: "/marketing/mon-projet.html", destination: "/projet", permanent: true },
       // Old typo / duplicate URLs that may already have been shared.
-      { source: "/information.html", destination: "/devis", permanent: false },
-      { source: "/informations", destination: "/devis", permanent: false },
+      { source: "/information.html", destination: "/contact?sujet=Demande%20de%20devis", permanent: false },
+      { source: "/informations", destination: "/contact?sujet=Demande%20de%20devis", permanent: false },
+      { source: "/devis", destination: "/contact?sujet=Demande%20de%20devis", permanent: false },
       { source: "/marketing/mon-project.html", destination: "/projet", permanent: true },
       { source: "/marketing/index.html", destination: "/marketing", permanent: true },
       { source: "/marketing/services.html", destination: "/services", permanent: true },
