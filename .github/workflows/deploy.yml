@@ -10,6 +10,8 @@
 #
 # On the server, once: install Docker, clone this repo into IONOS_APP_DIR,
 # and create a .env there from .env.example. Do not commit that file.
+# Keep server-only edits out of tracked files (use .env or compose override);
+# deploys reset the clone to origin/main.
 
 name: CI/CD
 
@@ -44,9 +46,23 @@ jobs:
           username: ${{ secrets.IONOS_USER }}
           key: ${{ secrets.IONOS_SSH_KEY }}
           port: ${{ secrets.IONOS_SSH_PORT || 22 }}
-          script_stop: true
+          command_timeout: 30m
           script: |
-            cd "${{ secrets.IONOS_APP_DIR }}"
-            git pull --ff-only
+            set -euo pipefail
+            APP_DIR='${{ secrets.IONOS_APP_DIR }}'
+            if [ -z "$APP_DIR" ]; then
+              echo "IONOS_APP_DIR secret is empty"
+              exit 1
+            fi
+            cd "$APP_DIR"
+            echo "Deploying in $(pwd)"
+            git remote -v
+            git fetch origin main
+            git checkout main
+            # Discard local edits to tracked files so pull cannot abort
+            # (e.g. a hand-edited docker-compose.yml). .env stays if untracked.
+            git reset --hard origin/main
+            echo "Server HEAD: $(git rev-parse HEAD) ($(git log -1 --oneline))"
             docker compose up -d --build --remove-orphans
+            docker compose ps
             docker image prune -f
