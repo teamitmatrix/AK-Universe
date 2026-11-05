@@ -15,7 +15,7 @@ export function SiteFooter() {
           <Link href="/agents-ia">Agents IA</Link>
           <a href="/marketing">Marketing</a>
           <Link href="/digital">Digital</Link>
-          <Link href="/agents-ia/tarifs">Tarifs</Link>
+          <Link href="/agents-ia#tarifs">Tarifs</Link>
           <Link href="/connexion">Se connecter</Link>
         </nav>
         <span>© {new Date().getFullYear()} AK Universe</span>

@@ -3,7 +3,7 @@ import { agents } from "@/config/agents";
 import { loadDefaultConfig } from "@/lib/video-config";
 import { getSiteUrl } from "@/lib/supabase/env";
 
-const PUBLIC_PAGES = ["/", "/contact", "/marketing", "/marketing/realisations", "/services", "/marketing/forfaits", "/agents-ia", "/agents-ia/tarifs", "/digital", "/connexion", "/inscription", "/mentions-legales", "/confidentialite", "/cgv"];
+const PUBLIC_PAGES = ["/", "/contact", "/marketing", "/marketing/realisations", "/services", "/marketing/forfaits", "/agents-ia", "/digital", "/connexion", "/inscription", "/mentions-legales", "/confidentialite", "/cgv"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const site = getSiteUrl();

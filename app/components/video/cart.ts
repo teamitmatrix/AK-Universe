@@ -80,7 +80,11 @@ function publish(items: CartItem[]) {
 
 function getSnapshot() {
   if (!ready && typeof window !== "undefined") {
-    snapshot = parse(localStorage.getItem(KEY));
+    try {
+      snapshot = parse(localStorage.getItem(KEY));
+    } catch {
+      snapshot = [];
+    }
     ready = true;
   }
   return snapshot;
@@ -226,6 +230,19 @@ export function useClientDraft() {
 
 export function clearCart() {
   publish([]);
+}
+
+/** Saves a package and leaves the current page. Skips React listeners so a translated page is not rewritten. */
+export function saveForfait(config: VideoConfig, key: string) {
+  const current = getSnapshot().filter((entry) => !isForfait(entry));
+  const next = visibleItems(config, [...current, { type: "forfait", key, id: newId() }]);
+  snapshot = next;
+  ready = true;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* The next page still reads whatever storage accepted. */
+  }
 }
 
 export function readLast(): LastRequest | null {

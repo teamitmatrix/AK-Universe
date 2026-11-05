@@ -9,6 +9,16 @@ import { readClient, submitProject, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, Summary, useMounted } from "./flow";
 
+function formatShootDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return ` · ${date.toLocaleDateString("fr-FR")}`;
+  } catch {
+    return "";
+  }
+}
+
 export function AcompteView() {
   const router = useRouter();
   const mounted = useMounted();
@@ -72,7 +82,7 @@ export function AcompteView() {
                     <dt>Tournage</dt>
                     <dd>
                       {client.lieu}
-                      {client.date ? ` · ${new Date(client.date).toLocaleDateString("fr-FR")}` : ""}
+                      {client.date ? formatShootDate(client.date) : ""}
                     </dd>
                   </dl>
                 </div>

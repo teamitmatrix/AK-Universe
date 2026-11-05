@@ -1,7 +1,7 @@
 import "server-only";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { DIGITAL_GROUPS, DIGITAL_OFFERS } from "@/config/digital";
+import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
 import { AGENT_TIERS, ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, USER_PRICE } from "@/config/pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
@@ -28,7 +28,7 @@ export const OVERVIEW: Doc = {
   title: "Présentation d'AK Universe",
   url: "/",
   content: `AK Universe propose aux entreprises trois univers (menu : Agents IA, Marketing, Digital) :
-1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia/tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
+1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia#tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
 2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Un devis se demande sur /contact (sujet « Demande de devis »), sans projet préalable ; depuis une fiche service le service est prérempli. « Mon projet » (/projet, puis /projet/informations) reste le parcours pour composer plusieurs services et réserver avec un acompte. Pages : /services (catalogue), /services/<service>, /marketing/realisations (portfolio pas encore publié), /marketing/forfaits, /contact.
 3) Solutions digitales (sites web, applications mobiles, SEO, fiche Google Business Profile, CRM), sur devis. Page : /digital.
 Mentions : /cgv, /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
@@ -154,13 +154,13 @@ function agentDocs(): Doc[] {
       source: "agents",
       title: a.name,
       url: `/agents-ia/${a.id}`,
-      content: `${a.name} — ${a.description}\nFonctionnalités :\n${list(a.features)}\nCapacités :\n${list(a.capabilities)}\nIntégrations : ${a.integrations.join(", ")}.\nLangues : ${AGENT_LANGUAGES.join(", ")}.\nDisponible dans toutes les offres (voir /agents-ia/tarifs).`,
+      content: `${a.name} — ${a.description}\nFonctionnalités :\n${list(a.features)}\nCapacités :\n${list(a.capabilities)}\nIntégrations : ${a.integrations.join(", ")}.\nLangues : ${AGENT_LANGUAGES.join(", ")}.\nDisponible dans toutes les offres (voir /agents-ia#tarifs).`,
     })),
     {
       source: "agents",
       title: "Offres Agents IA (page Tarifs)",
-      url: "/agents-ia/tarifs",
-      content: `Offres présentées sur /agents-ia/tarifs (prix HT) :\n${list(
+      url: "/agents-ia#tarifs",
+      content: `Offres présentées sur /agents-ia#tarifs (prix HT) :\n${list(
         AGENT_TIERS.map(
           (t) =>
             `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${t.price === null ? "sur devis" : `${euros(t.price)} / mois`}, mise en place ${t.setupFrom === null ? "sur devis" : `à partir de ${euros(t.setupFrom)}`}. ${t.desc} Inclus : ${t.features.join(", ")}.`
@@ -190,7 +190,22 @@ function faqDocs(): Doc[] {
 }
 
 function digitalDocs(): Doc[] {
+  const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
   return [
+    {
+      source: "digital",
+      title: "Digital — Sites internet & e-commerce",
+      url: "/digital#sites",
+      content: `Des sites professionnels, rapides et pensés pour convertir vos visiteurs en clients.\n${list(
+        DIGITAL_WEBSITES.map((site) => {
+          const running =
+            site.runningFrom === null
+              ? "pas de frais de fonctionnement affichés"
+              : `frais de fonctionnement à partir de ${euros(site.runningFrom)} / mois`;
+          return `${site.name} : mise en place ${euros(site.price)} ; ${running} (${site.points.join(", ")})`;
+        }),
+      )}`,
+    },
     ...DIGITAL_GROUPS.map((g) => ({
       source: "digital",
       title: `Digital — ${g.title} ${g.gold}`,
@@ -199,10 +214,18 @@ function digitalDocs(): Doc[] {
     })),
     {
       source: "digital",
+      title: "Application mobile sur mesure",
+      url: "/digital/application-mobile",
+      content: `${MOBILE_APP.lead}\nCe que nous pouvons développer :\n${list(
+        MOBILE_APP.builds.map((item) => `${item.name} : ${item.text}`),
+      )}\nMéthode :\n${list(MOBILE_APP.steps.map((step, i) => `${i + 1}. ${step.name} — ${step.text}`))}\n${MOBILE_APP.pricingNote}`,
+    },
+    {
+      source: "digital",
       title: "Tarifs des solutions digitales",
       url: "/digital#tarifs",
-      content: `Toutes les solutions digitales sont sur devis (pas de prix publié) :\n${list(
-        DIGITAL_OFFERS.map((o) => `${o.name} : ${o.text}`)
+      content: `Sites internet : prix de mise en place publiés sur /digital#sites. Applications et SEO/Google/CRM : sur devis.\n${list(
+        DIGITAL_OFFERS.map((o) => `${o.name} : ${o.text}`),
       )}\nDemande de devis gratuite sur /contact, sans projet préalable.`,
     },
   ];

@@ -51,7 +51,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       {
         q: "Combien de temps faut-il pour mettre en place / livrer un agent IA ?",
         a: "La mise en place est simple et rapide : vous choisissez votre agent, vous le configurez en quelques minutes (nous vous guidons pas à pas) et l'accès est immédiat — vos agents IA sont activés dès la confirmation du paiement. Pour une solution sur mesure (offre Sur devis, intégrations spécifiques), le calendrier est défini avec vous lors de l'échange sur votre projet.",
-        url: "/agents-ia/tarifs",
+        url: "/agents-ia#tarifs",
       },
       {
         q: "Comment fonctionnent les agents IA ? Comment ça marche ?",
@@ -70,7 +70,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       {
         q: "Les agents IA s'intègrent-ils à mon CRM ou à mes outils ?",
         a: "Oui : l'offre Pro inclut des intégrations (CRM, outils…), Pro Business des intégrations avancées et l'offre Sur devis des intégrations spécifiques. L'Agent Technique est dédié aux automatisations et intégrations.",
-        url: "/agents-ia/tarifs",
+        url: "/agents-ia#tarifs",
       },
       {
         q: "Les agents IA sont-ils adaptés à mon secteur ?",
@@ -128,8 +128,8 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Y a-t-il des frais de mise en place ?",
-        a: "Oui, selon l'offre choisie, des frais de mise en place s'appliquent (montants « à partir de » sur /agents-ia/tarifs, sur devis pour l'offre Sur devis). Ils sont dus à la commande.",
-        url: "/agents-ia/tarifs",
+        a: "Oui, selon l'offre choisie, des frais de mise en place s'appliquent (montants « à partir de » sur /agents-ia#tarifs, sur devis pour l'offre Sur devis). Ils sont dus à la commande.",
+        url: "/agents-ia#tarifs",
       },
       {
         q: "Les prix incluent-ils la TVA ?",
@@ -266,7 +266,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Quelle est la différence entre les forfaits marketing et les agents IA ?",
-        a: "Ce sont deux univers séparés : les forfaits marketing sont des productions vidéo mensuelles réalisées par notre équipe (/marketing/forfaits) ; les agents IA sont des assistants automatisés par abonnement logiciel (/agents-ia/tarifs).",
+        a: "Ce sont deux univers séparés : les forfaits marketing sont des productions vidéo mensuelles réalisées par notre équipe (/marketing/forfaits) ; les agents IA sont des assistants automatisés par abonnement logiciel (/agents-ia#tarifs).",
       },
       {
         q: "Puis-je avoir un échange avec un expert marketing ?",

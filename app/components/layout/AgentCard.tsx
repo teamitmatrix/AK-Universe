@@ -1,22 +1,26 @@
+import Image from "next/image";
 import Link from "next/link";
-import { AGENT_CATEGORIES, type Agent } from "@/config/agents";
+import type { Agent } from "@/config/agents";
 import { Icon } from "@/components/ui/Icon";
 
-/** Premium card of one AI agent, linking to /agents-ia/<id>. */
+/** Catalog card: portrait, name, role, example, link to /agents-ia/<id>. */
 export function AgentCard({ agent }: { agent: Agent }) {
-  const category = AGENT_CATEGORIES.find((c) => c.id === agent.category);
   return (
     <Link href={`/agents-ia/${agent.id}`} className="agent-tile">
-      <span className="agent-tile-top">
-        <span className="icon-box">
-          <Icon name={agent.icon} />
-        </span>
-        {category && <span className="tag">{category.name}</span>}
+      <span className="agent-tile-media">
+        <Image
+          src={agent.portrait}
+          alt=""
+          width={624}
+          height={280}
+          sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 25vw"
+        />
       </span>
       <strong>{agent.name}</strong>
-      <span className="agent-tile-text">{agent.tagline}</span>
+      <span className="agent-tile-role">{agent.role}</span>
+      <span className="agent-tile-text">{agent.example}</span>
       <span className="agent-tile-cta">
-        Découvrir l&apos;agent <Icon name="arrow" />
+        Découvrir <Icon name="arrow" />
       </span>
     </Link>
   );

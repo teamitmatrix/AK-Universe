@@ -11,8 +11,8 @@ const DESKTOP = "(min-width: 981px)";
 
 /** Top-level labels; in English they are written out (Google Translate makes "Accueil" "Welcome"). */
 const LABELS = {
-  fr: { home: "Accueil", about: "À propos", contact: "Contact" },
-  en: { home: "Home", about: "About Us", contact: "Contact" },
+  fr: { home: "Accueil", about: "À propos", contact: "Contact", project: "Mes projets" },
+  en: { home: "Home", about: "About Us", contact: "Contact", project: "My Projects" },
 };
 
 type Menu = NavMenu["id"];
@@ -28,6 +28,8 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
   const [lang] = useLang();
   const en = textLang(lang) === "en";
   const labels = LABELS[textLang(lang)];
+  const onProject =
+    pathname === "/projet" || pathname.startsWith("/projet/") || pathname === "/finaliser";
   /** Keeps Google Translate off the written-out English labels. */
   const translate = nativeTranslate(lang);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -169,6 +171,16 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                 onClick={closeAll}
               >
                 {labels.contact}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/projet"
+                className={`nav-link${onProject ? " active" : ""}${en ? " notranslate" : ""}`}
+                translate={translate}
+                onClick={closeAll}
+              >
+                {labels.project}
               </Link>
             </li>
           </ul>

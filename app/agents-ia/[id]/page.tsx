@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AgentCard, AgentDemo } from "@/components/layout/AgentCard";
 import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
-import { AGENT_CATEGORIES, AGENT_LANGUAGES, agentById, agents } from "@/config/agents";
-import { AGENT_TIERS } from "@/config/pricing";
-import { contactHref } from "@/lib/contact/quote";
+import { agentById, agents } from "@/config/agents";
 import { getCurrentUser } from "@/lib/auth/session";
 
 type Props = { params: Promise<{ id: string }> };
@@ -22,117 +20,111 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const agent = agentById((await params).id);
   if (!agent) return {};
-  return { title: { absolute: `${agent.name} — AK Universe` }, description: agent.tagline };
+  return {
+    title: { absolute: `${agent.name} — ${agent.role} — AK Universe` },
+    description: agent.description,
+  };
 }
 
 export default async function Page({ params }: Props) {
   const agent = agentById((await params).id);
   if (!agent) notFound();
   const user = await getCurrentUser();
-  const category = AGENT_CATEGORIES.find((c) => c.id === agent.category);
-  const related = agents.filter((a) => a.category === agent.category && a.id !== agent.id).slice(0, 3);
-
-  const blocks = [
-    { title: "Fonctionnalités", icon: "check-circle", items: agent.features },
-    { title: "Capacités", icon: "sparkle", items: agent.capabilities },
-    { title: "Intégrations", icon: "puzzle", items: agent.integrations },
-    { title: "Langues prises en charge", icon: "message", items: AGENT_LANGUAGES },
-  ];
 
   return (
     <>
       <SiteHeader active="agents" signedIn={!!user} />
       <AgentsSubnav active="tous" />
       <main>
-        <section className="pricing stars agents-hero">
-          <div className="container agent-detail-hero">
-            <div>
-              <Link href="/agents-ia#tous" className="agent-back">
-                <Icon name="arrow-left" /> Tous les agents
-              </Link>
-              {category && <p className="eyebrow">{category.name}</p>}
-              <h1>
-                <span className="gold">{agent.name}</span>
-              </h1>
-              <p className="lead">{agent.description}</p>
-              <div className="cta-row">
-                <Link href={user ? "/abonnement" : "/inscription"} className="btn btn-primary btn-lg">
-                  Essayer gratuitement <Icon name="arrow" />
-                </Link>
-                <Link href={contactHref("Agents IA")} className="btn btn-outline btn-lg">
-                  Demander une démo
-                </Link>
-              </div>
+        <section className="agent-profile stars">
+          <div className="container agent-profile-hero">
+            <div className="agent-profile-copy">
+              <p className="agent-profile-crumb">
+                <Link href="/agents-ia#tous">Agents IA</Link>
+                <span aria-hidden="true"> / </span>
+                <span>{agent.name}</span>
+              </p>
+              <h1>{agent.name}</h1>
+              <p className="agent-profile-headline">{agent.headline}</p>
+              <p className="agent-profile-lead">{agent.description}</p>
+              <a href="#en-action" className="btn btn-primary btn-lg">
+                Voir l&apos;agent en action <Icon name="arrow" />
+              </a>
             </div>
-            <div className="dark-card agent-demo">
-              <div className="agent-demo-head">
-                <span className="icon-box">
-                  <Icon name={agent.icon} />
-                </span>
-                <strong>{agent.name}</strong>
-              </div>
-              <AgentDemo agent={agent} />
+            <div className="agent-profile-visual">
+              <Image
+                src={agent.heroPortrait}
+                alt=""
+                width={1300}
+                height={830}
+                sizes="(max-width: 980px) 100vw, 48vw"
+                priority
+              />
             </div>
           </div>
         </section>
 
-        <section className="section">
-          <div className="container agent-blocks">
-            {blocks.map((block) => (
-              <div key={block.title} className="dark-card">
-                <h2>{block.title}</h2>
-                <ul className="feature-list">
-                  {block.items.map((item) => (
-                    <li key={item}>
-                      <Icon name={block.icon} /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section">
+        <section className="section agent-profile-tasks">
           <div className="container">
-            <p className="eyebrow">Tarifs</p>
             <h2 className="section-title">
-              Disponible dans <span className="gold">toutes nos offres</span>
+              Ce que {agent.name} <span className="gold">peut faire</span>
             </h2>
-            <div className="agent-prices">
-              {AGENT_TIERS.map((tier) => (
-                <div key={tier.name} className={`dark-card${"popular" in tier ? " featured" : ""}`}>
-                  <strong>{tier.name}</strong>
-                  <span className="agent-price">
-                    {tier.price === null ? "Sur devis" : `${tier.price.toLocaleString("fr-FR")} € HT / mois`}
+            <div className="agent-task-grid">
+              {agent.tasks.map((task) => (
+                <div key={task.label} className="agent-task-card">
+                  <span className="agent-task-icon">
+                    <Icon name={task.icon} />
                   </span>
-                  <small>{tier.desc}</small>
+                  <p>{task.label}</p>
                 </div>
               ))}
             </div>
-            <div className="agents-cta">
-              <Link href="/agents-ia/tarifs" className="btn btn-outline-gold btn-lg">
-                Voir le détail des offres <Icon name="arrow" />
-              </Link>
+          </div>
+        </section>
+
+        <section className="section" id="en-action">
+          <div className="container">
+            <div className="agent-action-card">
+              <div className="agent-action-flow" aria-hidden="true">
+                <span className="agent-action-node">
+                  <Icon name={agent.icon} />
+                </span>
+                <span className="agent-action-arrow">
+                  <Icon name="arrow" />
+                </span>
+                <span className="agent-action-node">
+                  <Icon name="check-circle" />
+                </span>
+              </div>
+              <div>
+                <h2 className="gold">{agent.name} en action</h2>
+                <p>{agent.action}</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {related.length > 0 && (
-          <section className="section">
-            <div className="container">
-              <p className="eyebrow">Dans la même catégorie</p>
-              <h2 className="section-title">
-                Autres <span className="gold">agents</span>
-              </h2>
-              <div className="agent-tiles">
-                {related.map((a) => (
-                  <AgentCard key={a.id} agent={a} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+        <section className="section agent-profile-integrations">
+          <div className="container">
+            <h2 className="section-title">
+              Intégrations <span className="gold">confirmées</span>
+            </h2>
+            <ul className="agent-integration-list">
+              {agent.integrations.map((item) => (
+                <li key={item}>
+                  <Icon name="puzzle" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <div className="container agent-profile-back">
+          <Link href="/agents-ia#tous" className="agent-back">
+            <Icon name="arrow-left" /> Retour à tous les agents
+          </Link>
+        </div>
       </main>
       <SiteFooter />
     </>

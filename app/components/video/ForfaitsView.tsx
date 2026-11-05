@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
-import { HomeLabel } from "@/components/ui/LangSwitch";
-import { useCart } from "./cart";
+import { saveForfait } from "./cart";
 import { useVideo } from "./context";
 
 function Perks({ items, className = "" }: { items: { icon: string; title: string; text: string }[]; className?: string }) {
@@ -29,12 +27,7 @@ function Perks({ items, className = "" }: { items: { icon: string; title: string
 
 export function ForfaitsView() {
   const { config, toast } = useVideo();
-  const cart = useCart(config);
   const marketing = config.marketing;
-  const [added, setAdded] = useState<Record<string, true>>({});
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  useEffect(() => () => Object.values(timers.current).forEach((timer) => clearTimeout(timer)), []);
 
   if (!marketing?.plans?.length) {
     return (
@@ -47,34 +40,15 @@ export function ForfaitsView() {
   }
 
   const choose = (key: string) => {
-    const plan = marketing.plans?.find((item) => item.key === key);
-    if (!plan) return;
-    cart.add({ type: "forfait", key });
-    toast(`Forfait ${plan.name} ajouté à votre projet.`);
-    setAdded((current) => ({ ...current, [key]: true }));
-    clearTimeout(timers.current[key]);
-    timers.current[key] = setTimeout(() => {
-      setAdded((current) => {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      });
-    }, 2200);
+    if (!marketing.plans?.some((item) => item.key === key)) return;
+    saveForfait(config, key);
+    window.location.assign("/projet");
   };
 
   return (
     <main>
       <section className="pricing stars">
         <div className="container">
-          <nav className="crumbs crumbs-center" aria-label="Fil d'Ariane">
-            <Link href="/marketing">
-              <HomeLabel />
-            </Link>
-            <Icon name="chev-right" />
-            <Link href="/marketing">Marketing</Link>
-            <Icon name="chev-right" />
-            <span aria-current="page">Forfaits</span>
-          </nav>
           <div className="pricing-head">
             <h1>
               Forfaits <span className="gold">Marketing</span>
@@ -110,16 +84,8 @@ export function ForfaitsView() {
                     </li>
                   ))}
                 </ul>
-                <button type="button" className="btn btn-primary btn-block" disabled={!!added[plan.key]} onClick={() => choose(plan.key)}>
-                  {added[plan.key] ? (
-                    <>
-                      <Icon name="check" /> Ajouté à mon projet
-                    </>
-                  ) : (
-                    <>
-                      Choisir ce forfait <Icon name="arrow" />
-                    </>
-                  )}
+                <button type="button" className="btn btn-primary btn-block" onClick={() => choose(plan.key)}>
+                  Choisir ce forfait <Icon name="arrow" />
                 </button>
               </article>
             ))}

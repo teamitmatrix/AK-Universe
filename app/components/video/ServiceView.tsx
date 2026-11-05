@@ -36,15 +36,17 @@ export function ServiceView({ slug }: { slug: string }) {
             <Link href="/marketing" className="back-link">
               <Icon name="arrow-left" /> Retour
             </Link>
-            <nav className="crumbs" aria-label="Fil d'Ariane">
-              <Link href="/marketing">
-                <HomeLabel />
-              </Link>
-              <Icon name="chev-right" />
-              <Link href="/services">Services</Link>
-              <Icon name="chev-right" />
-              <span aria-current="page">{service.name}</span>
-            </nav>
+            {service.slug !== "video-reseaux-sociaux" && (
+              <nav className="crumbs" aria-label="Fil d'Ariane">
+                <Link href="/marketing">
+                  <HomeLabel />
+                </Link>
+                <Icon name="chev-right" />
+                <Link href="/services">Services</Link>
+                <Icon name="chev-right" />
+                <span aria-current="page">{service.name}</span>
+              </nav>
+            )}
             <h1 className="svc-title">
               {service.titleTop || "Vidéo"}
               <br />

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { FinaliserView } from "@/components/video/FinaliserView";
 import { VideoShell } from "@/components/video/VideoShell";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getVideoConfig } from "@/lib/video-config";
 
 export const metadata: Metadata = {
@@ -10,10 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const config = await getVideoConfig();
+  const [config, user] = await Promise.all([getVideoConfig(), getCurrentUser()]);
   return (
-    <VideoShell config={config}>
-      <FinaliserView />
-    </VideoShell>
+    <>
+      <SiteHeader active="none" signedIn={!!user} />
+      <VideoShell config={config} header={false}>
+        <FinaliserView />
+      </VideoShell>
+    </>
   );
 }

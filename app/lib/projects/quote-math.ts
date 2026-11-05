@@ -61,7 +61,8 @@ export function videoPrice(config: VideoConfig, service: Service, item: VideoDra
 
 export function videoSummary(config: VideoConfig, service: Service, item: VideoDraft) {
   const durations = durationsOf(config, service);
-  const parts = [qtyWord(service, item.qty), (durations[item.dur] ?? durations[0]).label];
+  const duration = durations[item.dur] ?? durations[0];
+  const parts = [qtyWord(service, item.qty), duration?.label].filter((part): part is string => Boolean(part));
   for (const option of resolvedOptions(config, service)) {
     if (item.opts.includes(option.id)) parts.push(option.label.replace(/ \(.*\)$/, ""));
   }

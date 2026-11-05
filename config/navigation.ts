@@ -24,7 +24,7 @@ export const NAV_MENUS: NavMenu[] = [
       {
         href: "/agents-ia#categories",
         label: "Catégories d'agents IA",
-        text: "Ventes, support client, WhatsApp, agents vocaux, RH et plus.",
+        text: "Relation client, ventes, opérations et équipe.",
       },
       {
         href: "/agents-ia#demos",
@@ -32,7 +32,7 @@ export const NAV_MENUS: NavMenu[] = [
         text: "Découvrez nos agents IA en action, dans des situations réelles.",
       },
       {
-        href: "/agents-ia/tarifs",
+        href: "/agents-ia#tarifs",
         label: "Formules et tarifs",
         text: "Abonnements et tarifs des agents IA.",
       },
@@ -45,7 +45,7 @@ export const NAV_MENUS: NavMenu[] = [
     href: "/marketing",
     links: [
       {
-        href: "/services",
+        href: "/marketing#tous",
         label: "Tous les services marketing",
         text: "Le catalogue complet de nos services marketing.",
       },

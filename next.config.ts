@@ -28,6 +28,17 @@ const nextConfig: NextConfig = {
       { source: "/agents-ia/index.html", destination: "/agents-ia", permanent: true },
       { source: "/agents-ia/marketing.html", destination: "/marketing", permanent: true },
       { source: "/agents-ia/services/:slug", destination: "/services/:slug", permanent: true },
+      // Former generic agent IDs → named specialists (catalog refresh).
+      { source: "/agents-ia/voix", destination: "/agents-ia/milo", permanent: true },
+      { source: "/agents-ia/whatsapp", destination: "/agents-ia/nora", permanent: true },
+      { source: "/agents-ia/support", destination: "/agents-ia/nora", permanent: true },
+      { source: "/agents-ia/ventes", destination: "/agents-ia/adam", permanent: true },
+      { source: "/agents-ia/marketing", destination: "/agents-ia/jade", permanent: true },
+      { source: "/agents-ia/commercial", destination: "/agents-ia/hugo", permanent: true },
+      { source: "/agents-ia/productivite", destination: "/agents-ia/lea", permanent: true },
+      { source: "/agents-ia/recrutement", destination: "/agents-ia/ines", permanent: true },
+      { source: "/agents-ia/analyse", destination: "/agents-ia/eva", permanent: true },
+      { source: "/agents-ia/technique", destination: "/agents-ia/sacha", permanent: true },
       {
         source: "/services/video-recurutment-marque-employeur.html",
         destination: "/services/video-recrutement-marque-employeur",

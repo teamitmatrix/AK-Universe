@@ -18,7 +18,7 @@ export default async function Page() {
   return (
     <>
       <SiteHeader active="marketing" signedIn={!!user} />
-      <MarketingSubnav active="forfaits" />
+      <MarketingSubnav active="devis" />
       <VideoShell config={config} bare>
         <ForfaitsView />
       </VideoShell>

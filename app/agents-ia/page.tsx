@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCard, AgentDemo } from "@/components/layout/AgentCard";
+import { AgentPricing } from "@/components/layout/AgentPricing";
 import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -11,9 +12,9 @@ import { contactHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: { absolute: "Nos agents IA — AK Universe" },
+  title: { absolute: "Agents IA — AK Universe" },
   description:
-    "Agent vocal, WhatsApp, ventes, support client… Découvrez les agents IA d'AK Universe, leurs fonctionnalités, intégrations et tarifs.",
+    "Rencontrez votre équipe IA : accueil téléphonique, service client, prospection, marketing, recrutement et plus.",
 };
 
 /** The agents questions the chatbot also answers (config/chatbot-faq.ts). */
@@ -27,22 +28,12 @@ export default async function Page() {
       <SiteHeader active="agents" signedIn={!!user} />
       <AgentsSubnav active="tous" />
       <main>
-        <section className="pricing stars agents-hero">
-          <div className="container pricing-head">
-            <p className="eyebrow eyebrow-lines">Nos agents IA</p>
-            <h1>
-              Découvrez <span className="gold">nos agents IA</span>
-            </h1>
-            <p>Des agents spécialisés, disponibles 24/7, qui travaillent pour votre entreprise.</p>
-          </div>
-        </section>
-
-        <section className="section" id="tous">
+        <section className="section agents-catalog stars" id="tous">
           <div className="container">
             <p className="eyebrow">Tous les agents</p>
-            <h2 className="section-title">
-              Choisissez <span className="gold">votre agent</span>
-            </h2>
+            <h1 className="section-title">
+              Rencontrez <span className="gold">votre équipe IA</span>
+            </h1>
             <div className="agent-tiles">
               {agents.map((agent) => (
                 <AgentCard key={agent.id} agent={agent} />
@@ -111,6 +102,8 @@ export default async function Page() {
             </div>
           </div>
         </section>
+
+        <AgentPricing />
 
         <section className="section" id="faq">
           <div className="container agents-faq">

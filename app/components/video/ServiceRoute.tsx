@@ -24,7 +24,7 @@ export async function ServiceRoute({ slug }: { slug: string }) {
   return (
     <>
       <SiteHeader active="marketing" signedIn={!!user} />
-      <MarketingSubnav active={slug === "video-reseaux-sociaux" ? "social" : "services"} />
+      <MarketingSubnav active="tous" />
       <VideoShell config={config} bare>
         <ServiceView slug={slug} />
       </VideoShell>

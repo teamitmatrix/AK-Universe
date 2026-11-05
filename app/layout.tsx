@@ -33,6 +33,12 @@ export default function RootLayout({
   return (
     <html lang="fr" className={figtree.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
+        <script
+          id="dom-translation-guard"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var proto=Node.prototype;if(proto.__akGuarded)return;proto.__akGuarded=true;var removeChild=proto.removeChild;proto.removeChild=function(child){if(!child||child.parentNode!==this)return child;return removeChild.call(this,child);};var insertBefore=proto.insertBefore;proto.insertBefore=function(node,ref){if(ref&&ref.parentNode!==this)ref=null;return insertBefore.call(this,node,ref);};var replaceChild=proto.replaceChild;proto.replaceChild=function(node,child){if(!child||child.parentNode!==this)return child;return replaceChild.call(this,node,child);};})();`,
+          }}
+        />
         {children}
         <SiteTranslator />
         <CookieNotice />

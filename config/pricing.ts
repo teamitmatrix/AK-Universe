@@ -6,7 +6,7 @@ export const PLAN = {
   features: ["Agents IA illimités", "Toutes les fonctionnalités", "Support prioritaire", "Mises à jour incluses"],
 };
 
-/** Offers shown on /agents-ia/tarifs (also read by the site chatbot). price/setupFrom null = on quote. */
+/** Offers shown on /agents-ia#tarifs (also read by the site chatbot). price/setupFrom null = on quote. */
 export const AGENT_TIERS = [
   {
     name: "Starter",
