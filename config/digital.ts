@@ -98,15 +98,15 @@ export const DIGITAL_GROUPS: {
     text: "Soyez trouvé par vos clients et suivez chaque contact jusqu'à la vente.",
     services: [
       {
-        name: "Référencement naturel (SEO)",
+        name: "Référencement SEO",
         icon: "target",
         text: "Améliorez votre position sur Google et attirez des visiteurs qualifiés.",
         points: ["Audit SEO", "Optimisation technique et contenus", "Suivi des positions"],
       },
       {
-        name: "Fiche Google Business Profile",
+        name: "Fiche Google Business",
         icon: "pin",
-        text: "Une fiche Google complète pour être visible localement et sur Google Maps.",
+        text: "Une fiche Google complète pour être visible localement et sur Maps.",
         points: ["Création ou optimisation", "Photos et informations", "Gestion des avis"],
       },
       {
@@ -150,7 +150,7 @@ export const MOBILE_APP = {
   titleGold: "sur mesure",
   lead: "Concevons une application iOS et Android adaptée à vos clients ou à vos équipes.",
   cta: "Parler de mon projet",
-  phonesImage: "/assets/img/digital-app-phones.png",
+  phonesImage: "/assets/img/digital-app-hero.png",
   builds: [
     {
       name: "Réservation et commande",

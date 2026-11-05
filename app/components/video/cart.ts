@@ -118,7 +118,10 @@ export function visibleItems(config: VideoConfig, items: CartItem[]) {
 }
 
 export function itemPrice(config: VideoConfig, item: CartItem) {
-  if (isForfait(item)) return planOf(config, item.key)?.price ?? 0;
+  if (isForfait(item)) {
+    const plan = planOf(config, item.key);
+    return plan?.price ?? 0;
+  }
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
 }
@@ -126,7 +129,9 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
 export function itemSummary(config: VideoConfig, item: CartItem) {
   if (isForfait(item)) {
     const plan = planOf(config, item.key);
-    return plan ? `Abonnement mensuel • ${plan.tagline}` : "Abonnement mensuel";
+    if (!plan) return "Abonnement mensuel";
+    if (plan.onQuote || plan.price == null) return `Sur devis • ${plan.tagline}`;
+    return `Abonnement mensuel • ${plan.tagline}`;
   }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";

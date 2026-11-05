@@ -15,13 +15,37 @@ export type Duration = { label: string; extra: number };
 export type OptionDef = { label: string; price: number; per?: "video" | "projet"; icon?: string };
 export type OptionRef = string | ({ id: string } & Partial<OptionDef>);
 export type MarketingItem = { icon: string; title: string; text: string };
+export type PlanBlock = {
+  icon: string;
+  title: string;
+  text?: string;
+  list?: string[];
+};
+
+export type PlanBonusText = {
+  text: string;
+  strong?: string;
+  muted?: boolean;
+};
+
 export type Plan = {
   key: string;
   name: string;
-  price: number;
+  /** Monthly HT price; null = on quote only. */
+  price: number | null;
   tagline: string;
   popular?: boolean;
   features?: string[];
+  num?: string;
+  sub?: string[];
+  desc?: string | null;
+  setupPrice?: number | null;
+  priceTitle?: string;
+  priceUnit?: string | null;
+  setupLabel?: string;
+  onQuote?: boolean;
+  blocks?: PlanBlock[];
+  bonus?: { title: string; texts: PlanBonusText[] };
 };
 export type Service = {
   slug: string;

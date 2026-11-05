@@ -341,59 +341,178 @@ body.modal-open { overflow: hidden; }
    ========================================================= */
 .crumbs-center { justify-content: center; }
 .hero-perks { margin: 8px 0 4px; }
-.forfaits-grid { margin-top: 46px; grid-template-columns: repeat(3, 1fr); }
-
-.plan.forfait { min-height: auto; }
-.plan.forfait .plan-top { min-height: auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.plan.forfait h2 { font-size: 1.5rem; }
-.plan.forfait .desc { max-width: 100%; font-size: .95rem; margin: 10px 0 20px; color: #e0d7ca; line-height: 1.4; }
-.plan.forfait .amt { text-align: right; white-space: nowrap; }
-.plan.forfait .amt .from { display: block; color: #bdb3a4; font-size: .8rem; }
-.plan.forfait .amt .price { font-size: 1.85rem; margin: 2px 0 0; }
-.plan.forfait .amt .per { font-size: .82rem; margin-top: 0; }
-.plan.forfait .feature-list { margin: 0 0 22px; gap: 10px; }
-.plan.forfait .feature-list li { font-size: .96rem; }
-
 .cta-box-text { color: #d6cdbf; margin: -10px 0 0; }
 .cta-row-center { justify-content: center; margin-top: 24px; }
 
-@media (max-width: 1180px) { .forfaits-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 760px) { .forfaits-grid { grid-template-columns: 1fr; } }
-/* =========================================================
-   AK UNIVERSE - MARKETING FORFAITS
-   Scoped layout corrections - preserve legacy design
-   ========================================================= */
-.pricing .crumbs.crumbs-center {
-  width: 100%;
-  justify-content: center;
-  text-align: center;
-  margin-left: auto;
-  margin-right: auto;
-}
-.pricing .pricing-head {
-  text-align: center;
-}
-.pricing .plans.forfaits-grid {
+.pricing .pricing-head { text-align: center; }
+
+.mk-offers-grid {
   width: 100%;
   max-width: 1180px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 46px auto 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: 22px;
   align-items: stretch;
 }
-.pricing .plans.forfaits-grid .plan {
-  width: 100%;
+.mk-offer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
+  padding: 22px 20px 20px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #1a130b, #0d0a07);
+  border: 1px solid rgba(255, 255, 255, .1);
 }
-@media (max-width: 980px) {
-  .pricing .plans.forfaits-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.mk-offer.featured {
+  border-color: var(--gold);
+  box-shadow: var(--glow);
+}
+.mk-offer .popular {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(253, 185, 66, .16);
+  color: var(--gold);
+  font-size: .78rem;
+  font-weight: 700;
+}
+.mk-offer-main {
+  display: grid;
+  gap: 10px;
+  flex: 0 0 auto;
+  align-content: start;
+}
+.mk-offer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.mk-offer-num {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(253, 185, 66, .14);
+  border: 1px solid rgba(253, 185, 66, .35);
+  color: var(--gold);
+  font-weight: 800;
+  flex: none;
+}
+.mk-offer-titles { min-width: 0; }
+.mk-offer-titles h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: none;
+}
+.mk-offer-sub {
+  display: block;
+  margin-top: 4px;
+  color: var(--gold);
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.mk-offer-desc {
+  margin: 0;
+  color: #d6cdbf;
+  line-height: 1.45;
+  font-size: .95rem;
+}
+.mk-offer-body { display: grid; gap: 10px; align-content: start; }
+.mk-offer-block { display: grid; gap: 6px; }
+.mk-offer-block-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mk-offer-block-head strong {
+  font-size: .92rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.mk-offer-ico {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+}
+.mk-offer-block p {
+  margin: 0;
+  color: #bdb3a4;
+  line-height: 1.45;
+  font-size: .92rem;
+}
+.mk-offer-list {
+  margin: 0;
+  padding: 0;
+  gap: 7px;
+}
+.mk-offer-list li { font-size: .9rem; }
+.mk-offer-footer {
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+.mk-offer-footer-single { grid-template-columns: 1fr; }
+.mk-offer-footer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.mk-offer-amount {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1.1;
+}
+.mk-offer-amount span {
+  font-size: .85rem;
+  font-weight: 600;
+  color: #d6cdbf;
+}
+.mk-offer-amount-sm {
+  margin-top: 6px;
+  font-size: 1.15rem;
+}
+.mk-offer-quote { font-size: 1.45rem; }
+.mk-offer-note {
+  margin-top: 4px;
+  color: #bdb3a4;
+  font-size: .88rem;
+}
+.mk-offer-bonus-text {
+  margin: 0 0 6px;
+  color: #d6cdbf;
+  font-size: .9rem;
+  line-height: 1.4;
+}
+.mk-offer-bonus-text:last-child { margin-bottom: 0; }
+.mk-offer-bonus-text.muted { color: #8f8578; }
+.mk-offer-bonus-text strong { color: #fff; }
+.mk-offer .btn-block { margin-top: 0; }
+
+@media (max-width: 1100px) {
+  .mk-offers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 680px) {
-  .pricing .plans.forfaits-grid {
-    grid-template-columns: 1fr;
-  }
+  .mk-offers-grid { grid-template-columns: 1fr; }
 }

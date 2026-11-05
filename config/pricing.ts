@@ -11,14 +11,14 @@ export const AGENT_TIERS = [
   {
     name: "Starter",
     desc: "Pour bien commencer avec l'IA.",
-    price: 490,
+    price: 79,
     setupFrom: 390,
     features: ["1 agent IA au choix", "Tâches essentielles", "Support par email", "Idéal pour les petites entreprises"],
   },
   {
     name: "Pro",
     desc: "Pour accélérer votre croissance.",
-    price: 990,
+    price: 139,
     setupFrom: 590,
     popular: true,
     features: [
@@ -32,7 +32,7 @@ export const AGENT_TIERS = [
   {
     name: "Pro Business",
     desc: "Pour les entreprises en pleine expansion.",
-    price: 1690,
+    price: 249,
     setupFrom: 990,
     features: [
       "Jusqu'à 5 agents IA",

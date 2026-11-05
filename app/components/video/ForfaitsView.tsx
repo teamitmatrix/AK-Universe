@@ -4,6 +4,7 @@ import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
+import type { Plan, PlanBlock } from "@/lib/video-config";
 import { saveForfait } from "./cart";
 import { useVideo } from "./context";
 
@@ -25,6 +26,80 @@ function Perks({ items, className = "" }: { items: { icon: string; title: string
   );
 }
 
+function OfferBlock({ block }: { block: PlanBlock }) {
+  return (
+    <div className="mk-offer-block">
+      <div className="mk-offer-block-head">
+        <span className="icon-box mk-offer-ico">
+          <Icon name={block.icon} />
+        </span>
+        <strong>{block.title}</strong>
+      </div>
+      {block.text ? <p>{block.text}</p> : null}
+      {block.list?.length ? (
+        <ul className="feature-list digital-points mk-offer-list">
+          {block.list.map((item) => (
+            <li key={item}>
+              <Icon name="check-circle" /> {item}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function OfferFooter({ plan }: { plan: Plan }) {
+  return (
+    <div className={`mk-offer-footer${plan.onQuote ? " mk-offer-footer-single" : ""}`}>
+      <div className="mk-offer-price">
+        <div className="mk-offer-footer-head">
+          <Icon name="tag" />
+          <span>{plan.priceTitle ?? "À partir de"}</span>
+        </div>
+        {plan.onQuote || plan.price == null ? (
+          <div className="mk-offer-amount mk-offer-quote">Sur devis</div>
+        ) : (
+          <>
+            {plan.setupPrice != null ? (
+              <>
+                <div className="mk-offer-amount">
+                  {euro(plan.setupPrice)} <span>HT</span>
+                </div>
+                {plan.setupLabel ? <div className="mk-offer-note">{plan.setupLabel}</div> : null}
+                <div className="mk-offer-amount mk-offer-amount-sm">
+                  {euro(plan.price)} <span>{plan.priceUnit ?? "HT / mois"}</span>
+                </div>
+              </>
+            ) : (
+              <div className="mk-offer-amount">
+                {euro(plan.price)} <span>{plan.priceUnit ?? "HT / mois"}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {plan.bonus ? (
+        <div className="mk-offer-bonus">
+          <div className="mk-offer-footer-head">
+            <Icon name="sparkle" />
+            <span>{plan.bonus.title}</span>
+          </div>
+          {plan.bonus.texts.map((entry, index) => (
+            <p
+              key={`${entry.text}-${index}`}
+              className={`mk-offer-bonus-text${entry.muted ? " muted" : ""}`}
+            >
+              {entry.strong ? <strong>{entry.strong}</strong> : null}
+              {entry.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ForfaitsView() {
   const { config, toast } = useVideo();
   const marketing = config.marketing;
@@ -39,9 +114,12 @@ export function ForfaitsView() {
     );
   }
 
-  const choose = (key: string) => {
-    if (!marketing.plans?.some((item) => item.key === key)) return;
-    saveForfait(config, key);
+  const choose = (plan: Plan) => {
+    if (plan.onQuote || plan.price == null) {
+      window.location.assign(quoteHref(`marketing:${plan.key}`));
+      return;
+    }
+    saveForfait(config, plan.key);
     window.location.assign("/projet");
   };
 
@@ -59,33 +137,37 @@ export function ForfaitsView() {
             </p>
           </div>
           {!!marketing.benefits?.length && <Perks items={marketing.benefits} className="hero-perks" />}
-          <div className="plans forfaits-grid">
+          <div className="mk-offers-grid">
             {marketing.plans.map((plan) => (
-              <article key={plan.key} className={`plan forfait${plan.popular ? " featured" : ""}`}>
-                {plan.popular && (
+              <article key={plan.key} className={`mk-offer${plan.popular ? " featured" : ""}`}>
+                {plan.popular ? (
                   <span className="popular">
                     <Icon name="star" /> Le plus populaire
                   </span>
-                )}
-                <div className="plan-top">
-                  <h2>{plan.name}</h2>
-                  <div className="amt">
-                    <span className="from">À partir de</span>
-                    <div className="price">{euro(plan.price)}</div>
-                    <div className="per">HT / mois</div>
+                ) : null}
+                <div className="mk-offer-main">
+                  <div className="mk-offer-head">
+                    {plan.num ? <span className="mk-offer-num">{plan.num}</span> : null}
+                    <div className="mk-offer-titles">
+                      <h2>{plan.name}</h2>
+                      {(plan.sub ?? []).map((line) => (
+                        <span key={line} className="mk-offer-sub">
+                          {line}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {plan.desc ? <p className="mk-offer-desc">{plan.desc}</p> : null}
+                  <div className="mk-offer-body">
+                    {(plan.blocks ?? []).map((block) => (
+                      <OfferBlock key={block.title} block={block} />
+                    ))}
                   </div>
                 </div>
-                <p className="desc">{plan.tagline}</p>
-                <ul className="feature-list">
-                  {(plan.features ?? []).map((feature) => (
-                    <li key={feature}>
-                      <Icon name="check-circle" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <button type="button" className="btn btn-primary btn-block" onClick={() => choose(plan.key)}>
-                  Choisir ce forfait <Icon name="arrow" />
+                <OfferFooter plan={plan} />
+                <button type="button" className="btn btn-primary btn-block" onClick={() => choose(plan)}>
+                  {plan.onQuote || plan.price == null ? "Demander un devis" : "Choisir ce forfait"}{" "}
+                  <Icon name="arrow" />
                 </button>
               </article>
             ))}
@@ -108,7 +190,11 @@ export function ForfaitsView() {
                 <Link href={quoteHref()} className="btn btn-primary btn-lg">
                   {marketing.customQuote.primaryCta} <Icon name="arrow" />
                 </Link>
-                <button type="button" className="btn btn-outline btn-lg" onClick={() => toast("La prise de rendez-vous avec un expert sera bientôt disponible.")}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-lg"
+                  onClick={() => toast("La prise de rendez-vous avec un expert sera bientôt disponible.")}
+                >
                   {marketing.customQuote.secondaryCta}
                 </button>
               </div>

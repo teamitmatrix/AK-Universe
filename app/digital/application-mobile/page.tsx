@@ -42,8 +42,8 @@ export default async function Page() {
               <Image
                 src={MOBILE_APP.phonesImage}
                 alt="Aperçus d'applications : réservation et espace client"
-                width={1150}
-                height={930}
+                width={1400}
+                height={1050}
                 sizes="(max-width: 980px) 100vw, 48vw"
                 priority
               />

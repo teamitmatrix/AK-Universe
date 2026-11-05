@@ -11,8 +11,8 @@ export function AgentCard({ agent }: { agent: Agent }) {
         <Image
           src={agent.portrait}
           alt=""
-          width={624}
-          height={280}
+          width={1248}
+          height={780}
           sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 25vw"
         />
       </span>

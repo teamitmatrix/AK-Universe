@@ -24,7 +24,7 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
   const items = rawItems.slice(0, 30).flatMap((item) => {
     if (item.type === "forfait") {
       const plan = plans.find((p) => p.key === item.key);
-      if (!plan) return [];
+      if (!plan || plan.onQuote || plan.price == null) return [];
       return [{ service: `Forfait ${plan.name}`, details: `Abonnement mensuel • ${plan.tagline}`, price: plan.price }];
     }
 

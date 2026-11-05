@@ -84,7 +84,11 @@ export default async function Page() {
                   {sites.services.map((service) => {
                     const href = service.href ?? quoteHref(`digital:${service.name}`);
                     return (
-                      <Link key={service.name} href={href} className="agent-tile marketing-tile">
+                      <Link
+                        key={service.name}
+                        href={href}
+                        className="agent-tile marketing-tile digital-service-card"
+                      >
                         <span className="agent-tile-top">
                           <span className="icon-box">
                             <Icon name={service.icon} />
@@ -123,7 +127,7 @@ export default async function Page() {
                   <Link
                     key={service.name}
                     href={quoteHref(`digital:${service.name}`)}
-                    className="agent-tile marketing-tile"
+                    className="agent-tile marketing-tile digital-service-card"
                   >
                     <span className="agent-tile-top">
                       <span className="icon-box">

@@ -1048,12 +1048,13 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   aspect-ratio: 16 / 10;
   overflow: hidden;
   background: #120e0a;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 .agent-tile-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: center 20%;
 }
 .agent-tile-top {
   display: flex;
@@ -1333,7 +1334,51 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 }
 .digital-points { margin: 0; gap: 8px; flex: 0; }
 .digital-points li { font-size: .92rem; color: #d6cdbf; }
-.digital-points .ic { color: var(--gold); }
+.digital-points .ic { color: var(--gold); flex: none; }
+
+/* Equal-height digital service cards: fixed title/lead bands, CTA pinned to bottom */
+.digital-service-card {
+  height: 100%;
+  padding: 18px 0 18px;
+  gap: 12px;
+}
+.digital-service-card .agent-tile-top {
+  padding-top: 4px;
+  flex: none;
+}
+.digital-service-card strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.2em * 2);
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  padding-inline: 18px;
+}
+.digital-service-card .agent-tile-text {
+  flex: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: calc(1.45em * 3);
+  margin: 0;
+  padding-inline: 18px;
+  font-size: .92rem;
+  line-height: 1.45;
+}
+.digital-service-card .digital-points {
+  flex: 1 1 auto;
+  align-content: start;
+  margin: 0;
+  padding-inline: 18px;
+}
+.digital-service-card .agent-tile-cta {
+  margin-top: auto;
+  padding-inline: 18px;
+}
 .digital-website-card {
   cursor: default;
 }
@@ -1370,16 +1415,32 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   font-weight: 800;
   margin: 48px 0 28px;
 }
-.digital-app-phones {
+.digital-app-hero .agent-profile-visual.digital-app-phones {
   aspect-ratio: auto;
-  background: transparent;
+  background: transparent !important;
+  border-radius: 0 !important;
   overflow: visible;
+  border: 0;
+  box-shadow: none;
 }
 .digital-app-phones img {
   width: 100%;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 20px 50px rgba(253, 185, 66, .22));
+  object-position: center;
+  /* Extra soft dissolve into the page black */
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 68% at 50% 50%,
+    #000 40%,
+    rgba(0, 0, 0, .75) 62%,
+    transparent 82%
+  );
+  mask-image: radial-gradient(
+    ellipse 72% 68% at 50% 50%,
+    #000 40%,
+    rgba(0, 0, 0, .75) 62%,
+    transparent 82%
+  );
 }
 .digital-app-builds {
   grid-template-columns: repeat(3, 1fr);

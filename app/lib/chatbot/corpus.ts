@@ -115,19 +115,26 @@ function videoDocs(cfg: VideoConfig): Doc[] {
 function marketingDocs(cfg: VideoConfig): Doc[] {
   const m = cfg.marketing;
   if (!m?.plans?.length) return [];
+  const priceLabel = (p: (typeof m.plans)[number]) => {
+    if (p.onQuote || p.price == null) return "sur devis";
+    if (p.setupPrice != null) {
+      return `mise en place ${euros(p.setupPrice)} HT, puis à partir de ${euros(p.price)} HT / mois`;
+    }
+    return `à partir de ${euros(p.price)} HT / mois`;
+  };
   return [
     ...m.plans.map((p) => ({
       source: "marketing",
       title: `Forfait Marketing ${p.name}`,
       url: "/marketing/forfaits",
-      content: `Forfait Marketing ${p.name}${p.popular ? " (le plus populaire)" : ""} — à partir de ${euros(p.price)} HT / mois. ${p.tagline}\nInclus :\n${list(p.features)}`,
+      content: `Forfait Marketing ${p.name}${p.popular ? " (le plus populaire)" : ""} — ${priceLabel(p)}. ${p.tagline}\n${p.desc ? `${p.desc}\n` : ""}Inclus :\n${list(p.features)}`,
     })),
     {
       source: "marketing",
       title: "Forfaits Marketing : comparaison et inclus",
       url: "/marketing/forfaits",
       content: [
-        `Forfaits Marketing mensuels : ${m.plans.map((p) => `${p.name} ${euros(p.price)} HT / mois`).join(" ; ")}.`,
+        `Forfaits Marketing : ${m.plans.map((p) => `${p.name} (${priceLabel(p)})`).join(" ; ")}.`,
         `Inclus dans tous les forfaits :\n${list((m.included ?? []).map((i) => `${i.title} — ${i.text}`))}`,
         `Bénéfices :\n${list((m.benefits ?? []).map((i) => `${i.title} — ${i.text}`))}`,
         m.customQuote ? `${m.customQuote.title} ${m.customQuote.text} (${m.customQuote.primaryCta} : /contact, sujet Demande de devis)` : "",
