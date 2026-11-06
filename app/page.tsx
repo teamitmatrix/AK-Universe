@@ -14,7 +14,7 @@ const pillars = [
       "Automatisez vos appels, vos messages WhatsApp et les demandes courantes de vos clients.",
     href: "/agents-ia",
     cta: "Découvrir les agents IA",
-    image: "/assets/img/home-service-agents.png",
+    image: "/assets/img/home/aiagents.jpeg",
     imageAlt: "Portrait d’un agent IA AK Universe",
   },
   {
@@ -25,7 +25,7 @@ const pillars = [
       "Présentez votre offre avec des vidéos, des contenus pour les réseaux sociaux et des campagnes publicitaires.",
     href: "/marketing",
     cta: "Découvrir le marketing",
-    image: "/assets/img/home-service-marketing.png",
+    image: "/assets/img/home/marketing.jpeg",
     imageAlt: "Tournage et production de contenus marketing",
   },
   {
@@ -36,7 +36,7 @@ const pillars = [
       "Créez un site vitrine, une boutique en ligne ou une application mobile sur mesure.",
     href: "/digital",
     cta: "Découvrir le digital",
-    image: "/assets/img/home-service-digital.png",
+    image: "/assets/img/home/digital.jpeg",
     imageAlt: "Illustration site web, application et SaaS",
   },
 ] as const;

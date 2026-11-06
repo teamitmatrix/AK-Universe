@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
 import { useVideo } from "./context";
-import { Mockup } from "./Mockup";
 
 export function ServicesList() {
   const { config, openConfig } = useVideo();
@@ -34,7 +34,14 @@ export function ServicesList() {
           {config.services.map((service) => (
             <article key={service.slug} className="svc-card">
               <Link href={`/services/${service.slug}`} className="svc-card-media">
-                <Mockup mockup={service.mockup} region="poster" />
+                <Image
+                  src={`/assets/img/marketing/${service.slug}.jpeg`}
+                  alt=""
+                  width={960}
+                  height={480}
+                  sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
+                  className="svc-card-img"
+                />
               </Link>
               <div className="svc-card-body">
                 <h3>

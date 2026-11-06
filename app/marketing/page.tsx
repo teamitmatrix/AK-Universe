@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { MarketingSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { MARKETING_CATEGORIES, SERVICE_ICONS, SERVICE_TAGS } from "@/config/marketing";
+import { MARKETING_CATEGORIES, SERVICE_TAGS } from "@/config/marketing";
 import { contactHref, quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getVideoConfig } from "@/lib/video-config";
@@ -47,7 +48,6 @@ export default async function Page() {
             </h2>
             <div className="agent-tiles marketing-tiles">
               {config.services.map((service) => {
-                const icon = SERVICE_ICONS[service.slug] ?? "video";
                 const tag = SERVICE_TAGS[service.slug] ?? service.gold ?? service.name;
                 return (
                   <Link
@@ -55,10 +55,16 @@ export default async function Page() {
                     href={`/services/${service.slug}`}
                     className="agent-tile marketing-tile"
                   >
+                    <span className="agent-tile-media">
+                      <Image
+                        src={`/assets/img/marketing/${service.slug}.jpeg`}
+                        alt=""
+                        width={960}
+                        height={600}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 25vw"
+                      />
+                    </span>
                     <span className="agent-tile-top">
-                      <span className="icon-box">
-                        <Icon name={icon} />
-                      </span>
                       <span className="tag">{tag}</span>
                     </span>
                     <strong>{service.name}</strong>

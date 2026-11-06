@@ -1,47 +1,51 @@
 /*
  * Legal identity of the company, shown on /mentions-legales, /confidentialite and /cgv.
- * Every value marked "À COMPLÉTER" must be filled in by AK Universe before going live
- * (French law: LCEN art. 6 for the legal notice, GDPR art. 13 for the privacy policy).
  */
 
 export const TODO = "À COMPLÉTER";
 
 export const COMPANY = {
   /** Registered name, e.g. "AK Universe SAS". */
-  legalName: TODO,
-  /** Legal form and share capital, e.g. "SAS au capital de 1 000 €" or "Entrepreneur individuel". */
-  legalForm: TODO,
+  legalName: "AK UNIVERSE",
+  /** Legal form and share capital. */
+  legalForm: "société par actions simplifiée (SAS), au capital social de 6 000 euros",
   /** Head office address. */
-  address: "8 rue Pierre Moulie, 94200 Ivry-sur-Seine",
+  address: "41 avenue Henri Barbusse, 92700 Colombes, France",
+  /** SIREN (9 digits). */
+  siren: "934 762 360",
   /** SIRET (14 digits). */
-  siret: TODO,
-  /** RCS city + number, e.g. "RCS Paris 123 456 789" (leave TODO if not registered at the RCS). */
-  rcs: TODO,
-  /** Intra-community VAT number, e.g. "FR12 123456789". */
-  vat: TODO,
+  siret: "934 762 360 00014",
+  /** RCS city + number. */
+  rcs: "Nanterre 934 762 360",
+  /** Intra-community VAT number. */
+  vat: "FR20934762360",
   /** Person legally responsible for the content of the site. */
-  publicationDirector: TODO,
-  email: "Contact@akuniverse.com",
+  publicationDirector: "Monsieur Sardar Iqbal, président de la société AK UNIVERSE",
+  email: "contact@akuniverse.com",
   phone: "+33 6 50 92 86 38",
+  website: "https://www.akuniverse.com",
   /** Last time the legal texts were reviewed (shown at the top of each page). */
-  updatedAt: "30 octobre 2026",
-  /** Consumer mediator (mandatory in France when selling to individuals), e.g. "CM2C, 49 rue de Ponthieu, 75008 Paris — www.cm2c.net". */
+  updatedAt: "6 novembre 2026",
+  /** Consumer mediator (mandatory in France when selling to individuals). */
   mediator: TODO,
 };
 
 /** tel: link for COMPANY.phone ("+33 06 …" → "+336…": the trunk 0 is dropped after a country code). */
 export const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "").replace(/^(\+\d{2})0/, "$1")}`;
 
-/** The site host (fixed: the site is deployed on Vercel). */
+/** The site host (IONOS production server). */
 export const HOST = {
-  name: "Vercel Inc.",
-  address: "440 N Barranca Ave #4133, Covina, CA 91723, États-Unis",
-  website: "https://vercel.com",
+  name: "IONOS SARL",
+  address: "7 place de la Gare, BP 70109, 57200 Sarreguemines Cedex, France",
+  rcs: "Sarreguemines 431 303 775",
+  phone: "+33 9 70 80 89 11",
+  email: "info@ionos.fr",
+  website: "https://www.ionos.fr",
 };
 
 /** Processors listed in the privacy policy. */
 export const PROCESSORS = [
-  { name: "Vercel Inc.", role: "Hébergement du site", country: "États-Unis (clauses contractuelles types)" },
+  { name: "IONOS SARL", role: "Hébergement du site", country: "France / Union européenne" },
   { name: "Supabase Inc.", role: "Base de données et comptes clients", country: "Union européenne (région choisie à la création du projet)" },
   { name: "Stripe Payments Europe Ltd.", role: "Paiements en ligne", country: "Irlande / Union européenne" },
   { name: "Resend (Plus Five Five Inc.)", role: "Envoi des e-mails", country: "États-Unis (clauses contractuelles types)" },
