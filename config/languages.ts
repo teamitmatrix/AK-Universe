@@ -1,5 +1,5 @@
 /**
- * Languages offered in the language switch (the 24 official EU languages).
+ * Languages offered in the language switch (24 official EU languages, plus Hindi and Urdu).
  * French is the source language of the site. Pages rebuilt in React also ship hand-written English;
  * every other language (and English on the static pages) is machine-translated by Google Translate.
  */
@@ -35,6 +35,8 @@ export const LANGUAGES = [
   { code: "sl", name: "Slovenščina", flag: { stripes: "h", colors: ["#fff", "#005ce5", "#ed1c24"] } },
   { code: "es", name: "Español", flag: { stripes: "h", colors: ["#aa151b", "#f1bf00", "#aa151b"], weights: [1, 2, 1] } },
   { code: "sv", name: "Svenska", flag: { cross: "#fecc00", bg: "#006aa7" } },
+  { code: "hi", name: "हिन्दी", flag: { stripes: "h", colors: ["#ff9933", "#fff", "#138808"] } },
+  { code: "ur", name: "اردو", flag: { stripes: "v", colors: ["#fff", "#01411c"], weights: [1, 3] } },
 ] as const satisfies readonly { code: string; name: string; flag: FlagSpec }[];
 
 export type Lang = (typeof LANGUAGES)[number]["code"];

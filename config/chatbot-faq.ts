@@ -26,7 +26,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Dans quelles langues le site et l'assistant sont-ils disponibles ?",
-        a: "Le site est en français et en anglais ; d'autres langues sont proposées via la traduction automatique Google (à titre indicatif, seule la version française fait foi). L'assistant répond dans la langue de votre message.",
+        a: "Le site est en français et en anglais ; d'autres langues (dont l'hindi et l'ourdou) sont proposées via la traduction automatique Google (à titre indicatif, seule la version française fait foi). L'assistant répond dans la langue choisie sur le site, y compris à la voix.",
       },
       {
         q: "Comment contacter AK Universe ? Adresse, téléphone, e-mail ?",

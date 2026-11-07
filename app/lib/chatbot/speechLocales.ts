@@ -29,6 +29,8 @@ const SPEECH_LOCALES: Record<Lang, string> = {
   sl: "sl-SI",
   es: "es-ES",
   sv: "sv-SE",
+  hi: "hi-IN",
+  ur: "ur-PK",
 };
 
 export function speechLocale(lang: string): string {

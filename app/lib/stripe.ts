@@ -12,8 +12,9 @@ export function getStripe() {
   return client;
 }
 
-/** Stripe Checkout speaks every language of the site's switch except Irish. */
+/** Stripe Checkout locales overlap the site switch; Irish / Hindi / Urdu fall back to English. */
 export function checkoutLocale(lang: unknown): Stripe.Checkout.SessionCreateParams.Locale {
   if (!isLang(lang)) return "fr";
-  return lang === "ga" ? "en" : lang;
+  if (lang === "ga" || lang === "hi" || lang === "ur") return "en";
+  return lang;
 }

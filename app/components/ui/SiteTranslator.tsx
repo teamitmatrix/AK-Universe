@@ -90,8 +90,8 @@ function loadGoogleTranslate() {
 }
 
 /**
- * Site-wide translation: French is the original, the visitor picks any of the 24 EU languages.
- * Google Translate is only loaded once a visitor chooses another language.
+ * Site-wide translation: French is the original, the visitor picks a language from the switch
+ * (EU languages plus Hindi and Urdu). Google Translate is only loaded once another language is chosen.
  */
 export function SiteTranslator() {
   const [lang, setLang] = useLang();
