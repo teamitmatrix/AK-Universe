@@ -112,29 +112,62 @@ function videoDocs(cfg: VideoConfig): Doc[] {
   return docs;
 }
 
+type MarketingPlan = NonNullable<NonNullable<VideoConfig["marketing"]>["plans"]>[number];
+
+function planPrice(p: MarketingPlan) {
+  if (p.onQuote || p.price == null) return "sur devis";
+  const monthly = `à partir de ${euros(p.price)} HT / mois`;
+  return p.setupPrice != null ? `${monthly} + ${euros(p.setupPrice)} HT de mise en place (une fois)` : monthly;
+}
+
+/** One line per plan, attached to every marketing passage so any hit carries the current offer. */
+function marketingSummary(cfg: VideoConfig) {
+  const plans = cfg.marketing?.plans ?? [];
+  if (!plans.length) return "";
+  return `Forfaits Marketing actuels (prix HT) :\n${list(
+    plans.map(
+      (p) =>
+        `${p.name}${p.popular ? " (le plus populaire)" : ""} : ${planPrice(p)} — ${p.tagline}${p.features?.length ? ` Points clés : ${p.features.join(", ")}.` : ""}`
+    )
+  )}`;
+}
+
+function planDetails(p: MarketingPlan) {
+  const blocks = (p.blocks ?? []).map((b) =>
+    b.list?.length ? `${b.title} :\n${list(b.list)}` : b.text ? `${b.title} : ${b.text}` : ""
+  );
+  const bonus = p.bonus?.texts?.filter((t) => !t.muted && t.text.trim() !== "—") ?? [];
+  return [
+    `Forfait Marketing ${p.name}${p.popular ? " (le plus populaire)" : ""} — ${planPrice(p)}.`,
+    p.tagline,
+    p.desc ?? "",
+    p.sub?.length ? `Tournage : ${p.sub.join(", ")}.` : "",
+    ...blocks,
+    !p.blocks?.some((b) => b.list?.length) && p.features?.length ? `Inclus :\n${list(p.features)}` : "",
+    bonus.length ? `${p.bonus!.title} :\n${list(bonus.map((t) => `${t.strong ?? ""}${t.text}`.trim()))}` : "",
+    "Pour souscrire : choisir le forfait sur /marketing/forfaits (il est ajouté au projet), puis demander un devis gratuit ou réserver. Questions : /contact.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function marketingDocs(cfg: VideoConfig): Doc[] {
   const m = cfg.marketing;
   if (!m?.plans?.length) return [];
-  const priceLabel = (p: (typeof m.plans)[number]) => {
-    if (p.onQuote || p.price == null) return "sur devis";
-    if (p.setupPrice != null) {
-      return `mise en place ${euros(p.setupPrice)} HT, puis à partir de ${euros(p.price)} HT / mois`;
-    }
-    return `à partir de ${euros(p.price)} HT / mois`;
-  };
   return [
     ...m.plans.map((p) => ({
       source: "marketing",
-      title: `Forfait Marketing ${p.name}`,
+      title: `Forfait Marketing ${p.name} (marketing package, réseaux sociaux, Google)`,
       url: "/marketing/forfaits",
-      content: `Forfait Marketing ${p.name}${p.popular ? " (le plus populaire)" : ""} — ${priceLabel(p)}. ${p.tagline}\n${p.desc ? `${p.desc}\n` : ""}Inclus :\n${list(p.features)}`,
+      content: planDetails(p),
     })),
     {
       source: "marketing",
-      title: "Forfaits Marketing : comparaison et inclus",
+      title: "Forfaits Marketing : liste, prix, comparaison et inclus (marketing packages / plans)",
       url: "/marketing/forfaits",
       content: [
-        `Forfaits Marketing : ${m.plans.map((p) => `${p.name} (${priceLabel(p)})`).join(" ; ")}.`,
+        `AK Universe propose ${m.plans.length} forfaits marketing mensuels (gestion des réseaux sociaux, contenus, fiche Google et avis clients pour les entreprises locales).`,
+        marketingSummary(cfg),
         `Inclus dans tous les forfaits :\n${list((m.included ?? []).map((i) => `${i.title} — ${i.text}`))}`,
         `Bénéfices :\n${list((m.benefits ?? []).map((i) => `${i.title} — ${i.text}`))}`,
         m.customQuote ? `${m.customQuote.title} ${m.customQuote.text} (${m.customQuote.primaryCta} : /contact, sujet Demande de devis)` : "",
@@ -185,14 +218,21 @@ function agentDocs(): Doc[] {
   ];
 }
 
-function faqDocs(): Doc[] {
+function faqDocs(cfg: VideoConfig): Doc[] {
+  // Marketing answers carry the live plan list, so a FAQ hit never ends in a bare link.
+  const marketing = marketingSummary(cfg);
   return CHATBOT_FAQ.flatMap((topic) =>
-    topic.entries.map((e) => ({
-      source: "faq",
-      title: e.q,
-      url: e.url,
-      content: `${topic.topic}\nQuestion : ${e.q}\nRéponse : ${e.a}`,
-    }))
+    topic.entries.map((e) => {
+      const aboutMarketing = /marketing/i.test(topic.topic) || e.url === "/marketing/forfaits";
+      return {
+        source: "faq",
+        title: e.q,
+        url: e.url,
+        content: [`${topic.topic}\nQuestion : ${e.q}\nRéponse : ${e.a}`, aboutMarketing ? marketing : ""]
+          .filter(Boolean)
+          .join("\n\n"),
+      };
+    })
   );
 }
 
@@ -304,7 +344,7 @@ export async function buildCorpus(): Promise<Doc[]> {
     ...marketingDocs(cfg),
     ...agentDocs(),
     ...digitalDocs(),
-    ...faqDocs(),
+    ...faqDocs(cfg),
     ...[companyDoc()].filter((d): d is Doc => d !== null),
     ...splitPassages(settings.knowledge).map((p) => ({ source: "admin", ...p })),
   ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   dictateOnce,
   ensureMicAccess,
@@ -10,7 +10,8 @@ import {
   micSupported,
   speakReply,
 } from "./chatVoice";
-import { nativeTranslate, textLang, useLang } from "./LangSwitch";
+import { nativeTranslate, textLang, useLang, type Lang } from "./LangSwitch";
+import { builtInWidgetText, isRtl, isWidgetText, WIDGET_TEXT, type WidgetText } from "@/lib/chatbot/widgetText";
 
 /*
  * Floating site assistant, above the language switch. Answers come from /api/chat in the language chosen
@@ -25,60 +26,55 @@ const HIDDEN_ON = ["/admin"];
 type Message = { role: "user" | "assistant"; content: string };
 type VoicePhase = "idle" | "listening" | "thinking" | "speaking";
 
-const TEXT = {
-  fr: {
-    open: "Une question ? Discutons",
-    close: "Fermer le chat",
-    title: "Assistant AK Universe",
-    subtitle: "Réponse immédiate, 24h/24",
-    nudge: "Bonjour, comment puis-je vous aider ?",
-    nudgeDismiss: "Masquer",
-    hello: "Bonjour ! Je peux vous renseigner sur nos vidéos, nos agents IA, les tarifs ou le déroulement d'un projet. Que puis-je faire pour vous ?",
-    suggestions: ["Combien coûte une vidéo d'entreprise ?", "Comment fonctionnent les agents IA ?", "Comment réserver un tournage ?"],
-    placeholder: "Écrivez votre message…",
-    send: "Envoyer",
-    reset: "Nouvelle conversation",
-    error: "Désolé, je ne peux pas répondre pour le moment. Réessayez dans un instant ou demandez un devis sur /contact.",
-    rateLimited: "Vous avez envoyé beaucoup de messages. Merci de patienter quelques minutes.",
-    disclaimer: "Assistant IA : vérifiez les informations importantes sur votre devis.",
-    voiceInput: "Parler pour écrire",
-    voiceInputStop: "Arrêter l'écoute",
-    voiceInputUnsupported: "La dictée n'est pas disponible sur ce navigateur.",
-    voiceLive: "Discussion vocale",
-    voiceLiveEnd: "Terminer l'appel",
-    voiceListening: "Je vous écoute…",
-    voiceThinking: "Un instant…",
-    voiceSpeaking: "Réponse en cours…",
-    voiceHint: "Parlez naturellement. L'assistant répond à voix haute.",
-    voiceMicDenied: "Autorisez le micro pour utiliser la voix.",
-  },
-  en: {
-    open: "Questions? Let's chat",
-    close: "Close chat",
-    title: "AK Universe assistant",
-    subtitle: "Instant answers, 24/7",
-    nudge: "Hi, how can I help you?",
-    nudgeDismiss: "Dismiss",
-    hello: "Hello! I can help with our videos, AI agents, prices or how a project works. What can I do for you?",
-    suggestions: ["How much does a corporate video cost?", "How do the AI agents work?", "How do I book a shoot?"],
-    placeholder: "Type your message…",
-    send: "Send",
-    reset: "New conversation",
-    error: "Sorry, I can't answer right now. Please try again shortly or request a quote at /projet.",
-    rateLimited: "You've sent a lot of messages. Please wait a few minutes.",
-    disclaimer: "AI assistant: check important details on your quote.",
-    voiceInput: "Speak to type",
-    voiceInputStop: "Stop listening",
-    voiceInputUnsupported: "Dictation isn't available in this browser.",
-    voiceLive: "Live voice chat",
-    voiceLiveEnd: "End call",
-    voiceListening: "Listening…",
-    voiceThinking: "Thinking…",
-    voiceSpeaking: "Speaking…",
-    voiceHint: "Speak naturally. The assistant replies out loud.",
-    voiceMicDenied: "Allow the microphone to use voice.",
-  },
-};
+const UI_CACHE_PREFIX = "aku-chat-ui-v1-";
+
+function readCachedText(lang: Lang): WidgetText | null {
+  try {
+    const cached = JSON.parse(localStorage.getItem(UI_CACHE_PREFIX + lang) ?? "null");
+    return isWidgetText(cached) ? cached : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Widget texts in the site language. Hand-written ones are immediate; the others are fetched (and kept in
+ * localStorage) from /api/chat/ui. `native` = the texts are already in the right language, so Google Translate
+ * must keep away. `ready` stays false while fetching, so translated and native texts never swap under Google Translate.
+ */
+function useWidgetText(lang: Lang, enabled: boolean): { t: WidgetText; native: boolean; ready: boolean } {
+  const builtIn = builtInWidgetText(lang);
+  const [fetched, setFetched] = useState<{ lang: Lang; text: WidgetText | null } | null>(null);
+  // Only read once the widget is enabled, i.e. in the browser after the first render.
+  const cached = useMemo(() => (builtIn || !enabled ? null : readCachedText(lang)), [builtIn, enabled, lang]);
+
+  useEffect(() => {
+    if (builtIn || cached || !enabled) return;
+    let cancelled = false;
+    fetch(`/api/chat/ui?lang=${lang}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const text = isWidgetText(data) ? data : null;
+        setFetched({ lang, text });
+        if (text) {
+          try {
+            localStorage.setItem(UI_CACHE_PREFIX + lang, JSON.stringify(text));
+          } catch {}
+        }
+      })
+      .catch(() => !cancelled && setFetched({ lang, text: null }));
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, builtIn, cached, enabled]);
+
+  if (builtIn) return { t: builtIn, native: true, ready: true };
+  if (cached) return { t: cached, native: true, ready: true };
+  if (fetched?.lang === lang && fetched.text) return { t: fetched.text, native: true, ready: true };
+  // Fallback: French texts, machine-translated by Google Translate with the rest of the page.
+  return { t: WIDGET_TEXT[textLang(lang)], native: false, ready: fetched?.lang === lang };
+}
 
 /** Turns site paths (/services) and full URLs in an answer into links. */
 function linkify(text: string): ReactNode[] {
@@ -106,8 +102,9 @@ function loadMessages(): Message[] {
 export function ChatWidget() {
   const pathname = usePathname();
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)];
   const [enabled, setEnabled] = useState(false);
+  const { t, native, ready } = useWidgetText(lang, enabled);
+  const dir = isRtl(lang) ? "rtl" : undefined;
   const [open, setOpen] = useState(false);
   const [nudgeVisible, setNudgeVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>(loadMessages);
@@ -124,6 +121,7 @@ export function ChatWidget() {
   const voiceAbortRef = useRef<AbortController | null>(null);
   const voiceLoopRef = useRef(false);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const dictateStopRef = useRef<AbortController | null>(null);
   const canVoice = micSupported();
 
   useEffect(() => {
@@ -178,7 +176,7 @@ export function ChatWidget() {
     };
   }, []);
 
-  if (!enabled || HIDDEN_ON.includes(pathname)) return null;
+  if (!enabled || !ready || HIDDEN_ON.includes(pathname)) return null;
 
   async function send(text: string): Promise<string | null> {
     const content = text.trim();
@@ -224,22 +222,32 @@ export function ChatWidget() {
   }
 
   async function toggleDictate() {
-    if (dictating || busy || voiceLive) return;
+    // Second click = stop now and keep what was said.
+    if (dictating) {
+      dictateStopRef.current?.abort();
+      return;
+    }
+    if (busy || voiceLive) return;
     if (!canVoice) {
       setVoiceError(t.voiceInputUnsupported);
       return;
     }
     setVoiceError("");
     setDictating(true);
+    const before = input.trim();
+    const join = (text: string) => (before && text ? `${before} ${text}` : before || text);
+    const stop = new AbortController();
+    dictateStopRef.current = stop;
     try {
-      const spoken = await dictateOnce(lang, (interim) => setInput(interim));
-      if (spoken) {
-        setInput(spoken);
-        inputRef.current?.focus();
-      }
+      const spoken = await dictateOnce(lang, (interim) => setInput(join(interim)), stop.signal);
+      // Never leave a half-recognised phrase or an empty field behind: final text, else what was typed before.
+      setInput(join(spoken ?? ""));
+      inputRef.current?.focus();
     } catch (err) {
+      setInput(before);
       setVoiceError(err instanceof MicPermissionError ? t.voiceMicDenied : t.voiceInputUnsupported);
     } finally {
+      dictateStopRef.current = null;
       setDictating(false);
     }
   }
@@ -334,10 +342,16 @@ export function ChatWidget() {
           : "";
 
   return (
-    // The widget's own texts follow the page translation; answers already come in the site language (/api/chat).
-    <div className="chat-widget" translate={nativeTranslate(lang)}>
+    // Texts already in the site language (hand-written or from /api/chat/ui) are kept away from Google Translate;
+    // answers always come in the site language (/api/chat).
+    <div
+      className={`chat-widget${native ? " notranslate" : ""}`}
+      translate={native ? "no" : nativeTranslate(lang)}
+      lang={native ? lang : undefined}
+    >
       {open && (
         <section
+          dir={dir}
           className="chat-panel"
           role="dialog"
           aria-label={t.title}
@@ -420,7 +434,7 @@ export function ChatWidget() {
                 type="button"
                 className={`chat-mic${dictating ? " is-on" : ""}`}
                 onClick={() => void toggleDictate()}
-                disabled={busy || !canVoice}
+                disabled={(busy && !dictating) || !canVoice}
                 aria-pressed={dictating}
                 aria-label={dictating ? t.voiceInputStop : t.voiceInput}
                 title={canVoice ? (dictating ? t.voiceInputStop : t.voiceInput) : t.voiceInputUnsupported}
@@ -437,6 +451,8 @@ export function ChatWidget() {
                 rows={1}
                 value={input}
                 maxLength={1500}
+                readOnly={dictating}
+                dir={dir ?? "auto"}
                 placeholder={dictating ? t.voiceListening : t.placeholder}
                 aria-label={t.placeholder}
                 onChange={(e) => setInput(e.target.value)}
@@ -474,7 +490,7 @@ export function ChatWidget() {
       )}
 
       {!open && nudgeVisible && (
-        <div className="chat-nudge" role="status">
+        <div className="chat-nudge" role="status" dir={dir}>
           <button type="button" className="chat-nudge-text" onClick={openChat}>
             {t.nudge}
           </button>
