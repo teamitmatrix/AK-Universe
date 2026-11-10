@@ -92,9 +92,8 @@ export function AgentsSubnav({ active = "tous" }: { active?: (typeof AGENT_LINKS
 }
 
 const MARKETING_LINKS = [
-  { id: "marketing", href: "/marketing", label: "Notre marketing" },
   { id: "tous", href: "/marketing#tous", label: "Tous les services" },
-  { id: "categories", href: "/marketing#categories", label: "Catégories" },
+  { id: "packs", href: "/marketing#packs", label: "Nos packs" },
   { id: "realisations", href: "/marketing/realisations", label: "Réalisations" },
   { id: "devis", href: "/marketing#devis", label: "Devis" },
   { id: "faq", href: "/marketing#faq", label: "FAQ" },
@@ -102,7 +101,7 @@ const MARKETING_LINKS = [
 
 /** Bar of the marketing pages, under the same site header as Agents IA and Digital. */
 export function MarketingSubnav({
-  active = "marketing",
+  active = "tous",
 }: {
   active?: (typeof MARKETING_LINKS)[number]["id"];
 }) {

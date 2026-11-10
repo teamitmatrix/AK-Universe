@@ -105,6 +105,7 @@ export async function POST(request: Request) {
                 total: project.total_cents / 100,
                 deposit: project.deposit_cents / 100,
                 lang: meta.lang,
+                // Early-start consent is stored on contact jsonb at checkout.
               },
               "deposit_paid"
             )

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EARLY_START_CONSENT, EARLY_START_HINT } from "@/config/withdrawal";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { readClient, submitProject, useCart } from "./cart";
@@ -28,6 +29,7 @@ export function AcompteView() {
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("Le formulaire de paiement sécurisé Stripe s'affichera ici.");
   const [alert, setAlert] = useState(false);
+  const [earlyStart, setEarlyStart] = useState(false);
   const client = mounted ? readClient() : null;
 
   useEffect(() => {
@@ -95,7 +97,9 @@ export function AcompteView() {
                   if (!event.currentTarget.reportValidity()) return;
                   setSending(true);
                   const payment = method === "virement" ? "virement" : undefined;
-                  submitProject(config, "acompte", cart.items, client, payment)
+                  submitProject(config, "acompte", cart.items, client, payment, {
+                    earlyStartAccepted: earlyStart,
+                  })
                     .then((data) => {
                       if (payment === "virement") {
                         router.push("/confirmation");
@@ -131,6 +135,27 @@ export function AcompteView() {
                   <Icon name="lock" />
                   <p role={alert ? "alert" : undefined}>{notice}</p>
                 </div>
+                <p className="withdrawal-note">
+                  Le contrat est formé à l&apos;acceptation des{" "}
+                  <a href="/cgv" target="_blank" rel="noopener">
+                    conditions générales
+                  </a>{" "}
+                  et au paiement de l&apos;acompte (ou à la confirmation du virement). Les clients particuliers disposent
+                  en principe de 14 jours pour se rétracter ; détails dans les{" "}
+                  <a href="/cgv#retractation" target="_blank" rel="noopener">
+                    CGV
+                  </a>
+                  .
+                </p>
+                <label className="cgv">
+                  <input
+                    type="checkbox"
+                    checked={earlyStart}
+                    onChange={(event) => setEarlyStart(event.target.checked)}
+                  />{" "}
+                  <span>{EARLY_START_CONSENT.wording}</span>
+                </label>
+                {!earlyStart ? <p className="withdrawal-hint">{EARLY_START_HINT}</p> : null}
                 <label className="cgv">
                   <input type="checkbox" required />{" "}
                   <span>

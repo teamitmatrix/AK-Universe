@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { euro, qtyWord } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart, type CartItem } from "./cart";
+import { isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart, type CartItem } from "./cart";
 import { useVideo } from "./context";
 import { Mockup } from "./Mockup";
 
@@ -53,6 +53,7 @@ export function EmptyProject() {
 function Thumb({ item, className }: { item: CartItem; className: string }) {
   const { config } = useVideo();
   if (isForfait(item)) return <Mockup mockup={null} region="thumb" className={className} emptyIcon="crown" />;
+  if (isDigital(item)) return <Mockup mockup={null} region="thumb" className={className} emptyIcon="grid" />;
   return <Mockup mockup={serviceOf(config, item.slug)?.mockup} region="thumb" className={className} />;
 }
 
@@ -94,6 +95,7 @@ export function Summary({ editable = false }: { editable?: boolean }) {
 
 export function quantityLabel(item: CartItem, config: ReturnType<typeof useVideo>["config"]) {
   if (isForfait(item)) return "Abonnement mensuel";
+  if (isDigital(item)) return "Mise en place";
   const service = serviceOf(config, item.slug);
   return service ? qtyWord(service, item.qty) : "";
 }

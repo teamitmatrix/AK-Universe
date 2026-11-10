@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { discountOf, durationsOf, euro, qtyChoicesOf, qtyWord, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
-import { isForfait, serviceOf, useCart } from "./cart";
+import { isDigital, isForfait, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { Examples } from "./Examples";
 
@@ -28,7 +28,7 @@ export function Configurator({
   const cart = useCart(config);
   const service = serviceOf(config, slug);
   const found = editId ? cart.items.find((item) => item.id === editId) : undefined;
-  const existing = found && !isForfait(found) ? found : undefined;
+  const existing = found && !isForfait(found) && !isDigital(found) ? found : undefined;
   const quantities = service ? qtyChoicesOf(config, service) : [1];
   const durations = service ? durationsOf(config, service) : [];
   const options = service ? resolvedOptions(config, service) : [];

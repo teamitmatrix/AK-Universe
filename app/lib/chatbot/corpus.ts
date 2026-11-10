@@ -1,7 +1,7 @@
 import "server-only";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
+import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
 import { AGENT_TIERS, ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, USER_PRICE } from "@/config/pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
@@ -29,9 +29,9 @@ export const OVERVIEW: Doc = {
   url: "/",
   content: `AK Universe propose aux entreprises trois univers (menu : Agents IA, Marketing, Digital) :
 1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia#tarifs (offres), /inscription (essai gratuit et création de compte), /abonnement, /compte.
-2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Un devis se demande sur /contact (sujet « Demande de devis »), sans projet préalable ; depuis une fiche service le service est prérempli. « Mon projet » (/projet, puis /projet/informations) reste le parcours pour composer plusieurs services et réserver avec un acompte. Pages : /services (catalogue), /services/<service>, /marketing/realisations (portfolio pas encore publié), /marketing/forfaits, /contact.
+2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Un devis se demande sur /contact (sujet « Demande de devis »), sans projet préalable ; depuis une fiche service le service est prérempli. « Mon projet » (/projet, puis /projet/informations) reste le parcours pour composer plusieurs services et réserver avec un acompte. Pages : /services (catalogue), /services/<service>, /marketing/realisations (portfolio public : vidéos sur le site lorsque des projets sont publiés dans config/realisations.ts), /marketing/forfaits, /contact.
 3) Solutions digitales (sites web, applications mobiles, SEO, fiche Google Business Profile, CRM), sur devis. Page : /digital.
-Mentions : /cgv, /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
+Mentions : /cgv (dont droit de rétractation et consentement de démarrage anticipé à l'acompte), /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
 };
 
 function optionLines(cfg: VideoConfig, refs: OptionRef[] | undefined) {
@@ -207,17 +207,19 @@ function digitalDocs(): Doc[] {
         DIGITAL_WEBSITES.map((site) => {
           const running =
             site.runningFrom === null
-              ? "pas de frais de fonctionnement affichés"
-              : `frais de fonctionnement à partir de ${euros(site.runningFrom)} / mois`;
-          return `${site.name} : mise en place ${euros(site.price)} ; ${running} (${site.points.join(", ")})`;
+              ? "pas de frais de fonctionnement affichés (tout éventuel frais récurrent au devis)"
+              : `frais de fonctionnement à partir de ${euros(site.runningFrom)} HT / mois (indicatif ; inclus, obligation, début et engagement au devis)`;
+          return `${site.name} : mise en place à partir de ${euros(site.price)} HT ; ${running} (${site.points.join(", ")})`;
         }),
-      )}`,
+      )}\nTous les montants sont HT. Détail des frais de fonctionnement dans le devis avant engagement.`,
     },
     ...DIGITAL_GROUPS.map((g) => ({
       source: "digital",
       title: `Digital — ${g.title} ${g.gold}`,
       url: `/digital#${g.id}`,
-      content: `${g.text}\n${list(g.services.map((s) => `${s.name} : ${s.text} (${s.points.join(", ")})`))}`,
+      content: `${g.text}\n${list(
+        g.services.map((s) => `${s.name} : ${s.text} (${s.points.join(", ")}) — sur devis`),
+      )}`,
     })),
     {
       source: "digital",
@@ -226,6 +228,14 @@ function digitalDocs(): Doc[] {
       content: `${MOBILE_APP.lead}\nCe que nous pouvons développer :\n${list(
         MOBILE_APP.builds.map((item) => `${item.name} : ${item.text}`),
       )}\nMéthode :\n${list(MOBILE_APP.steps.map((step, i) => `${i + 1}. ${step.name} — ${step.text}`))}\n${MOBILE_APP.pricingNote}`,
+    },
+    {
+      source: "digital",
+      title: "Développement sur mesure",
+      url: "/digital/developpement-sur-mesure",
+      content: `${CUSTOM_DEV.lead}\nCe que nous pouvons construire :\n${list(
+        CUSTOM_DEV.builds.map((item) => `${item.name} : ${item.text}`),
+      )}\nMéthode :\n${list(CUSTOM_DEV.steps.map((step, i) => `${i + 1}. ${step.name} — ${step.text}`))}\n${CUSTOM_DEV.pricingNote}`,
     },
     {
       source: "digital",

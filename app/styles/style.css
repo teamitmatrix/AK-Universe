@@ -1124,7 +1124,11 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 .agents-subnav a.active { color: #1b1206; background: var(--gold); font-weight: 700; }
 .agents-hero { padding: 60px 0 50px; }
 .agents-hero .pricing-head p { margin-bottom: 0; }
-#tous, #categories, #demos, #faq, #realisations, #devis, #marketing { scroll-margin-top: 160px; }
+#tous, #categories, #packs, #demos, #faq, #realisations, #devis, #marketing,
+#sites, #seo, #tarifs, #applications,
+#site-vitrine, #site-restaurant, #site-ecommerce, #landing-page,
+#application-mobile, #developpement-sur-mesure,
+#referencement-naturel, #fiche-google-business, #presence-reputation, #crm { scroll-margin-top: 160px; }
 
 .agents-catalog { padding-top: 56px; }
 .agents-catalog .section-title { margin-bottom: 36px; }
@@ -1158,6 +1162,11 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   object-fit: cover;
   object-position: center 20%;
 }
+/* Full-frame artwork (embedded titles): avoid side cropping */
+.agent-tile-media-fit img {
+  object-fit: contain;
+  object-position: center center;
+}
 .agent-tile-top {
   display: flex;
   align-items: center;
@@ -1180,8 +1189,34 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 .agent-tile strong,
 .agent-tile-role,
 .agent-tile-text,
+.agent-tile-price,
 .agent-tile-cta {
   padding-inline: 18px;
+}
+.agent-tile-price {
+  color: #d6cdbf;
+  font-size: .92rem;
+  line-height: 1.35;
+}
+.agent-tile-price strong {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--gold);
+}
+.agent-tile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding: 4px 18px 0;
+}
+.agent-tile-actions .btn {
+  flex: 1 1 120px;
+}
+.marketing-tile strong a:hover {
+  color: var(--gold);
 }
 .agent-tile strong { font-size: 1.45rem; font-weight: 800; margin-top: 6px; }
 .agent-tile-role { color: var(--gold); font-weight: 600; font-size: .98rem; }
@@ -1198,15 +1233,177 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 
 .agent-categories, .agent-demos, .agent-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .agent-demos, .agent-blocks { grid-template-columns: repeat(2, 1fr); }
-.marketing-categories { grid-template-columns: repeat(2, 1fr); }
+.marketing-categories,
+.marketing-packs { grid-template-columns: repeat(2, 1fr); }
 @media (max-width: 900px) {
-  .marketing-categories { grid-template-columns: 1fr; }
+  .marketing-categories,
+  .marketing-packs { grid-template-columns: 1fr; }
 }
 .agent-category h3 { font-size: 1.3rem; margin: 14px 0 6px; }
 .agent-category p { color: #bdb3a4; line-height: 1.45; margin: 0 0 14px; }
 .agent-category ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .agent-category a { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line-soft); }
 .agent-category a:hover { border-color: var(--gold); color: var(--gold); }
+
+.marketing-pack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+}
+.marketing-pack.featured {
+  border-color: rgba(253, 185, 66, .45);
+}
+.marketing-pack-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.marketing-pack h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+.marketing-pack-sub {
+  margin: 0;
+  color: var(--gold);
+  font-weight: 600;
+  font-size: .95rem;
+}
+.marketing-pack > p {
+  margin: 0;
+  color: #bdb3a4;
+  line-height: 1.45;
+}
+.marketing-pack ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+.marketing-pack li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #d6cdbf;
+  font-size: .95rem;
+  line-height: 1.4;
+}
+.marketing-pack li .ic {
+  color: var(--gold);
+  flex: none;
+  margin-top: 2px;
+}
+.marketing-pack-price {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  color: #d6cdbf;
+  font-size: .95rem;
+}
+.marketing-pack-price strong {
+  color: var(--gold);
+  font-size: 1.35rem;
+}
+.marketing-pack-price small {
+  color: #a79d8f;
+  font-size: .85rem;
+}
+.marketing-pack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.marketing-pack-actions .btn {
+  flex: 1 1 140px;
+}
+
+/* ---------- Réalisations / portfolio ---------- */
+.realisations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 36px;
+}
+.realisation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.realisation-card .video-card {
+  border-radius: 0;
+  border: 0;
+  background: #120e0a;
+}
+.realisation-card .video-stage {
+  aspect-ratio: 16 / 9;
+  background: #120e0a;
+}
+.realisation-poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.realisation-play {
+  left: 50%;
+  top: 50%;
+  width: 72px;
+  border-width: 3px;
+  font-size: 1.6rem;
+}
+.realisation-body {
+  display: grid;
+  gap: 10px;
+  padding: 20px 22px 22px;
+}
+.realisation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.realisation-body h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+.realisation-body > p {
+  margin: 0;
+  color: #bdb3a4;
+  line-height: 1.5;
+}
+.realisation-credit {
+  font-size: .92rem;
+  color: #a79d8f;
+}
+.realisation-instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--gold);
+  font-weight: 600;
+}
+.realisation-instagram:hover {
+  color: var(--gold-3);
+}
+.realisation-empty {
+  max-width: 720px;
+  margin-inline: auto;
+  text-align: center;
+}
+@media (max-width: 900px) {
+  .realisations-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 .agent-demo { display: flex; flex-direction: column; gap: 16px; }
 .agent-demo-head { display: flex; align-items: center; gap: 12px; }
@@ -1482,41 +1679,183 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   margin-top: auto;
   padding-inline: 18px;
 }
-.digital-website-card {
-  cursor: default;
+.digital-website-tiles {
+  /* Keep card actions clear of the fixed chat FAB / nudge on the right. */
+  padding-inline-end: clamp(0px, 4vw, 72px);
+  padding-bottom: 8px;
 }
-.digital-website-card:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: rgba(255, 255, 255, .1);
+.digital-website-card {
+  height: 100%;
+  padding-bottom: 18px;
+}
+.digital-website-card .agent-tile-media {
+  aspect-ratio: 16 / 10;
+  flex: none;
+}
+.digital-website-card strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.2em * 2);
+  margin: 0;
+  padding-top: 14px;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.digital-website-card strong a:hover {
+  color: var(--gold);
 }
 .digital-website-card .digital-points {
-  flex: 1;
+  flex: 1 1 auto;
+  align-content: start;
   margin: 4px 0 8px;
   padding-inline: 18px;
+  min-height: 4.5rem;
 }
 .digital-website-price {
   display: grid;
-  gap: 8px;
+  grid-template-rows: auto auto 1fr;
+  gap: 6px;
   margin-top: auto;
-  padding: 8px 18px 0;
+  padding: 4px 18px 0;
+  min-height: 7.5rem;
 }
 .digital-setup-price {
-  font-size: 2rem;
+  min-height: 2.4rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #d6cdbf;
+  line-height: 1.3;
+}
+.digital-setup-price strong {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  font-size: 1.55rem;
   font-weight: 800;
   color: var(--gold);
-  line-height: 1.1;
 }
 .digital-running {
   color: #bdb3a4;
   font-size: .92rem;
   line-height: 1.4;
+  min-height: 2.8em;
+}
+.digital-running-note {
+  color: #8f8578;
+  font-size: .8rem;
+  line-height: 1.35;
+}
+.digital-website-actions {
+  margin-top: 10px;
+  flex: none;
+}
+.digital-running-policy {
+  margin: 22px 0 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, .02);
+  display: grid;
+  gap: 8px;
+  color: #bdb3a4;
+  font-size: .92rem;
+  line-height: 1.45;
+  max-width: 920px;
+}
+.digital-running-policy p {
+  margin: 0;
+}
+/* Clear fixed cookie (left) + chat (right) so they do not cover the last card row. */
+#sites.section {
+  padding-bottom: 120px;
+}
+@media (max-width: 640px) {
+  .digital-website-tiles {
+    padding-inline-end: 0;
+  }
+  #sites.section {
+    padding-bottom: 140px;
+  }
+}
+.digital-apps-block {
+  margin-top: 56px;
 }
 .digital-apps-title {
   text-align: center;
   font-size: clamp(1.45rem, 2.4vw, 1.9rem);
   font-weight: 800;
-  margin: 48px 0 28px;
+  margin: 0 0 28px;
+  scroll-margin-top: 160px;
+}
+.digital-quote-tiles-pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 920px;
+  margin-inline: auto;
+}
+.digital-quote-card {
+  height: 100%;
+  padding-bottom: 18px;
+}
+.digital-quote-card .agent-tile-media {
+  aspect-ratio: 16 / 10;
+  flex: none;
+}
+.digital-quote-card strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.2em * 2);
+  margin: 0;
+  padding-top: 14px;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.digital-quote-card strong a:hover {
+  color: var(--gold);
+}
+.digital-quote-card .agent-tile-text {
+  flex: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  min-height: calc(1.45em * 3);
+  margin: 0;
+  padding-inline: 18px;
+  font-size: .92rem;
+  line-height: 1.45;
+}
+.digital-quote-card .digital-points {
+  flex: 1 1 auto;
+  align-content: start;
+  margin: 4px 0 8px;
+  padding-inline: 18px;
+  min-height: 4.5rem;
+}
+.digital-quote-price {
+  display: block;
+  margin-top: auto;
+  padding: 4px 18px 0;
+  min-height: 1.6rem;
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+.digital-quote-actions {
+  margin-top: 10px;
+  flex: none;
+}
+.digital-quote-actions .btn-primary {
+  order: -1;
+}
+@media (max-width: 900px) {
+  .digital-quote-tiles-pair {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
 }
 .digital-app-hero .agent-profile-visual.digital-app-phones {
   aspect-ratio: auto;

@@ -142,8 +142,18 @@ export function ChatWidget() {
     try {
       if (sessionStorage.getItem(NUDGE_KEY) === "1") return;
     } catch {}
-    const timer = window.setTimeout(() => setNudgeVisible(true), 900);
-    return () => window.clearTimeout(timer);
+    const show = window.setTimeout(() => setNudgeVisible(true), 900);
+    // Auto-hide so the bubble does not permanently cover offer prices/actions (e.g. /digital cards).
+    const hide = window.setTimeout(() => {
+      setNudgeVisible(false);
+      try {
+        sessionStorage.setItem(NUDGE_KEY, "1");
+      } catch {}
+    }, 6500);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
   }, [enabled, open]);
 
   function dismissNudge() {

@@ -5,7 +5,7 @@ import { COMPANY, phoneHref } from "@/config/company";
 export const metadata: Metadata = {
   title: "Conditions générales de vente et d'utilisation — AK Universe",
   description:
-    "Conditions générales de vente et d'utilisation (CGV / CGU) des prestations AK Universe destinées aux professionnels.",
+    "Conditions générales de vente et d'utilisation (CGV / CGU) des prestations AK Universe.",
 };
 
 export default function CgvPage() {
@@ -25,7 +25,7 @@ export default function CgvPage() {
         <Field value={COMPANY.address} />.
       </p>
       <p>
-        Président : Sardar Iqbal
+        Président : Sardar Aqil Iqbal
         <br />
         E-mail :{" "}
         <a href={`mailto:${COMPANY.email}`}>
@@ -41,7 +41,7 @@ export default function CgvPage() {
       <h2>Article 2 — Objet</h2>
       <p>
         Les présentes conditions encadrent l&apos;utilisation du site internet et la vente des prestations d&apos;AK
-        UNIVERSE, destinées exclusivement aux professionnels (B2B).
+        UNIVERSE auprès de ses clients (professionnels et, le cas échéant, particuliers).
       </p>
       <p>
         Les prestations comprennent notamment le marketing, la communication, les services digitaux, la création de
@@ -61,7 +61,11 @@ export default function CgvPage() {
         Les prestations font l&apos;objet d&apos;une offre, d&apos;un devis ou d&apos;un contrat précisant les services,
         tarifs, délais et conditions particulières.
       </p>
-      <p>La commande devient ferme selon les modalités d&apos;acceptation prévues dans ces documents.</p>
+      <p>
+        Une demande de devis n&apos;engage pas le client. Pour une réservation avec acompte réalisée en ligne, le contrat
+        est formé à l&apos;acceptation des présentes conditions et au paiement de l&apos;acompte (ou à la confirmation de
+        réception du virement). Pour un devis, le contrat est formé à l&apos;acceptation écrite du devis par le client.
+      </p>
 
       <h2>Article 5 — Tarifs et paiement</h2>
       <p>Les tarifs sont exprimés en euros hors taxes (HT), sauf indication contraire.</p>
@@ -139,7 +143,42 @@ export default function CgvPage() {
         </a>
       </p>
 
-      <h2>Article 12 — Droit applicable et litiges</h2>
+      <h2 id="retractation">Article 12 — Droit de rétractation</h2>
+      <p>
+        Si vous êtes un client particulier et concluez un contrat de prestation de services à distance, vous disposez en
+        principe de 14 jours à compter de la conclusion du contrat pour vous rétracter, sans avoir à motiver votre
+        décision.
+      </p>
+      <p>
+        La livraison de la vidéo ne fait pas démarrer un nouveau délai de 14 jours. Le délai court à compter de la
+        conclusion du contrat.
+      </p>
+      <p>
+        Si vous souhaitez que la prestation commence avant la fin de ce délai, votre demande expresse est recueillie
+        séparément lors de la commande (case non cochée par défaut). En cas de rétractation après le début du travail, le
+        montant correspondant aux prestations déjà réalisées reste dû, dans les conditions prévues par la loi. Si la
+        prestation est entièrement exécutée avant la fin des 14 jours, vous perdez votre droit de rétractation à
+        condition d&apos;avoir préalablement accepté son démarrage anticipé et reconnu cette conséquence.
+      </p>
+      <p>
+        Sans demande de démarrage anticipé, la prestation est planifiée après l&apos;expiration du délai de rétractation,
+        sauf autre accord. Une réservation de production vidéo n&apos;est pas assimilée automatiquement à une activité de
+        loisirs fournie à une date déterminée.
+      </p>
+      <p>
+        Certains professionnels peuvent bénéficier de protections légales pour des contrats conclus hors établissement,
+        dans les conditions prévues par le Code de la consommation. Les droits relatifs à une prestation non conforme au
+        contrat restent applicables.
+      </p>
+      <p>
+        Pour exercer le droit de rétractation lorsqu&apos;il est ouvert, adressez votre demande claire à{" "}
+        <a href={`mailto:${COMPANY.email}`}>
+          <Field value={COMPANY.email} />
+        </a>{" "}
+        en indiquant votre référence de commande.
+      </p>
+
+      <h2>Article 13 — Droit applicable et litiges</h2>
       <p>Les présentes conditions sont soumises au droit français.</p>
       <p>
         En cas de différend, les parties privilégient une résolution amiable avant de saisir les juridictions

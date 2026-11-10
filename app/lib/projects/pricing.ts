@@ -1,4 +1,5 @@
 import "server-only";
+import { digitalWebsiteOf } from "@/config/digital";
 import { getVideoConfig } from "@/lib/video-config";
 import { durationsOf, qtyChoicesOf, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
 
@@ -26,6 +27,16 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
       const plan = plans.find((p) => p.key === item.key);
       if (!plan || plan.onQuote || plan.price == null) return [];
       return [{ service: `Forfait ${plan.name}`, details: `Abonnement mensuel • ${plan.tagline}`, price: plan.price }];
+    }
+
+    if (item.type === "digital") {
+      const site = item.key ? digitalWebsiteOf(item.key) : undefined;
+      if (!site) return [];
+      const details =
+        site.runningFrom != null
+          ? `Mise en place HT • Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`
+          : "Mise en place HT";
+      return [{ service: site.name, details, price: site.price }];
     }
 
     const s = cfg.services.find((x) => x.slug === item.slug);

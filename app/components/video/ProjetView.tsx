@@ -5,11 +5,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isForfait, itemName, itemPrice, itemSummary, useCart } from "./cart";
+import { isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
 import { Mockup } from "./Mockup";
-import { serviceOf } from "./cart";
 
 export function ProjetView() {
   const router = useRouter();
@@ -63,12 +62,18 @@ export function ProjetView() {
             <ul className="projet-items">
               {cart.items.map((item) => {
                 const name = itemName(config, item);
-                const href = isForfait(item) ? "/marketing/forfaits" : `/services/${item.slug}`;
+                const href = isForfait(item)
+                  ? "/marketing/forfaits"
+                  : isDigital(item)
+                    ? `/digital#${item.key}`
+                    : `/services/${item.slug}`;
                 return (
                   <li key={item.id} className="projet-item">
                     <Link href={href}>
                       {isForfait(item) ? (
                         <Mockup mockup={null} region="thumb" className="projet-thumb" emptyIcon="crown" />
+                      ) : isDigital(item) ? (
+                        <Mockup mockup={null} region="thumb" className="projet-thumb" emptyIcon="grid" />
                       ) : (
                         <Mockup mockup={serviceOf(config, item.slug)?.mockup} region="thumb" className="projet-thumb" />
                       )}
@@ -82,6 +87,7 @@ export function ProjetView() {
                           className="text-btn"
                           onClick={() => {
                             if (isForfait(item)) router.push("/marketing/forfaits");
+                            else if (isDigital(item)) router.push(`/digital#${item.key}`);
                             else openConfig(item.slug, { editId: item.id });
                           }}
                         >

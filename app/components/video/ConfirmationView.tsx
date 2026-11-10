@@ -68,6 +68,12 @@ export function ConfirmationView() {
                 <span>
                   Estimation : <strong>{euro(request.total)} HT</strong>
                 </span>
+                {request.type === "acompte" && typeof request.earlyStartAccepted === "boolean" ? (
+                  <span>
+                    Démarrage anticipé :{" "}
+                    <strong>{request.earlyStartAccepted ? "demandé" : "non demandé"}</strong>
+                  </span>
+                ) : null}
               </div>
             )}
             <div className="next-steps">

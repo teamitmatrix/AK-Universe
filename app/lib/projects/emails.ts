@@ -1,5 +1,6 @@
 import "server-only";
 import { emailLayout as layout, escapeHtml, sendEmail, teamAddresses } from "@/lib/email";
+import { readEarlyStartFromContact, type EarlyStartRecord } from "@/config/withdrawal";
 
 /*
  * Video project e-mails, sent when a project is confirmed:
@@ -19,6 +20,8 @@ export type ProjectMail = {
   total: number;
   deposit: number;
   lang?: string;
+  /** Early-start withdrawal consent recorded at acompte checkout. */
+  earlyStart?: EarlyStartRecord | null;
 };
 
 const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
@@ -41,6 +44,12 @@ const TEXT = {
     total: "Total estimé (HT)",
     deposit: "Acompte",
     paid: "Acompte payé",
+    earlyStartYes:
+      "Démarrage anticipé : vous avez demandé que la prestation commence avant la fin du délai de rétractation de 14 jours, et reconnu que vous perdrez ce droit lorsque la prestation aura été entièrement exécutée.",
+    earlyStartNo:
+      "Démarrage anticipé : non demandé. La prestation sera planifiée après l'expiration du délai de rétractation de 14 jours, sauf autre accord.",
+    withdrawal:
+      "Si vous êtes un client particulier ayant commandé à distance, vous disposez en principe de 14 jours à compter de la conclusion du contrat pour vous rétracter. Pour exercer ce droit lorsqu'il est ouvert, répondez à cet e-mail en indiquant votre référence. Vos droits en cas de prestation non conforme restent applicables.",
     outro: "Pour toute question, répondez simplement à cet e-mail.",
     signature: "L'équipe AK Universe",
   },
@@ -61,6 +70,12 @@ const TEXT = {
     total: "Estimated total (excl. VAT)",
     deposit: "Deposit",
     paid: "Deposit paid",
+    earlyStartYes:
+      "Early start: you asked for the service to begin before the end of the 14-day withdrawal period, and acknowledged that you will lose that right once the service has been fully performed.",
+    earlyStartNo:
+      "Early start: not requested. Performance will be scheduled after the 14-day withdrawal period, unless otherwise agreed.",
+    withdrawal:
+      "If you are a consumer who ordered at a distance, you generally have 14 days from contract conclusion to withdraw. To exercise that right when it applies, reply to this e-mail with your reference. Your rights for non-conforming work remain available.",
     outro: "If you have any questions, simply reply to this e-mail.",
     signature: "The AK Universe team",
   },
@@ -83,6 +98,10 @@ const CONTACT_LABELS: [string, string][] = [
   ["message", "Message"],
 ];
 
+function resolveEarlyStart(p: ProjectMail): EarlyStartRecord | null {
+  return p.earlyStart ?? readEarlyStartFromContact(p.contact);
+}
+
 function itemsTable(p: ProjectMail, labels: { total: string; deposit: string }) {
   const rows = p.items
     .map(
@@ -101,17 +120,36 @@ ${deposit}</table>`;
 
 const itemsText = (p: ProjectMail) => p.items.map((i) => `- ${i.service} (${i.details}) : ${euros(i.price)}`).join("\n");
 
+function withdrawalBlock(p: ProjectMail, t: (typeof TEXT)["fr"]) {
+  if (p.kind !== "acompte") return { html: "", text: [] as string[] };
+  const early = resolveEarlyStart(p);
+  const earlyLine = early
+    ? early.accepted
+      ? t.earlyStartYes
+      : t.earlyStartNo
+    : null;
+  const html = `<p style="margin:16px 0 8px;font-size:13px;color:#d6cdbf;line-height:1.5">${escapeHtml(t.withdrawal)}</p>
+${earlyLine ? `<p style="margin:0 0 12px;font-size:13px;color:#d6cdbf;line-height:1.5">${escapeHtml(earlyLine)}</p>` : ""}
+${early?.accepted ? `<p style="margin:0 0 12px;font-size:12px;color:#a89c8e;line-height:1.45">Consentement (v${escapeHtml(early.version)}) du ${escapeHtml(early.acceptedAt)} :<br>${escapeHtml(early.wording)}</p>` : ""}`;
+  const text = [t.withdrawal, earlyLine, early?.accepted ? `Consentement (v${early.version}) du ${early.acceptedAt} : ${early.wording}` : ""]
+    .filter(Boolean)
+    .map(String);
+  return { html, text };
+}
+
 function clientEmail(p: ProjectMail, event: ProjectEvent) {
   const t = p.lang === "en" ? TEXT.en : TEXT.fr;
   const step = event === "deposit_paid" ? "deposit_paid" : p.kind;
   const name = p.contact.prenom || p.contact.nom || "";
   const depositLabel = event === "deposit_paid" ? t.paid : t.deposit;
+  const withdrawal = withdrawalBlock(p, t);
   const html = layout(
     t.subject[step](p.reference).replace(/ — AK Universe$/, ""),
     `<p style="margin:0 0 12px">${escapeHtml(t.hello(name))}</p>
 <p style="margin:0 0 12px">${t.intro[step]}</p>
 <p style="margin:0">${t.reference} : <strong style="color:#fdb942">${escapeHtml(p.reference)}</strong></p>
 ${itemsTable(p, { total: t.total, deposit: depositLabel })}
+${withdrawal.html}
 <p style="margin:0 0 12px">${t.outro}</p>
 <p style="margin:0">${t.signature}</p>`
   );
@@ -125,6 +163,8 @@ ${itemsTable(p, { total: t.total, deposit: depositLabel })}
     `${t.total} : ${euros(p.total)}`,
     p.deposit ? `${depositLabel} : ${euros(p.deposit)}` : "",
     "",
+    ...withdrawal.text,
+    "",
     t.outro,
     t.signature,
   ].join("\n");
@@ -137,9 +177,14 @@ function teamEmail(p: ProjectMail, event: ProjectEvent) {
   const contact = CONTACT_LABELS.filter(([key]) => p.contact[key])
     .map(([key, label]) => `<tr><td style="padding:4px 12px 4px 0;color:#a89c8e;vertical-align:top">${label}</td><td style="padding:4px 0">${escapeHtml(p.contact[key]).replace(/\n/g, "<br>")}</td></tr>`)
     .join("");
+  const early = resolveEarlyStart(p);
+  const earlyHtml = early
+    ? `<p style="margin:12px 0;font-size:13px;color:#d6cdbf">Démarrage anticipé : <strong>${early.accepted ? "oui" : "non"}</strong> (v${escapeHtml(early.version)}, ${escapeHtml(early.acceptedAt)})</p>`
+    : "";
   const html = layout(
     escapeHtml(TEAM_SUBJECT[step](p.reference, who)),
     `<table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px">${contact}</table>
+${earlyHtml}
 ${itemsTable(p, { total: "Total (HT)", deposit: event === "deposit_paid" ? "Acompte payé" : "Acompte" })}
 <p style="margin:0;color:#a89c8e;font-size:13px">Détail complet : Supabase → table <code>video_projects</code>, référence ${escapeHtml(p.reference)}.</p>`
   );
@@ -147,6 +192,7 @@ ${itemsTable(p, { total: "Total (HT)", deposit: event === "deposit_paid" ? "Acom
     TEAM_SUBJECT[step](p.reference, who),
     "",
     ...CONTACT_LABELS.filter(([key]) => p.contact[key]).map(([key, label]) => `${label} : ${p.contact[key]}`),
+    early ? `Démarrage anticipé : ${early.accepted ? "oui" : "non"} (v${early.version}, ${early.acceptedAt})` : "",
     "",
     itemsText(p),
     `Total (HT) : ${euros(p.total)}`,

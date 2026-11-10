@@ -13,11 +13,14 @@ export function VideoPlayer({
   duration,
   poster,
   playClassName = "",
+  captions,
 }: {
   src: string;
   duration: string;
   poster: React.ReactNode;
   playClassName?: string;
+  /** Optional WebVTT captions (French). */
+  captions?: string;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -65,7 +68,9 @@ export function VideoPlayer({
             setProgress((video.currentTime / video.duration) * 100);
             setTime(`${clock(video.currentTime)} / ${clock(video.duration)}`);
           }}
-        />
+        >
+          {captions ? <track kind="captions" srcLang="fr" label="Français" src={captions} default /> : null}
+        </video>
         <button type="button" className={`video-big-play ${playClassName}`.trim()} aria-label="Lire la vidéo" onClick={toggle}>
           <Icon name="play" />
         </button>

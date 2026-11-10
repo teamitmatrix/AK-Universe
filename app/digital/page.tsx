@@ -3,21 +3,22 @@ import Link from "next/link";
 import { Subnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { DigitalQuoteCards } from "@/components/digital/DigitalQuoteCards";
+import { DigitalWebsiteCards } from "@/components/digital/DigitalWebsiteCards";
 import { Icon } from "@/components/ui/Icon";
-import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV, DIGITAL_WEBSITES } from "@/config/digital";
+import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV } from "@/config/digital";
 import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getVideoConfig } from "@/lib/video-config";
 
 export const metadata: Metadata = {
   title: { absolute: "Solutions digitales — AK Universe" },
   description:
-    "Sites web, applications mobiles, SEO, fiche Google Business Profile et CRM : les solutions digitales d'AK Universe.",
+    "Sites web, applications mobiles, référencement naturel, fiche Google Business Profile et CRM : les solutions digitales d'AK Universe.",
 };
 
-const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
-
 export default async function Page() {
-  const user = await getCurrentUser();
+  const [user, config] = await Promise.all([getCurrentUser(), getVideoConfig()]);
   const sites = DIGITAL_GROUPS.find((group) => group.id === "sites");
   const seo = DIGITAL_GROUPS.find((group) => group.id === "seo");
 
@@ -45,72 +46,15 @@ export default async function Page() {
               {sites?.text ??
                 "Des sites professionnels, rapides et pensés pour convertir vos visiteurs en clients."}
             </p>
-            <div className="agent-tiles digital-website-tiles">
-              {DIGITAL_WEBSITES.map((site) => (
-                <article key={site.id} className="agent-tile marketing-tile digital-website-card">
-                  <span className="agent-tile-top">
-                    <span className="icon-box">
-                      <Icon name={site.icon} />
-                    </span>
-                  </span>
-                  <strong>{site.name}</strong>
-                  <ul className="feature-list digital-points">
-                    {site.points.map((point) => (
-                      <li key={point}>
-                        <Icon name="check-circle" /> {point}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="digital-website-price">
-                    <span className="digital-setup-price">{euros(site.price)}</span>
-                    {site.runningFrom !== null ? (
-                      <span className="digital-running">
-                        Frais de fonctionnement
-                        <br />
-                        À partir de {euros(site.runningFrom)} / mois
-                      </span>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
+            <DigitalWebsiteCards config={config} />
 
             {sites ? (
-              <>
+              <div id="applications" className="digital-apps-block">
                 <h3 className="digital-apps-title">
                   Applications et <span className="gold">développement</span>
                 </h3>
-                <div className="agent-tiles">
-                  {sites.services.map((service) => {
-                    const href = service.href ?? quoteHref(`digital:${service.name}`);
-                    return (
-                      <Link
-                        key={service.name}
-                        href={href}
-                        className="agent-tile marketing-tile digital-service-card"
-                      >
-                        <span className="agent-tile-top">
-                          <span className="icon-box">
-                            <Icon name={service.icon} />
-                          </span>
-                        </span>
-                        <strong>{service.name}</strong>
-                        <span className="agent-tile-text">{service.text}</span>
-                        <ul className="feature-list digital-points">
-                          {service.points.map((point) => (
-                            <li key={point}>
-                              <Icon name="check-circle" /> {point}
-                            </li>
-                          ))}
-                        </ul>
-                        <span className="agent-tile-cta">
-                          {service.href ? "Découvrir" : "Demander un devis"} <Icon name="arrow" />
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </>
+                <DigitalQuoteCards services={sites.services} layout="pair" />
+              </div>
             ) : null}
           </div>
         </section>
@@ -122,33 +66,7 @@ export default async function Page() {
                 {seo.title} <span className="gold">{seo.gold}</span>
               </h2>
               <p className="section-sub">{seo.text}</p>
-              <div className="agent-tiles">
-                {seo.services.map((service) => (
-                  <Link
-                    key={service.name}
-                    href={quoteHref(`digital:${service.name}`)}
-                    className="agent-tile marketing-tile digital-service-card"
-                  >
-                    <span className="agent-tile-top">
-                      <span className="icon-box">
-                        <Icon name={service.icon} />
-                      </span>
-                    </span>
-                    <strong>{service.name}</strong>
-                    <span className="agent-tile-text">{service.text}</span>
-                    <ul className="feature-list digital-points">
-                      {service.points.map((point) => (
-                        <li key={point}>
-                          <Icon name="check-circle" /> {point}
-                        </li>
-                      ))}
-                    </ul>
-                    <span className="agent-tile-cta">
-                      Demander un devis <Icon name="arrow" />
-                    </span>
-                  </Link>
-                ))}
-              </div>
+              <DigitalQuoteCards services={seo.services} />
             </div>
           </section>
         ) : null}

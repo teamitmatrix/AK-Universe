@@ -127,6 +127,10 @@
   object-fit: cover;
   display: block;
 }
+.svc-card-media-fit .svc-card-img {
+  object-fit: contain;
+  object-position: center center;
+}
 .svc-card-body { display: flex; flex-direction: column; gap: 10px; padding: 18px; flex: 1; }
 .svc-card h3 { font-size: 1.3rem; }
 .svc-card h3 a:hover { color: var(--gold); }
@@ -269,6 +273,19 @@ body.modal-open { overflow: hidden; }
 .stripe-slot p { margin: 0; }
 .cgv { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; color: #d6cdbf; margin-bottom: 14px; }
 .cgv input { accent-color: var(--gold); width: 18px; height: 18px; margin-top: 2px; flex: none; }
+.withdrawal-note {
+  margin: 0 0 14px;
+  color: #a79d8f;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.withdrawal-note a { color: var(--gold); text-decoration: underline; }
+.withdrawal-hint {
+  margin: -6px 0 14px 28px;
+  color: #a79d8f;
+  font-size: .85rem;
+  line-height: 1.4;
+}
 .secure-dark { display: flex; gap: 10px; align-items: flex-start; color: #a79d8f; font-size: .88rem; margin: 14px 0 0; }
 .secure-dark .ic { color: var(--gold); font-size: 1.2rem; flex: none; }
 .client-dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; font-size: .95rem; }

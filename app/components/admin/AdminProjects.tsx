@@ -108,6 +108,13 @@ export function AdminProjects({ projects }: { projects: AdminProject[] }) {
                         </>
                       )}
                       {p.contact.message && <p style={{ whiteSpace: "pre-wrap" }}>{p.contact.message}</p>}
+                      {p.kind === "acompte" && p.contact.early_start_accepted && (
+                        <p>
+                          Démarrage anticipé : {p.contact.early_start_accepted}
+                          {p.contact.early_start_version ? ` (v${p.contact.early_start_version})` : ""}
+                          {p.contact.early_start_at ? ` — ${p.contact.early_start_at}` : ""}
+                        </p>
+                      )}
                     </details>
                   </td>
                   <td>

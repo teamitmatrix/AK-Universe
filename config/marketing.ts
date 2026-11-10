@@ -1,16 +1,13 @@
 /**
- * Marketing landing (Agents IA–style layout): categories, card tags and icons
- * for the video services catalogue from config/services-data.js.
+ * Marketing landing: card tags and icons for the video services catalogue
+ * from config/services-data.js.
  */
 
-export type MarketingCategory = {
-  id: string;
-  name: string;
-  text: string;
-  icon: string;
-  /** Service slugs belonging to this category. */
-  slugs: string[];
-};
+/**
+ * Service card artwork with baked-in titles/subjects.
+ * Use contain framing so cover crop does not cut text or key subjects.
+ */
+export const MARKETING_FIT_MEDIA = ["video-temoignage-client", "video-immobilier"] as const;
 
 /** Short pill label shown on catalog cards (approved mockup style). */
 export const SERVICE_TAGS: Record<string, string> = {
@@ -53,47 +50,3 @@ export const SERVICE_ICONS: Record<string, string> = {
   "video-temoignage-client": "message",
   "video-recrutement-marque-employeur": "users",
 };
-
-export const MARKETING_CATEGORIES: MarketingCategory[] = [
-  {
-    id: "marque",
-    name: "Image de marque",
-    text: "Présentez votre entreprise, vos événements et vos équipes avec des films professionnels.",
-    icon: "diamond",
-    slugs: [
-      "video-entreprise",
-      "video-evenementielle",
-      "video-interview",
-      "video-temoignage-client",
-      "video-recrutement-marque-employeur",
-    ],
-  },
-  {
-    id: "acquisition",
-    name: "Réseaux sociaux et publicité",
-    text: "Contenus courts, campagnes et UGC pour gagner en visibilité et en conversions.",
-    icon: "megaphone",
-    slugs: ["video-reseaux-sociaux", "video-promotionnelle", "video-ugc-publicite-ads"],
-  },
-  {
-    id: "contenu",
-    name: "Contenu et pédagogie",
-    text: "Motion design, tutoriels et modules de formation pour expliquer et former.",
-    icon: "bulb",
-    slugs: ["video-motion-design", "video-tutoriels", "video-formation"],
-  },
-  {
-    id: "secteurs",
-    name: "Secteurs spécialisés",
-    text: "Food, immobilier, automobile, drone, mariage et e-commerce : des formats adaptés à votre métier.",
-    icon: "grid",
-    slugs: [
-      "video-drone",
-      "video-food",
-      "video-mariage",
-      "video-immobilier",
-      "video-automobile",
-      "video-produit-e-commerce",
-    ],
-  },
-];

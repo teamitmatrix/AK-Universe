@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { MARKETING_FIT_MEDIA } from "@/config/marketing";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
 import { useVideo } from "./context";
+
+const FIT_MEDIA = new Set<string>(MARKETING_FIT_MEDIA);
 
 export function ServicesList() {
   const { config, openConfig } = useVideo();
@@ -33,7 +36,10 @@ export function ServicesList() {
         <div className="services-grid" id="services-list">
           {config.services.map((service) => (
             <article key={service.slug} className="svc-card">
-              <Link href={`/services/${service.slug}`} className="svc-card-media">
+              <Link
+                href={`/services/${service.slug}`}
+                className={`svc-card-media${FIT_MEDIA.has(service.slug) ? " svc-card-media-fit" : ""}`}
+              >
                 <Image
                   src={`/assets/img/marketing/${service.slug}.jpeg`}
                   alt=""

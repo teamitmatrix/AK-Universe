@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { digitalWebsiteOf } from "@/config/digital";
 import { videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import type { VideoConfig } from "@/lib/video-config";
 
@@ -10,7 +11,8 @@ const LAST_KEY = "aku-derniere-demande";
 
 export type CartService = { id: string; slug: string; qty: number; dur: number; opts: string[] };
 export type CartForfait = { id: string; type: "forfait"; key: string };
-export type CartItem = CartService | CartForfait;
+export type CartDigital = { id: string; type: "digital"; key: string };
+export type CartItem = CartService | CartForfait | CartDigital;
 
 export type ClientInfo = {
   prenom: string;
@@ -31,6 +33,8 @@ export type LastRequest = {
   total: number;
   acompte: number;
   depositPercent: number;
+  /** Optional early-start withdrawal consent recorded at checkout (acompte only). */
+  earlyStartAccepted?: boolean;
 };
 
 const CLIENT_FIELDS = ["prenom", "nom", "entreprise", "email", "tel", "lieu", "date", "message"] as const;
@@ -39,11 +43,15 @@ export function isForfait(item: CartItem): item is CartForfait {
   return "type" in item && item.type === "forfait";
 }
 
+export function isDigital(item: CartItem): item is CartDigital {
+  return "type" in item && item.type === "digital";
+}
+
 function isStored(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
   if (typeof item.id !== "string") return false;
-  if (item.type === "forfait") return typeof item.key === "string";
+  if (item.type === "forfait" || item.type === "digital") return typeof item.key === "string";
   return (
     typeof item.slug === "string" &&
     typeof item.qty === "number" &&
@@ -114,7 +122,11 @@ export function planOf(config: VideoConfig, key: string) {
 }
 
 export function visibleItems(config: VideoConfig, items: CartItem[]) {
-  return items.filter((item) => (isForfait(item) ? !!planOf(config, item.key) : !!serviceOf(config, item.slug)));
+  return items.filter((item) => {
+    if (isForfait(item)) return !!planOf(config, item.key);
+    if (isDigital(item)) return !!digitalWebsiteOf(item.key);
+    return !!serviceOf(config, item.slug);
+  });
 }
 
 export function itemPrice(config: VideoConfig, item: CartItem) {
@@ -122,6 +134,7 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
     const plan = planOf(config, item.key);
     return plan?.price ?? 0;
   }
+  if (isDigital(item)) return digitalWebsiteOf(item.key)?.price ?? 0;
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
 }
@@ -133,6 +146,14 @@ export function itemSummary(config: VideoConfig, item: CartItem) {
     if (plan.onQuote || plan.price == null) return `Sur devis • ${plan.tagline}`;
     return `Abonnement mensuel • ${plan.tagline}`;
   }
+  if (isDigital(item)) {
+    const site = digitalWebsiteOf(item.key);
+    if (!site) return "Site internet";
+    if (site.runningFrom != null) {
+      return `Mise en place HT • Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`;
+    }
+    return "Mise en place HT";
+  }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";
 }
@@ -142,6 +163,7 @@ export function itemName(config: VideoConfig, item: CartItem) {
     const plan = planOf(config, item.key);
     return plan ? `Forfait ${plan.name}` : "Forfait";
   }
+  if (isDigital(item)) return digitalWebsiteOf(item.key)?.name ?? "Site internet";
   return serviceOf(config, item.slug)?.name ?? "";
 }
 
@@ -160,12 +182,17 @@ export function useCart(config: VideoConfig) {
     items,
     total,
     deposit: Math.round((total * config.depositPercent) / 100),
-    add(item: Omit<CartService, "id"> | Omit<CartForfait, "id">) {
-      const current = "type" in item && item.type === "forfait" ? items.filter((entry) => !isForfait(entry)) : items;
+    add(item: Omit<CartService, "id"> | Omit<CartForfait, "id"> | Omit<CartDigital, "id">) {
+      const current =
+        "type" in item && item.type === "forfait"
+          ? items.filter((entry) => !isForfait(entry))
+          : "type" in item && item.type === "digital"
+            ? items.filter((entry) => !(isDigital(entry) && entry.key === item.key))
+            : items;
       persist([...current, { ...item, id: newId() } as CartItem]);
     },
     update(id: string, patch: Partial<Omit<CartService, "id">>) {
-      persist(items.map((item) => (item.id === id && !isForfait(item) ? { ...item, ...patch } : item)));
+      persist(items.map((item) => (item.id === id && !isForfait(item) && !isDigital(item) ? { ...item, ...patch } : item)));
     },
     remove(id: string) {
       persist(items.filter((item) => item.id !== id));
@@ -250,6 +277,13 @@ export function saveForfait(config: VideoConfig, key: string) {
   }
 }
 
+/** Adds or replaces a digital website offer in the project cart. */
+export function saveDigitalWebsite(config: VideoConfig, key: string) {
+  if (!digitalWebsiteOf(key)) return;
+  const current = getSnapshot().filter((entry) => !(isDigital(entry) && entry.key === key));
+  publish(visibleItems(config, [...current, { type: "digital", key, id: newId() }]));
+}
+
 export function readLast(): LastRequest | null {
   if (typeof window === "undefined") return null;
   try {
@@ -282,12 +316,21 @@ export async function submitProject(
   kind: "devis" | "acompte",
   items: CartItem[],
   client: ClientInfo,
-  payment?: string
+  payment?: string,
+  options?: { earlyStartAccepted?: boolean }
 ) {
+  const earlyStartAccepted = options?.earlyStartAccepted === true;
   const res = await fetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, payment, client, items, lang: siteLang() }),
+    body: JSON.stringify({
+      kind,
+      payment,
+      client,
+      items,
+      lang: siteLang(),
+      ...(kind === "acompte" ? { earlyStartAccepted } : {}),
+    }),
   });
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;
@@ -305,6 +348,7 @@ export async function submitProject(
     total: data.total ?? 0,
     acompte: data.acompte ?? 0,
     depositPercent: config.depositPercent,
+    ...(kind === "acompte" ? { earlyStartAccepted } : {}),
   });
   return data;
 }

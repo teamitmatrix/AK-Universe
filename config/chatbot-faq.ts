@@ -35,7 +35,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Avec quels clients avez-vous travaillé ? Avez-vous des références ?",
-        a: "La page des réalisations (/marketing/realisations) regroupera les projets et campagnes déjà réalisés. Cette sélection n'est pas encore publiée. Pour des références liées à votre secteur, demandez-les lors de votre demande de devis.",
+        a: "Consultez /marketing/realisations pour la sélection de projets publiés (vidéos à visionner sur le site). Si la sélection est encore en préparation, ou pour des références liées à votre secteur, demandez-les lors de votre demande de devis.",
         url: "/marketing/realisations",
       },
     ],
@@ -251,7 +251,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Ai-je un droit de rétractation ?",
-        a: "Les clients particuliers disposent de 14 jours à compter de la commande pour se rétracter. Si vous demandez que la prestation commence avant la fin de ce délai, vous payez la part déjà exécutée. Ce droit ne s'applique pas aux prestations entièrement exécutées ni aux prestations de loisirs à date déterminée, ni aux clients professionnels.",
+        a: "Si vous êtes un client particulier et commandez à distance, vous disposez en principe de 14 jours à compter de la conclusion du contrat pour vous rétracter. Si vous souhaitez que la prestation commence avant la fin de ce délai, nous recueillons votre demande expresse. En cas de rétractation après le début du travail, le montant correspondant aux prestations déjà réalisées reste dû, dans les conditions prévues par la loi. Si la prestation est entièrement exécutée avant la fin des 14 jours, vous perdez votre droit de rétractation à condition d'avoir préalablement accepté son démarrage anticipé et reconnu cette conséquence. La livraison de la vidéo ne fait pas démarrer un nouveau délai de 14 jours. Vos droits en cas de prestation non conforme au contrat restent applicables.",
         url: "/cgv",
       },
     ],

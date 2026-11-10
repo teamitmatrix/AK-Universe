@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { MarketingSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { RealisationsGallery } from "@/components/video/RealisationsGallery";
+import { MARKETING_REALISATIONS } from "@/config/realisations";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -11,6 +13,8 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const user = await getCurrentUser();
+  const projects = MARKETING_REALISATIONS;
+  const hasProjects = projects.length > 0;
 
   return (
     <>
@@ -24,11 +28,13 @@ export default async function Page() {
               Nos <span className="gold">réalisations</span>
             </h1>
             <p>
-              Les projets, campagnes et contenus déjà réalisés seront présentés ici. Cette sélection n&apos;est pas encore
-              disponible.
+              {hasProjects
+                ? "Une sélection de projets vidéo et campagnes réalisés pour nos clients — à visionner directement sur le site."
+                : "Les projets, campagnes et contenus déjà réalisés seront présentés ici dès que les médias et droits de publication seront validés."}
             </p>
           </div>
         </section>
+        <RealisationsGallery projects={projects} />
       </main>
       <SiteFooter />
     </>

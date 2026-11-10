@@ -6,6 +6,7 @@ import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { buildEarlyStartRecord, earlyStartContactFields } from "@/config/withdrawal";
 
 /*
  * Video project intake (finaliser.html → "Demander mon devis", acompte.html → "Payer").
@@ -29,6 +30,8 @@ type Body = {
   lang?: string;
   client?: Record<string, unknown>;
   items?: ProjectItemInput[];
+  /** Optional early-start consent for acompte checkout (must stay unchecked by default on the client). */
+  earlyStartAccepted?: boolean;
 };
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -102,6 +105,9 @@ export async function POST(request: Request) {
   if (auth.user) await ensureProfile(auth.user);
   const reference = `AKU-${randomBytes(4).toString("hex").toUpperCase()}`;
 
+  const earlyStart = kind === "acompte" ? buildEarlyStartRecord(body.earlyStartAccepted === true) : null;
+  const storedContact = earlyStart ? { ...contact, ...earlyStartContactFields(earlyStart) } : contact;
+
   const { data: project, error } = await admin
     .from("video_projects")
     .insert({
@@ -109,7 +115,7 @@ export async function POST(request: Request) {
       user_id: auth.user?.id ?? null,
       kind,
       status: kind === "acompte" ? "acompte_en_attente" : "nouveau",
-      contact,
+      contact: storedContact,
       items: priced.items,
       total_cents: priced.total * 100,
       deposit_cents: kind === "acompte" ? priced.deposit * 100 : 0,
@@ -126,7 +132,19 @@ export async function POST(request: Request) {
   if (!byCard) {
     // Card deposits are confirmed (and e-mailed) by the Stripe webhook once paid.
     after(() =>
-      sendProjectEmails({ reference, kind, contact, items: priced.items, total: priced.total, deposit: summary.acompte, lang }, "received")
+      sendProjectEmails(
+        {
+          reference,
+          kind,
+          contact: storedContact,
+          items: priced.items,
+          total: priced.total,
+          deposit: summary.acompte,
+          lang,
+          earlyStart,
+        },
+        "received"
+      )
     );
     return NextResponse.json(summary);
   }

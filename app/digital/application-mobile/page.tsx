@@ -34,7 +34,7 @@ export default async function Page() {
                 {MOBILE_APP.title} <span className="gold">{MOBILE_APP.titleGold}</span>
               </h1>
               <p className="agent-profile-lead">{MOBILE_APP.lead}</p>
-              <Link href={quoteHref("digital:Application mobile")} className="btn btn-primary btn-lg">
+              <Link href={quoteHref("digital:application-mobile")} className="btn btn-primary btn-lg">
                 {MOBILE_APP.cta} <Icon name="arrow" />
               </Link>
             </div>
@@ -91,7 +91,7 @@ export default async function Page() {
             </ol>
             <p className="digital-app-pricing">{MOBILE_APP.pricingNote}</p>
             <div className="agents-cta">
-              <Link href={quoteHref("digital:Application mobile")} className="btn btn-primary btn-lg">
+              <Link href={quoteHref("digital:application-mobile")} className="btn btn-primary btn-lg">
                 {MOBILE_APP.cta} <Icon name="arrow" />
               </Link>
             </div>
