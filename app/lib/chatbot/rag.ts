@@ -15,7 +15,7 @@ const EMBED_BATCH = 64;
 const SYNC_EVERY_MS = 5 * 60 * 1000;
 const RETRY_AFTER_FAILURE_MS = 60 * 1000;
 /** Passages sent to the model per question. */
-const MATCH_COUNT = 6;
+const MATCH_COUNT = 8;
 /** Below this cosine similarity a passage is unrelated to the question and is not sent. */
 const MIN_SIMILARITY = 0.25;
 
@@ -94,12 +94,59 @@ export function ensureIndex(force = false): Promise<void> {
 
 type Match = { hash: string; source: string; title: string; url: string | null; content: string; similarity: number };
 
+const REWRITE_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+
 /**
- * Passages closest to the visitor's question. The previous question is searched too (fewer results),
- * so short follow-ups such as "and with a drone?" keep their context.
+ * The site content is in French while visitors write in any language (English, Urdu, Roman Urdu…):
+ * the question, made standalone with the conversation, is rewritten as a French search query with the
+ * site's own words, which matches the passages far better than the raw question. Null if the call fails.
  */
-export async function retrieve(question: string, previous?: string): Promise<Passage[]> {
-  const queries = previous ? [question, `${previous}\n${question}`] : [question];
+export async function searchQuery(
+  history: { role: "user" | "assistant"; content: string }[]
+): Promise<string | null> {
+  const recent = history
+    .slice(-5)
+    .map((m) => `${m.role === "user" ? "Visitor" : "Assistant"}: ${m.content.slice(0, 500)}`)
+    .join("\n");
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: REWRITE_MODEL,
+        temperature: 0,
+        max_completion_tokens: 120,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You turn the visitor's last message into a search query for a French website knowledge base (AK Universe: Agents IA par abonnement, production vidéo / services vidéo, Forfaits Marketing mensuels (réseaux sociaux, Google Business Profile, avis), solutions Digital (sites internet, applications, SEO, CRM), tarifs, devis, acompte, réservation). Resolve follow-ups with the conversation. Reply with ONE line in French: the standalone question followed by the key French terms the site would use (e.g. \"forfaits marketing\", \"tarifs\", \"prix\"). No explanation.",
+          },
+          { role: "user", content: recent },
+        ],
+      }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content;
+    return typeof text === "string" && text.trim() ? text.trim().slice(0, 400) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Passages closest to the visitor's question. The French search query (searchQuery) is searched first;
+ * the raw question and the previous question are searched too (fewer results), so short follow-ups such as
+ * "and with a drone?" keep their context even when the rewrite fails.
+ */
+export async function retrieve(question: string, previous?: string, rewritten?: string | null): Promise<Passage[]> {
+  const queries = [
+    ...(rewritten ? [rewritten] : []),
+    question,
+    ...(previous ? [`${previous}\n${question}`] : []),
+  ];
   const vectors = await embed(queries);
   const db = createAdminClient();
   const results = await Promise.all(

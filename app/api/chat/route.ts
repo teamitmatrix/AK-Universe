@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isLang, SOURCE_LANG } from "@/config/languages";
 import { buildCorpus, OVERVIEW } from "@/lib/chatbot/corpus";
 import { buildSystemPrompt, getChatbotSettings, languageReminder } from "@/lib/chatbot/knowledge";
-import { ensureIndex, retrieve } from "@/lib/chatbot/rag";
+import { ensureIndex, retrieve, searchQuery } from "@/lib/chatbot/rag";
 
 /*
  * Site chatbot (components/ui/ChatWidget.tsx). Public endpoint:
@@ -14,7 +14,7 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_MESSAGES = 12;
 const MAX_MESSAGE_CHARS = 1500;
-const MAX_ANSWER_TOKENS = 600;
+const MAX_ANSWER_TOKENS = 900;
 
 /** Anti-abuse, per server instance: at most this many messages per IP in the window below. */
 const MAX_PER_IP = 20;
@@ -36,8 +36,9 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 async function contextFor(messages: ChatMessage[]) {
   const questions = messages.filter((m) => m.role === "user").map((m) => m.content);
   try {
-    await ensureIndex();
-    const passages = await retrieve(questions.at(-1)!, questions.at(-2));
+    // The French search query is prepared while the index is checked (about one short model call).
+    const [rewritten] = await Promise.all([searchQuery(messages), ensureIndex()]);
+    const passages = await retrieve(questions.at(-1)!, questions.at(-2), rewritten);
     return [OVERVIEW, ...passages.filter((p) => p.title !== OVERVIEW.title)];
   } catch (cause) {
     console.error("Chatbot retrieval failed, sending the whole corpus:", cause);

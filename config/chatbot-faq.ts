@@ -261,12 +261,12 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
     entries: [
       {
         q: "Qu'est-ce que les forfaits marketing ?",
-        a: "Des abonnements mensuels de production vidéo pour booster votre visibilité : un nombre de vidéos par mois, formats réseaux sociaux, montage professionnel, sous-titres, révisions et conseils de diffusion. Ils sont séparés des abonnements Agents IA. Choisissez un forfait sur /marketing/forfaits : il est ajouté à votre projet, puis vous demandez un devis ou réservez.",
+        a: "Des abonnements mensuels de marketing local et de contenu pour développer votre visibilité : gestion des réseaux sociaux (Instagram, Facebook, TikTok), publications, Reels et Stories, fiche Google Business Profile, réponses aux avis clients, reporting, et tournages vidéo selon le forfait. Ils sont séparés des abonnements Agents IA. Choisissez un forfait sur /marketing/forfaits : il est ajouté à votre projet, puis vous demandez un devis ou réservez.",
         url: "/marketing/forfaits",
       },
       {
         q: "Quelle est la différence entre les forfaits marketing et les agents IA ?",
-        a: "Ce sont deux univers séparés : les forfaits marketing sont des productions vidéo mensuelles réalisées par notre équipe (/marketing/forfaits) ; les agents IA sont des assistants automatisés par abonnement logiciel (/agents-ia#tarifs).",
+        a: "Ce sont deux univers séparés : les forfaits marketing sont une gestion mensuelle de vos réseaux sociaux, de votre fiche Google et de vos contenus (photos, Reels, vidéos) réalisée par notre équipe (/marketing/forfaits) ; les agents IA sont des assistants automatisés par abonnement logiciel (/agents-ia#tarifs).",
       },
       {
         q: "Puis-je avoir un échange avec un expert marketing ?",

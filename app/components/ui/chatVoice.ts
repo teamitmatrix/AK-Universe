@@ -73,7 +73,9 @@ export function speakableText(raw: string): string {
 
 /**
  * One-shot dictation into a field.
- * Opens the mic first (so the browser prompts), then prefers Web Speech with a Whisper recorder fallback.
+ * Web Speech gives live words while the same mic is recorded in parallel: if the browser returns no final
+ * text (frequent for Urdu / Hindi), the recording of what was actually said goes to Whisper instead of being lost.
+ * Aborting `signal` = "stop now": whatever was heard so far is still returned.
  */
 export async function dictateOnce(
   lang: string,
@@ -82,14 +84,23 @@ export async function dictateOnce(
 ): Promise<string | null> {
   const stream = await ensureMicAccess();
   try {
-    if (recognitionCtor()) {
-      const spoken = await listenWithWebSpeech(lang, { onInterim, signal, maxMs: 20000 });
-      if (spoken) return spoken;
+    if (!recognitionCtor()) {
+      const blob = await recordUntilSilence(stream, signal, { keepOnAbort: true });
+      if (!blob || blob.size < 800) return null;
+      return transcribeBlob(blob, lang);
     }
-    onInterim?.("…");
-    const blob = await recordUntilSilence(stream, signal);
-    if (!blob || blob.size < 800) return null;
-    return transcribeBlob(blob, lang, signal);
+
+    const recording = startRecording(stream);
+    const heard = await listenWithWebSpeech(lang, { onInterim, signal, maxMs: 30000 });
+    const blob = await recording.stop();
+
+    if (heard.final) return heard.final;
+    // No final result: Whisper on the real audio, else the last live words rather than nothing.
+    if (blob && blob.size >= 800 && (heard.interim || heard.sawSpeech || heard.failed)) {
+      const text = await transcribeBlob(blob, lang).catch(() => null);
+      if (text) return text;
+    }
+    return heard.interim || null;
   } finally {
     stream.getTracks().forEach((t) => t.stop());
   }
@@ -114,7 +125,6 @@ export async function listenForUtterance(
   try {
     // When we already hold a MediaStream (live call), record that stream.
     // Web Speech Recognition does not use our stream and can miss the mic entirely.
-    opts.onInterim?.("…");
     const blob = await recordUntilSilence(stream, opts.signal);
     if (!blob || blob.size < 800) return null;
     return transcribeBlob(blob, lang, opts.signal);
@@ -123,12 +133,15 @@ export async function listenForUtterance(
   }
 }
 
+type WebSpeechResult = { final: string; interim: string; sawSpeech: boolean; failed: boolean };
+
 function listenWithWebSpeech(
   lang: string,
   opts: { onInterim?: (text: string) => void; signal?: AbortSignal; maxMs?: number }
-): Promise<string | null> {
+): Promise<WebSpeechResult> {
   const Ctor = recognitionCtor();
-  if (!Ctor) return Promise.resolve(null);
+  if (!Ctor) return Promise.resolve({ final: "", interim: "", sawSpeech: false, failed: true });
+  if (opts.signal?.aborted) return Promise.resolve({ final: "", interim: "", sawSpeech: false, failed: false });
 
   return new Promise((resolve) => {
     const recognition = new Ctor();
@@ -138,15 +151,18 @@ function listenWithWebSpeech(
     recognition.maxAlternatives = 1;
 
     let finalText = "";
+    let interimText = "";
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     let maxTimer: ReturnType<typeof setTimeout> | null = null;
     let settled = false;
     let sawSpeech = false;
+    let failed = false;
+    let restarts = 0;
 
     const cleanup = () => {
       if (silenceTimer) clearTimeout(silenceTimer);
       if (maxTimer) clearTimeout(maxTimer);
-      opts.signal?.removeEventListener("abort", onAbort);
+      opts.signal?.removeEventListener("abort", finish);
       try {
         recognition.onresult = null;
         recognition.onerror = null;
@@ -155,19 +171,19 @@ function listenWithWebSpeech(
       } catch {}
     };
 
-    const finish = (value: string | null) => {
+    function finish() {
       if (settled) return;
       settled = true;
       cleanup();
-      resolve(value);
-    };
+      resolve({ final: finalText.trim(), interim: `${finalText} ${interimText}`.trim(), sawSpeech, failed });
+    }
 
-    const onAbort = () => finish(null);
-    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    opts.signal?.addEventListener("abort", finish, { once: true });
 
-    const scheduleEnd = () => {
+    // End after a pause, with final or only interim results (some languages rarely send final ones).
+    const scheduleEnd = (ms: number) => {
       if (silenceTimer) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => finish(finalText.trim() || null), 1100);
+      silenceTimer = setTimeout(finish, ms);
     };
 
     recognition.onresult = (event) => {
@@ -178,67 +194,97 @@ function listenWithWebSpeech(
         sawSpeech = true;
         if (event.results[i].isFinal) {
           finalText = `${finalText} ${piece}`.trim();
-          scheduleEnd();
         } else {
           interim += piece;
         }
       }
-      opts.onInterim?.(`${finalText} ${interim}`.trim());
+      interimText = interim;
+      scheduleEnd(interim ? 2200 : 1300);
+      opts.onInterim?.(`${finalText} ${interimText}`.trim());
     };
     recognition.onerror = (event) => {
-      // Hand control to the recorder fallback for hard failures.
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        finish(null);
-        return;
-      }
-      if (event.error === "aborted") {
-        finish(finalText.trim() || null);
-        return;
-      }
-      if (event.error === "no-speech") {
-        finish(finalText.trim() || null);
-        return;
-      }
-      // network / audio-capture / etc. → let caller fall back
-      finish(finalText.trim() || null);
+      // network, language-not-supported, audio-capture… → the parallel recording goes to Whisper.
+      if (event.error !== "no-speech" && event.error !== "aborted") failed = true;
+      finish();
     };
     recognition.onend = () => {
       if (settled) return;
-      if (finalText.trim()) {
-        finish(finalText.trim());
+      if (finalText.trim() || interimText.trim() || restarts >= 3) {
+        finish();
         return;
       }
-      if (sawSpeech) {
-        // Ended mid-phrase — return whatever we have / empty for fallback.
-        finish(null);
-        return;
-      }
+      // Ended before anything was heard: listen again (Chrome stops after a few silent seconds).
+      restarts += 1;
       try {
         recognition.start();
       } catch {
-        finish(null);
+        failed = true;
+        finish();
       }
     };
 
-    maxTimer = setTimeout(() => finish(finalText.trim() || null), opts.maxMs ?? 25000);
+    maxTimer = setTimeout(finish, opts.maxMs ?? 25000);
 
     try {
       recognition.start();
     } catch {
-      finish(null);
+      failed = true;
+      finish();
     }
   });
 }
 
-function recordUntilSilence(stream: MediaStream, signal?: AbortSignal): Promise<Blob | null> {
+function recorderMime() {
+  return MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    ? "audio/webm;codecs=opus"
+    : MediaRecorder.isTypeSupported("audio/webm")
+      ? "audio/webm"
+      : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+}
+
+/** Records the stream until stop() is called (runs next to Web Speech during dictation). */
+function startRecording(stream: MediaStream): { stop: () => Promise<Blob | null> } {
+  const mime = recorderMime();
+  let recorder: MediaRecorder;
+  try {
+    recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    recorder.start(250);
+  } catch {
+    return { stop: async () => null };
+  }
+  const chunks: BlobPart[] = [];
+  recorder.ondataavailable = (e) => {
+    if (e.data.size) chunks.push(e.data);
+  };
+  return {
+    stop: () =>
+      new Promise((resolve) => {
+        const done = () =>
+          resolve(chunks.length ? new Blob(chunks, { type: recorder.mimeType || mime || "audio/webm" }) : null);
+        if (recorder.state === "inactive") return done();
+        recorder.onstop = done;
+        try {
+          recorder.stop();
+        } catch {
+          done();
+        }
+      }),
+  };
+}
+
+/**
+ * Records until a pause after speech. Returns null when nobody spoke (Whisper invents text from silence)
+ * or when aborted, unless `keepOnAbort` (the dictation "stop" button keeps what was said).
+ */
+function recordUntilSilence(
+  stream: MediaStream,
+  signal?: AbortSignal,
+  { keepOnAbort = false }: { keepOnAbort?: boolean } = {}
+): Promise<Blob | null> {
   return new Promise((resolve) => {
-    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "";
+    const mime = recorderMime();
     const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
     const chunks: BlobPart[] = [];
     const audioCtx = new AudioContext();
@@ -254,9 +300,11 @@ function recordUntilSilence(stream: MediaStream, signal?: AbortSignal): Promise<
     let settled = false;
     let cancelled = false;
     const TICK = 100;
-    const SILENCE_MS = 1200;
-    const MAX_MS = 20000;
+    const SILENCE_MS = 1300;
+    const MAX_MS = 30000;
     const MIN_MS = 600;
+    /** Gives up after this long without any speech (the live call then simply listens again). */
+    const IDLE_MS = 12000;
     const SPEECH_THRESHOLD = 0.015;
 
     const finish = (blob: Blob | null) => {
@@ -265,7 +313,7 @@ function recordUntilSilence(stream: MediaStream, signal?: AbortSignal): Promise<
       clearInterval(timer);
       signal?.removeEventListener("abort", onAbort);
       void audioCtx.close().catch(() => {});
-      resolve(cancelled ? null : blob);
+      resolve(cancelled || !speaking ? null : blob);
     };
 
     const stopRecorder = () => {
@@ -277,10 +325,10 @@ function recordUntilSilence(stream: MediaStream, signal?: AbortSignal): Promise<
       }
     };
 
-    const onAbort = () => {
-      cancelled = true;
+    function onAbort() {
+      if (!keepOnAbort) cancelled = true;
       stopRecorder();
-    };
+    }
     signal?.addEventListener("abort", onAbort, { once: true });
 
     recorder.ondataavailable = (e) => {
@@ -312,6 +360,9 @@ function recordUntilSilence(stream: MediaStream, signal?: AbortSignal): Promise<
           stopRecorder();
           return;
         }
+      } else if (elapsed >= IDLE_MS) {
+        stopRecorder();
+        return;
       }
       if (elapsed >= MAX_MS) stopRecorder();
     }, TICK);

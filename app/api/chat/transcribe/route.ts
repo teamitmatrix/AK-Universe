@@ -13,6 +13,12 @@ const MAX_PER_IP = 40;
 const WINDOW_MS = 10 * 60 * 1000;
 const hits = new Map<string, number[]>();
 
+/** Steers the script: without it, Urdu speech sometimes comes back in Devanagari or Roman letters (and Hindi in Urdu). */
+const SCRIPT_PROMPTS: Record<string, string> = {
+  ur: "یہ اردو میں گفتگو ہے۔ اردو رسم الخط میں لکھیں۔",
+  hi: "यह हिंदी में बातचीत है। देवनागरी लिपि में लिखें।",
+};
+
 function rateLimited(ip: string) {
   const now = Date.now();
   const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
@@ -52,6 +58,7 @@ export async function POST(request: Request) {
   payload.append("model", MODEL);
   payload.append("language", lang);
   payload.append("response_format", "json");
+  if (SCRIPT_PROMPTS[lang]) payload.append("prompt", SCRIPT_PROMPTS[lang]);
 
   let upstream = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
@@ -70,6 +77,7 @@ export async function POST(request: Request) {
     retry.append("model", "whisper-1");
     retry.append("language", lang);
     retry.append("response_format", "json");
+    if (SCRIPT_PROMPTS[lang]) retry.append("prompt", SCRIPT_PROMPTS[lang]);
     upstream = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}` },
