@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "setup:supabase": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/setup-supabase.mjs",
+    "apple:secret": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/apple-secret.mjs",
+    "apple:secret:due": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/apple-secret-due.mjs",
     "check:setup": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/check-setup.mjs"
   },
   "dependencies": {

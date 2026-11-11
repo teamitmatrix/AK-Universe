@@ -20,3 +20,25 @@ services:
     ports:
       # Localhost only. Point this site's domain at 127.0.0.1:${HOST_PORT:-3010}.
       - "3010:3000"
+
+  # Renews the Apple sign-in secret during the last 30 days before it expires.
+  # Put the .p8 on the server at secrets/AuthKey.p8 (never commit it).
+  apple-secret:
+    image: node:22-alpine
+    container_name: ak-universe-apple-secret
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      APPLE_PRIVATE_KEY_PATH: /secrets/AuthKey.p8
+      APPLE_SECRET_STAMP: /var/lib/ak-apple/expires
+      APPLE_SECRET_EXPIRES: "2027-05-10"
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./secrets:/secrets:ro
+      - ak-apple:/var/lib/ak-apple
+    command: ["sh", "-c", "while true; do node /scripts/apple-secret-due.mjs || true; sleep 86400; done"]
+
+volumes:
+  ak-apple:
