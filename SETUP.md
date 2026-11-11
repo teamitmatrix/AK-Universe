@@ -53,9 +53,9 @@ Accounts (Supabase, Stripe, Resend, Vercel, GitHub) should be created with an e-
    - Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`. Supabase shows this exact URL on its Google provider page.
    - Copy the Client ID and Secret into **Supabase → Authentication → Providers → Google** and enable it.
    - Also fill **OAuth consent screen**: app name "AK Universe", logo, and links to `/confidentialite.html` and `/mentions-legales.html`.
-8. **Apple / Microsoft login (optional).**
-   - Enable them in **Authentication → Providers** (Apple needs a paid Apple Developer account; Microsoft = "Azure" with an Azure app registration).
-   - Then set `NEXT_PUBLIC_OAUTH_PROVIDERS=apple,azure`, or only the one(s) you enabled. Until then the buttons say "bientôt disponible".
+8. **Apple login (optional).**
+   - Enable it in **Authentication → Providers → Apple** (needs a paid Apple Developer account). Microsoft is not offered.
+   - Then set `NEXT_PUBLIC_OAUTH_PROVIDERS=apple`. Until then the Apple buttons say "bientôt disponible".
 9. **Admin account.**
    - Sign up on the live site with the client's e-mail.
    - Then in the **SQL Editor** run:

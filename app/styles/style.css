@@ -927,7 +927,7 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 .remember-check { display: inline-flex; align-items: center; gap: 10px; color: var(--l-text); cursor: pointer; }
 .remember-check input { width: 18px; height: 18px; accent-color: #f7ac2c; cursor: pointer; margin: 0; }
 
-.social-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 8px; }
+.social-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0 8px; }
 .social-row .btn { padding: 0 8px; gap: 7px; font-size: .92rem; height: 54px; }
 .social-row .btn svg { width: 20px; height: 20px; flex: none; }
 

@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { AppleLogo, GoogleLogo, MicrosoftLogo } from "./SocialLogos";
+import { AppleLogo, GoogleLogo } from "./SocialLogos";
 
 /* Texts from connexion.html (FR) and applyLoginTranslations() in main.js (EN). */
 const TEXT = {
@@ -96,8 +96,8 @@ type MessageKey =
 
 const BENEFIT_ICONS = ["bolt", "chart", "gear", "calendar"];
 
-type OAuthProvider = "google" | "apple" | "azure";
-/** Extra sign-in providers switched on in Supabase, e.g. "apple,azure" (Google is always on). */
+type OAuthProvider = "google" | "apple";
+/** Apple stays "coming soon" until it is enabled in Supabase and listed here, e.g. "apple". Google is always on. */
 const EXTRA_PROVIDERS = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? "").split(",").map((p) => p.trim());
 
 export function LoginScreen() {
@@ -178,14 +178,12 @@ export function LoginScreen() {
       provider,
       options: {
         redirectTo: `${window.location.origin}/auth/callback?redirectTo=${next}`,
-        // Microsoft only returns the e-mail address when asked for it.
-        scopes: provider === "azure" ? "email" : undefined,
       },
     });
     if (oauthError) setError("oauthFailed");
   }
 
-  /** Apple / Microsoft stay "coming soon" until enabled in Supabase and listed in NEXT_PUBLIC_OAUTH_PROVIDERS. */
+  /** Apple stays "coming soon" until enabled in Supabase and listed in NEXT_PUBLIC_OAUTH_PROVIDERS. */
   const social = (provider: OAuthProvider, label: string) => () =>
     provider === "google" || EXTRA_PROVIDERS.includes(provider) ? handleOAuth(provider) : toast(t.pending(label));
 
@@ -350,14 +348,6 @@ export function LoginScreen() {
               >
                 <AppleLogo />
                 Apple
-              </button>
-              <button
-                type="button"
-                className="btn btn-light-outline btn-block social-btn microsoft-btn"
-                onClick={social("azure", "Microsoft")}
-              >
-                <MicrosoftLogo />
-                Microsoft
               </button>
             </div>
 

@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
 import { textLang, useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { GoogleLogo } from "./SocialLogos";
+import { AppleLogo, GoogleLogo } from "./SocialLogos";
 
 const TEXT = {
   fr: {
@@ -29,7 +29,10 @@ const TEXT = {
     submitting: "Création…",
     or: "ou",
     google: "Continuer avec Google",
+    apple: "Continuer avec Apple",
     googleFailed: "La connexion avec Google a échoué. Veuillez réessayer.",
+    appleFailed: "La connexion avec Apple a échoué. Veuillez réessayer.",
+    pending: "Connexion Apple : bientôt disponible.",
     haveAccount: "Vous avez déjà un compte ?",
     login: "Se connecter",
     errors: {
@@ -57,7 +60,10 @@ const TEXT = {
     submitting: "Creating…",
     or: "or",
     google: "Continue with Google",
+    apple: "Continue with Apple",
     googleFailed: "Google sign-in failed. Please try again.",
+    appleFailed: "Apple sign-in failed. Please try again.",
+    pending: "Apple sign-in: coming soon.",
     haveAccount: "Already have an account?",
     login: "Sign in",
     errors: {
@@ -71,6 +77,13 @@ const TEXT = {
 };
 
 type ErrorKey = keyof typeof TEXT.fr.errors;
+type OAuthError = "googleFailed" | "appleFailed";
+
+/** Apple stays "coming soon" until it is enabled in Supabase and listed here. Google is always on. */
+const APPLE_ENABLED = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? "")
+  .split(",")
+  .map((p) => p.trim())
+  .includes("apple");
 
 const ERROR_KEYS: Record<string, ErrorKey> = {
   user_already_exists: "exists",
@@ -88,7 +101,7 @@ export function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   // Message keys (not strings) so they follow the language switch.
-  const [error, setError] = useState<ErrorKey | "googleFailed" | "">("");
+  const [error, setError] = useState<ErrorKey | OAuthError | "">("");
   const [lang] = useLang();
   const t = TEXT[textLang(lang)];
 
@@ -123,12 +136,17 @@ export function SignupForm() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleOAuth(provider: "google" | "apple") {
+    if (provider === "apple" && !APPLE_ENABLED) {
+      toast(t.pending);
+      return;
+    }
+    setError("");
     const { error: oauthError } = await createClient().auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: { redirectTo: `${window.location.origin}/auth/callback?redirectTo=/organisation` },
     });
-    if (oauthError) setError("googleFailed");
+    if (oauthError) setError(provider === "google" ? "googleFailed" : "appleFailed");
   }
 
   return (
@@ -194,15 +212,23 @@ export function SignupForm() {
         ))}
       </div>
 
-      {error && <p key={error} className="auth-error" role="alert">{error === "googleFailed" ? t.googleFailed : t.errors[error]}</p>}
+      {error && (
+        <p key={error} className="auth-error" role="alert">
+          {error === "googleFailed" || error === "appleFailed" ? t[error] : t.errors[error]}
+        </p>
+      )}
 
       <button type="submit" className="btn btn-light-primary btn-block" disabled={loading}>
         <span key={String(loading)}>{loading ? t.submitting : t.submit}</span> <Icon name="arrow" />
       </button>
       <div className="or">{t.or}</div>
-      <button type="button" className="btn btn-light-outline btn-block google-btn" style={{ fontSize: "1.15rem" }} onClick={handleGoogle}>
+      <button type="button" className="btn btn-light-outline btn-block google-btn" style={{ fontSize: "1.15rem" }} onClick={() => handleOAuth("google")}>
         <GoogleLogo size={26} />
         {t.google}
+      </button>
+      <button type="button" className="btn btn-light-outline btn-block apple-btn" style={{ fontSize: "1.15rem", marginTop: 10 }} onClick={() => handleOAuth("apple")}>
+        <AppleLogo size={26} />
+        {t.apple}
       </button>
 
       <p className="alt">
