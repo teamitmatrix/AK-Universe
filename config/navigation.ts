@@ -1,9 +1,7 @@
-/** Dropdown menus of the main header (components/layout/SiteHeader.tsx). */
+/** Dropdown menus of the main header (components/layout/SiteHeader.tsx). Texts in French, translated by the header. */
 export type NavMenu = {
   id: "agents" | "marketing" | "digital";
   label: string;
-  /** Written out: Google Translate would turn some labels into something else. */
-  labelEn: string;
   /** Page opened by a click on the menu label. */
   href: string;
   links: { href: string; label: string; text: string }[];
@@ -13,7 +11,6 @@ export const NAV_MENUS: NavMenu[] = [
   {
     id: "agents",
     label: "Agents IA",
-    labelEn: "AI Agents",
     href: "/agents-ia",
     links: [
       {
@@ -41,7 +38,6 @@ export const NAV_MENUS: NavMenu[] = [
   {
     id: "marketing",
     label: "Marketing",
-    labelEn: "Marketing",
     href: "/marketing",
     links: [
       {
@@ -69,7 +65,6 @@ export const NAV_MENUS: NavMenu[] = [
   {
     id: "digital",
     label: "Digital",
-    labelEn: "Digital",
     href: "/digital",
     links: [
       {

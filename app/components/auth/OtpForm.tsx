@@ -6,7 +6,7 @@ import { resendLoginCode, verifyLoginCode } from "@/lib/auth/login";
 import { safeRedirect } from "@/lib/auth/redirect";
 import { resendSignupCode, verifySignupCode } from "@/lib/auth/signup";
 import { Icon } from "@/components/ui/Icon";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 
 const LENGTH = 6;
@@ -48,6 +48,24 @@ const TEXT = {
     expired: "This code is invalid or has expired. Request a new code.",
     failed: "Verification failed. Please try again.",
   },
+  de: {
+    heading: "Prüfen Sie Ihre E-Mails",
+    sent: "Wir haben einen Anmeldecode gesendet an",
+    yourEmail: "Ihre E-Mail-Adresse",
+    group: "6-stelliger Code",
+    digit: (n: number) => `Ziffer ${n}`,
+    submit: "Anmelden",
+    submitting: "Wird geprüft…",
+    expires: "Der Code läuft nach 15 Minuten ab.",
+    resend: "Code erneut senden",
+    incomplete: "Geben Sie alle 6 Ziffern des Codes ein.",
+    resent: "Ein neuer Code wurde gesendet.",
+    resendFailed: "Derzeit kann kein neuer Code gesendet werden.",
+    wait: "Gerade wurde ein Code gesendet. Bitte warten Sie eine Minute, bevor Sie einen neuen anfordern.",
+    missingEmail: "E-Mail-Adresse fehlt. Bitte starten Sie die Registrierung erneut.",
+    expired: "Dieser Code ist ungültig oder abgelaufen. Fordern Sie einen neuen Code an.",
+    failed: "Die Prüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  },
 };
 
 export function OtpForm() {
@@ -57,7 +75,7 @@ export function OtpForm() {
   // "login": two-factor step after the password (connexion.html); otherwise the sign-up confirmation.
   const loginStep = params.get("step") === "login";
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)];
+  const t = TEXT[lang];
   const [toast, toastNode] = useToast();
   const [digits, setDigits] = useState<string[]>(Array(LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
@@ -110,7 +128,7 @@ export function OtpForm() {
         setError(result.code === "otp_expired" ? "expired" : "failed");
         return;
       }
-      router.replace(loginStep ? safeRedirect(params.get("redirectTo")) : "/organisation");
+      router.replace(loginStep ? safeRedirect(params.get("redirectTo"), "/espace") : "/organisation");
       router.refresh();
     } finally {
       setLoading(false);
@@ -131,7 +149,7 @@ export function OtpForm() {
         {t.sent}
         <br />
         <b id="otp-email" style={{ color: "var(--l-text)" }}>
-          <span className="notranslate">{email || t.yourEmail}</span>
+          <span>{email || t.yourEmail}</span>
         </b>
       </p>
 
@@ -168,7 +186,7 @@ export function OtpForm() {
         <button type="button" id="resend" className="link-orange" disabled={cooldown > 0} onClick={handleResend}>
           <span key={String(cooldown > 0)}>
             {t.resend}
-            {cooldown > 0 && <span className="notranslate"> ({cooldown}s)</span>}
+            {cooldown > 0 && <span> ({cooldown}s)</span>}
           </span>
         </button>
       </p>

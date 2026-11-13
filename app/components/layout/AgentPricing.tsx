@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { AGENT_TIERS } from "@/config/pricing";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { quoteHref } from "@/lib/contact/quote";
+import { localized } from "@/i18n/data";
+import { getT } from "@/i18n/server";
 
 /** Look of each offer, in AGENT_TIERS order (texts and prices live in config/pricing.ts). */
 const LOOK = [
@@ -11,51 +14,41 @@ const LOOK = [
   { image: "ph-plan-devis", cta: "Nous contacter", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: quoteHref() },
 ];
 
-const PLANS = AGENT_TIERS.map((tier, i) => ({
-  ...tier,
-  ...LOOK[i],
-  popular: "popular" in tier && tier.popular,
-  quote: tier.price === null,
-  price: tier.price === null ? "" : tier.price.toLocaleString("fr-FR"),
-  setup:
-    tier.setupFrom === null ? (
-      <>
-        Mise en place
-        <br />
-        <span className="gold">sur devis</span>
-      </>
-    ) : (
-      <>
-        Mise en place
-        <br />à partir de <span className="gold">{tier.setupFrom.toLocaleString("fr-FR")} € HT</span>
-      </>
-    ),
-}));
-
 /** Pricing block of the AI agents page (/agents-ia#tarifs). */
-export function AgentPricing() {
+export async function AgentPricing() {
+  const [t, localizedTiers, pricing] = await Promise.all([getT(), localized(AGENT_TIERS), getAgentsPricing()]);
+  // Prices come from the admin catalogue (defaults: config/pricing.ts); texts stay translated.
+  const tiers = localizedTiers.map((tier, i) => ({ ...tier, ...(pricing.tiers[AGENT_TIERS[i]!.name] ?? {}) }));
+  const plans = tiers.map((tier, i) => ({
+    ...tier,
+    ...LOOK[i],
+    cta: t(LOOK[i].cta),
+    popular: "popular" in tier && tier.popular,
+    quote: tier.price === null,
+    price: tier.price === null ? "" : tier.price.toLocaleString(t.locale),
+    setup:
+      tier.setupFrom === null
+        ? t.rich("Mise en place<br/><gold>sur devis</gold>")
+        : t.rich("Mise en place<br/>à partir de <gold>{amount} € HT</gold>", {}, {
+            amount: tier.setupFrom.toLocaleString(t.locale),
+          }),
+  }));
+
   return (
     <section className="pricing stars" id="tarifs">
       <div className="container">
         <div className="pricing-head">
-          <p className="eyebrow eyebrow-lines">Nos tarifs</p>
-          <h2>
-            Des solutions adaptées
-            <br />à chaque <span className="gold">entreprise.</span>
-          </h2>
-          <p>
-            Commencez simplement et évoluez selon vos besoins.
-            <br />
-            Plus de productivité, moins de coûts.
-          </p>
+          <p className="eyebrow eyebrow-lines">{t("Nos tarifs")}</p>
+          <h2>{t.rich("Des solutions adaptées<br/>à chaque <gold>entreprise.</gold>")}</h2>
+          <p>{t.rich("Commencez simplement et évoluez selon vos besoins.<br/>Plus de productivité, moins de coûts.")}</p>
         </div>
 
         <div className="plans">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <article key={plan.name} className={`plan${plan.popular ? " featured" : ""}`}>
               {plan.popular && (
                 <span className="popular">
-                  <Icon name="star" /> Le plus populaire
+                  <Icon name="star" /> {t("Le plus populaire")}
                 </span>
               )}
               <div className="plan-top">
@@ -63,18 +56,14 @@ export function AgentPricing() {
                 <h3>{plan.name}</h3>
                 <p className="desc">{plan.desc}</p>
                 {plan.quote ? (
-                  <div className="price">
-                    Sur
-                    <br />
-                    devis
-                  </div>
+                  <div className="price">{t.rich("Sur<br/>devis")}</div>
                 ) : (
                   <>
                     <div className="price">
                       {plan.price}
                       <sup>€</sup>
                     </div>
-                    <div className="per">/ mois HT</div>
+                    <div className="per">{t("/ mois HT")}</div>
                   </>
                 )}
               </div>
@@ -104,8 +93,8 @@ export function AgentPricing() {
               <Icon name="bolt" />
             </span>
             <div>
-              <strong>Sans engagement</strong>
-              <span>Annulation à tout moment</span>
+              <strong>{t("Sans engagement")}</strong>
+              <span>{t("Annulation à tout moment")}</span>
             </div>
           </div>
           <div className="perk">
@@ -113,8 +102,8 @@ export function AgentPricing() {
               <Icon name="clock" />
             </span>
             <div>
-              <strong>Accès immédiat</strong>
-              <span>Commencez en quelques minutes</span>
+              <strong>{t("Accès immédiat")}</strong>
+              <span>{t("Commencez en quelques minutes")}</span>
             </div>
           </div>
           <div className="perk">
@@ -122,8 +111,8 @@ export function AgentPricing() {
               <Icon name="chart" />
             </span>
             <div>
-              <strong>Résultats concrets</strong>
-              <span>Plus de productivité, moins de coûts</span>
+              <strong>{t("Résultats concrets")}</strong>
+              <span>{t("Plus de productivité, moins de coûts")}</span>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { submitContactMessage } from "@/lib/contact/actions";
 import type { QuoteServiceOption } from "@/lib/contact/quote";
 import { CONTACT_SUBJECTS, QUOTE_SUBJECT } from "@/lib/contact/subjects";
@@ -28,6 +29,7 @@ export function ContactForm({
   initialSubject?: string;
   initialService?: string;
 }) {
+  const t = useT();
   const [values, setValues] = useState({
     ...INITIAL,
     subject: initialSubject,
@@ -73,11 +75,11 @@ export function ContactForm({
         <span className="icon-circle contact-success-icon">
           <Icon name="check-circle" />
         </span>
-        <h2>{sentQuote ? "Votre demande de devis a bien été envoyée." : "Message envoyé"}</h2>
+        <h2>{sentQuote ? t("Votre demande de devis a bien été envoyée.") : t("Message envoyé")}</h2>
         <p>
           {sentQuote
-            ? "Notre équipe étudie votre projet et vous répond dès que possible."
-            : "Merci pour votre message. Notre équipe vous répondra dès que possible."}
+            ? t("Notre équipe étudie votre projet et vous répond dès que possible.")
+            : t("Merci pour votre message. Notre équipe vous répondra dès que possible.")}
         </p>
         <button
           type="button"
@@ -87,7 +89,7 @@ export function ContactForm({
             setFormError("");
           }}
         >
-          Envoyer un autre message
+          {t("Envoyer un autre message")}
         </button>
       </div>
     );
@@ -95,13 +97,13 @@ export function ContactForm({
 
   return (
     <form className="contact-form-card" onSubmit={onSubmit} noValidate>
-      <p className="contact-form-eyebrow">Envoyez-nous un message</p>
-      <h2 className="sr-only">Formulaire de contact</h2>
+      <p className="contact-form-eyebrow">{t("Envoyez-nous un message")}</p>
+      <h2 className="sr-only">{t("Formulaire de contact")}</h2>
 
       <div className="d-row">
         <div className="d-field">
           <label htmlFor="contact-name">
-            Nom complet <span className="req" aria-hidden="true">*</span>
+            {t("Nom complet")} <span className="req" aria-hidden="true">*</span>
           </label>
           <input
             id="contact-name"
@@ -123,7 +125,7 @@ export function ContactForm({
         </div>
         <div className="d-field">
           <label htmlFor="contact-email">
-            E-mail <span className="req" aria-hidden="true">*</span>
+            {t("E-mail")} <span className="req" aria-hidden="true">*</span>
           </label>
           <input
             id="contact-email"
@@ -147,7 +149,7 @@ export function ContactForm({
 
       <div className="d-row">
         <div className="d-field">
-          <label htmlFor="contact-company">Entreprise</label>
+          <label htmlFor="contact-company">{t("Entreprise")}</label>
           <input
             id="contact-company"
             name="company"
@@ -159,7 +161,7 @@ export function ContactForm({
           />
         </div>
         <div className="d-field">
-          <label htmlFor="contact-phone">Téléphone</label>
+          <label htmlFor="contact-phone">{t("Téléphone")}</label>
           <input
             id="contact-phone"
             name="phone"
@@ -174,7 +176,7 @@ export function ContactForm({
 
       <div className="d-field">
         <label htmlFor="contact-subject">
-          Sujet <span className="req" aria-hidden="true">*</span>
+          {t("Sujet")} <span className="req" aria-hidden="true">*</span>
         </label>
         <select
           id="contact-subject"
@@ -186,11 +188,11 @@ export function ContactForm({
           aria-describedby={fieldErrors.subject ? "contact-subject-error" : undefined}
         >
           <option value="" disabled>
-            Choisir un sujet
+            {t("Choisir un sujet")}
           </option>
           {CONTACT_SUBJECTS.map((subject) => (
             <option key={subject} value={subject}>
-              {subject}
+              {t(subject)}
             </option>
           ))}
         </select>
@@ -203,7 +205,7 @@ export function ContactForm({
 
       {quote ? (
         <div className="d-field">
-          <label htmlFor="contact-service">Service</label>
+          <label htmlFor="contact-service">{t("Service")}</label>
           <select
             id="contact-service"
             name="service"
@@ -212,7 +214,7 @@ export function ContactForm({
             aria-invalid={Boolean(fieldErrors.service)}
             aria-describedby={fieldErrors.service ? "contact-service-error" : undefined}
           >
-            <option value="">Aucun service en particulier</option>
+            <option value="">{t("Aucun service en particulier")}</option>
             {services.map((service) => (
               <option key={service.id} value={service.id}>
                 {service.label}
@@ -229,7 +231,7 @@ export function ContactForm({
 
       <div className="d-field">
         <label htmlFor="contact-message">
-          Votre message <span className="req" aria-hidden="true">*</span>
+          {t("Votre message")} <span className="req" aria-hidden="true">*</span>
         </label>
         <textarea
           id="contact-message"
@@ -237,7 +239,7 @@ export function ContactForm({
           required
           rows={5}
           maxLength={4000}
-          placeholder={quote ? "Décrivez votre projet" : undefined}
+          placeholder={quote ? t("Décrivez votre projet") : undefined}
           value={values.message}
           onChange={set("message")}
           aria-invalid={Boolean(fieldErrors.message)}
@@ -257,12 +259,13 @@ export function ContactForm({
       ) : null}
 
       <button type="submit" className="btn btn-primary btn-block" disabled={pending}>
-        {pending ? "Envoi…" : "Envoyer mon message"} <Icon name="arrow" />
+        {pending ? t("Envoi…") : t("Envoyer mon message")} <Icon name="arrow" />
       </button>
 
       <p className="contact-privacy">
-        Consulter la{" "}
-        <Link href="/confidentialite">politique de confidentialité</Link>
+        {t.rich("Consulter la <link>politique de confidentialité</link>", {
+          link: (c) => <Link href="/confidentialite">{c}</Link>,
+        })}
       </p>
     </form>
   );

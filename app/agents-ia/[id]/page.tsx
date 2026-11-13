@@ -8,6 +8,8 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { agentById, agents } from "@/config/agents";
 import { getCurrentUser } from "@/lib/auth/session";
+import { localized } from "@/i18n/data";
+import { getT } from "@/i18n/server";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -18,8 +20,9 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const agent = agentById((await params).id);
-  if (!agent) return {};
+  const found = agentById((await params).id);
+  if (!found) return {};
+  const agent = await localized(found);
   return {
     title: { absolute: `${agent.name} — ${agent.role} — AK Universe` },
     description: agent.description,
@@ -27,9 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  const agent = agentById((await params).id);
-  if (!agent) notFound();
-  const user = await getCurrentUser();
+  const found = agentById((await params).id);
+  if (!found) notFound();
+  const [user, t, agent] = await Promise.all([getCurrentUser(), getT(), localized(found)]);
 
   return (
     <>
@@ -40,7 +43,7 @@ export default async function Page({ params }: Props) {
           <div className="container agent-profile-hero">
             <div className="agent-profile-copy">
               <p className="agent-profile-crumb">
-                <Link href="/agents-ia#tous">Agents IA</Link>
+                <Link href="/agents-ia#tous">{t("Agents IA")}</Link>
                 <span aria-hidden="true"> / </span>
                 <span>{agent.name}</span>
               </p>
@@ -48,7 +51,7 @@ export default async function Page({ params }: Props) {
               <p className="agent-profile-headline">{agent.headline}</p>
               <p className="agent-profile-lead">{agent.description}</p>
               <a href="#en-action" className="btn btn-primary btn-lg">
-                Voir l&apos;agent en action <Icon name="arrow" />
+                {t("Voir l'agent en action")} <Icon name="arrow" />
               </a>
             </div>
             <div className="agent-profile-visual">
@@ -67,7 +70,7 @@ export default async function Page({ params }: Props) {
         <section className="section agent-profile-tasks">
           <div className="container">
             <h2 className="section-title">
-              Ce que {agent.name} <span className="gold">peut faire</span>
+              {t.rich("Ce que {name} <gold>peut faire</gold>", {}, { name: agent.name })}
             </h2>
             <div className="agent-task-grid">
               {agent.tasks.map((task) => (
@@ -97,7 +100,7 @@ export default async function Page({ params }: Props) {
                 </span>
               </div>
               <div>
-                <h2 className="gold">{agent.name} en action</h2>
+                <h2 className="gold">{t("{name} en action", { name: agent.name })}</h2>
                 <p>{agent.action}</p>
               </div>
             </div>
@@ -107,7 +110,7 @@ export default async function Page({ params }: Props) {
         <section className="section agent-profile-integrations">
           <div className="container">
             <h2 className="section-title">
-              Intégrations <span className="gold">confirmées</span>
+              {t.rich("Intégrations <gold>confirmées</gold>")}
             </h2>
             <ul className="agent-integration-list">
               {agent.integrations.map((item) => (
@@ -122,7 +125,7 @@ export default async function Page({ params }: Props) {
 
         <div className="container agent-profile-back">
           <Link href="/agents-ia#tous" className="agent-back">
-            <Icon name="arrow-left" /> Retour à tous les agents
+            <Icon name="arrow-left" /> {t("Retour à tous les agents")}
           </Link>
         </div>
       </main>

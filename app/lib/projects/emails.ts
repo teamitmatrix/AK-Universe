@@ -1,5 +1,6 @@
 import "server-only";
 import { emailLayout as layout, escapeHtml, sendEmail, teamAddresses } from "@/lib/email";
+import { getTeamNotifications } from "@/lib/notifications";
 
 /*
  * Video project e-mails, sent when a project is confirmed:
@@ -64,6 +65,26 @@ const TEXT = {
     outro: "If you have any questions, simply reply to this e-mail.",
     signature: "The AK Universe team",
   },
+  de: {
+    subject: {
+      devis: (ref: string) => `Ihre Angebotsanfrage ${ref} — AK Universe`,
+      acompte: (ref: string) => `Ihre Reservierung ${ref} — AK Universe`,
+      deposit_paid: (ref: string) => `Anzahlung erhalten, Reservierung bestätigt ${ref} — AK Universe`,
+    },
+    hello: (name: string) => `Hallo ${name},`,
+    intro: {
+      devis: "Vielen Dank für Ihre Anfrage. Unser Team prüft Ihr Projekt und sendet Ihnen innerhalb von 24 Stunden ein detailliertes Angebot.",
+      acompte:
+        "Vielen Dank für Ihre Reservierung. Sie wird bestätigt, sobald Ihre Überweisung der Anzahlung bei uns eingegangen ist. Unser Team meldet sich in Kürze bei Ihnen.",
+      deposit_paid: "Wir haben Ihre Anzahlung erhalten: Ihre Reservierung ist bestätigt. Unser Team meldet sich in Kürze, um den Dreh zu planen.",
+    },
+    reference: "Referenz",
+    total: "Geschätzte Gesamtsumme (netto)",
+    deposit: "Anzahlung",
+    paid: "Anzahlung bezahlt",
+    outro: "Bei Fragen antworten Sie einfach auf diese E-Mail.",
+    signature: "Ihr AK-Universe-Team",
+  },
 };
 
 const TEAM_SUBJECT = {
@@ -102,7 +123,7 @@ ${deposit}</table>`;
 const itemsText = (p: ProjectMail) => p.items.map((i) => `- ${i.service} (${i.details}) : ${euros(i.price)}`).join("\n");
 
 function clientEmail(p: ProjectMail, event: ProjectEvent) {
-  const t = p.lang === "en" ? TEXT.en : TEXT.fr;
+  const t = TEXT[p.lang as keyof typeof TEXT] ?? TEXT.fr;
   const step = event === "deposit_paid" ? "deposit_paid" : p.kind;
   const name = p.contact.prenom || p.contact.nom || "";
   const depositLabel = event === "deposit_paid" ? t.paid : t.deposit;
@@ -157,7 +178,10 @@ ${itemsTable(p, { total: "Total (HT)", deposit: event === "deposit_paid" ? "Acom
 
 export async function sendProjectEmails(project: ProjectMail, event: ProjectEvent) {
   const sends = [sendEmail(clientEmail(project, event))];
-  if (teamAddresses().length) sends.push(sendEmail(teamEmail(project, event)));
-  else console.warn("EMAIL_NOTIFY_TO is not set: AK Universe was not notified of", project.reference);
+  // Team copy can be switched off in /admin/parametres → Notifications (the client e-mail is always sent).
+  const notify = await getTeamNotifications();
+  const wanted = event === "received" ? notify.newRequest : notify.depositPaid;
+  if (wanted && teamAddresses().length) sends.push(sendEmail(teamEmail(project, event)));
+  else if (wanted) console.warn("EMAIL_NOTIFY_TO is not set: AK Universe was not notified of", project.reference);
   await Promise.all(sends);
 }

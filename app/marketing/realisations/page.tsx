@@ -3,14 +3,20 @@ import { MarketingSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = {
-  title: { absolute: "Nos réalisations — AK Universe" },
-  description: "Projets, campagnes marketing et contenus créatifs réalisés par AK Universe.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: { absolute: t("Nos réalisations — AK Universe") },
+    description: t(
+      "Projets, campagnes marketing et contenus créatifs réalisés par AK Universe.",
+    ),
+  };
+}
 
 export default async function Page() {
-  const user = await getCurrentUser();
+  const [user, t] = await Promise.all([getCurrentUser(), getT()]);
 
   return (
     <>
@@ -19,13 +25,12 @@ export default async function Page() {
       <main>
         <section className="pricing stars agents-hero">
           <div className="container pricing-head">
-            <p className="eyebrow eyebrow-lines">Marketing</p>
-            <h1>
-              Nos <span className="gold">réalisations</span>
-            </h1>
+            <p className="eyebrow eyebrow-lines">{t("Marketing")}</p>
+            <h1>{t.rich("Nos <gold>réalisations</gold>")}</h1>
             <p>
-              Les projets, campagnes et contenus déjà réalisés seront présentés ici. Cette sélection n&apos;est pas encore
-              disponible.
+              {t(
+                "Les projets, campagnes et contenus déjà réalisés seront présentés ici. Cette sélection n'est pas encore disponible.",
+              )}
             </p>
           </div>
         </section>

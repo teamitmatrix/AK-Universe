@@ -2,8 +2,10 @@ import "server-only";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
-import { COMPANY, TODO } from "@/config/company";
-import { AGENT_TIERS, ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, USER_PRICE } from "@/config/pricing";
+import { TODO } from "@/config/company";
+import { getCompany, type Company } from "@/lib/company";
+import { AGENT_TIERS, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
 import { getChatbotSettings } from "./knowledge";
 
@@ -178,7 +180,7 @@ function marketingDocs(cfg: VideoConfig): Doc[] {
   ];
 }
 
-function agentDocs(): Doc[] {
+function agentDocs(pricing: AgentsPricing): Doc[] {
   return [
     {
       source: "agents",
@@ -201,7 +203,7 @@ function agentDocs(): Doc[] {
       title: "Offres Agents IA (page Tarifs)",
       url: "/agents-ia#tarifs",
       content: `Offres présentées sur /agents-ia#tarifs (prix HT) :\n${list(
-        AGENT_TIERS.map(
+        AGENT_TIERS.map((tier) => ({ ...tier, ...(pricing.tiers[tier.name] ?? {}) })).map(
           (t) =>
             `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${t.price === null ? "sur devis" : `${euros(t.price)} / mois`}, mise en place ${t.setupFrom === null ? "sur devis" : `à partir de ${euros(t.setupFrom)}`}. ${t.desc} Inclus : ${t.features.join(", ")}.`
         )
@@ -211,8 +213,8 @@ function agentDocs(): Doc[] {
       source: "agents",
       title: "Abonnement en ligne AK Universe Pro (page /abonnement)",
       url: "/abonnement",
-      content: `Après inscription, l'abonnement se personnalise sur /abonnement : formule ${PLAN.name} à ${euros(PLAN.monthlyPrice)} HT / mois (${PLAN.features.join(", ")}). Utilisateurs supplémentaires : ${euros(USER_PRICE)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${ANNUAL_DISCOUNT * 100} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
-        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(o.price)} HT / mois — ${o.info}`)
+      content: `Après inscription, l'abonnement se personnalise sur /abonnement : formule ${PLAN.name} à ${euros(pricing.planMonthly)} HT / mois (${PLAN.features.join(", ")}). Utilisateurs supplémentaires : ${euros(pricing.userPrice)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${Math.round(pricing.annualDiscount * 100)} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
+        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(pricing.options[o.id] ?? o.price)} HT / mois — ${o.info}`)
       )}`,
     },
   ];
@@ -278,7 +280,7 @@ function digitalDocs(): Doc[] {
   ];
 }
 
-function companyDoc(): Doc | null {
+function companyDoc(COMPANY: Company): Doc | null {
   const known = [
     ["Raison sociale", COMPANY.legalName],
     ["Adresse", COMPANY.address],
@@ -336,16 +338,16 @@ export function splitPassages(text: string): { title: string; content: string }[
 }
 
 export async function buildCorpus(): Promise<Doc[]> {
-  const [cfg, settings] = await Promise.all([getVideoConfig(), getChatbotSettings()]);
+  const [cfg, settings, agentsPricing, company] = await Promise.all([getVideoConfig(), getChatbotSettings(), getAgentsPricing(), getCompany()]);
   return [
     OVERVIEW,
     ...cfg.services.map((s) => serviceDoc(cfg, s)),
     ...videoDocs(cfg),
     ...marketingDocs(cfg),
-    ...agentDocs(),
+    ...agentDocs(agentsPricing),
     ...digitalDocs(),
     ...faqDocs(cfg),
-    ...[companyDoc()].filter((d): d is Doc => d !== null),
+    ...[companyDoc(company)].filter((d): d is Doc => d !== null),
     ...splitPassages(settings.knowledge).map((p) => ({ source: "admin", ...p })),
   ];
 }

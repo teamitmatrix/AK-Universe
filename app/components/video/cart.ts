@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { videoPrice, videoSummary } from "@/lib/projects/quote-math";
+import type { T } from "@/i18n/translate";
 import type { VideoConfig } from "@/lib/video-config";
 
 const KEY = "aku-projet";
@@ -126,21 +127,21 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
   return service ? videoPrice(config, service, item) : 0;
 }
 
-export function itemSummary(config: VideoConfig, item: CartItem) {
+export function itemSummary(config: VideoConfig, item: CartItem, t: T) {
   if (isForfait(item)) {
     const plan = planOf(config, item.key);
-    if (!plan) return "Abonnement mensuel";
-    if (plan.onQuote || plan.price == null) return `Sur devis • ${plan.tagline}`;
-    return `Abonnement mensuel • ${plan.tagline}`;
+    if (!plan) return t("Abonnement mensuel");
+    if (plan.onQuote || plan.price == null) return `${t("Sur devis")} • ${plan.tagline}`;
+    return `${t("Abonnement mensuel")} • ${plan.tagline}`;
   }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";
 }
 
-export function itemName(config: VideoConfig, item: CartItem) {
+export function itemName(config: VideoConfig, item: CartItem, t: T) {
   if (isForfait(item)) {
     const plan = planOf(config, item.key);
-    return plan ? `Forfait ${plan.name}` : "Forfait";
+    return plan ? t("Forfait {name}", { name: plan.name }) : t("Forfait");
   }
   return serviceOf(config, item.slug)?.name ?? "";
 }
@@ -237,7 +238,7 @@ export function clearCart() {
   publish([]);
 }
 
-/** Saves a package and leaves the current page. Skips React listeners so a translated page is not rewritten. */
+/** Saves a package before leaving the current page (no React update needed: the page changes right after). */
 export function saveForfait(config: VideoConfig, key: string) {
   const current = getSnapshot().filter((entry) => !isForfait(entry));
   const next = visibleItems(config, [...current, { type: "forfait", key, id: newId() }]);
@@ -269,15 +270,9 @@ export function writeLast(value: LastRequest) {
   }
 }
 
-export function siteLang() {
-  try {
-    return localStorage.getItem("aku-language") || "fr";
-  } catch {
-    return "fr";
-  }
-}
-
+/** The server reads the language from the cookie (e-mails, Stripe Checkout, error messages). */
 export async function submitProject(
+  t: T,
   config: VideoConfig,
   kind: "devis" | "acompte",
   items: CartItem[],
@@ -287,7 +282,7 @@ export async function submitProject(
   const res = await fetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, payment, client, items, lang: siteLang() }),
+    body: JSON.stringify({ kind, payment, client, items }),
   });
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;
@@ -296,7 +291,7 @@ export async function submitProject(
     acompte?: number;
     checkoutUrl?: string;
   };
-  if (!res.ok || !data.ref) throw new Error(data.error || "Une erreur est survenue. Veuillez réessayer.");
+  if (!res.ok || !data.ref) throw new Error(data.error || t("Une erreur est survenue. Veuillez réessayer."));
   writeLast({
     type: kind,
     ref: data.ref,

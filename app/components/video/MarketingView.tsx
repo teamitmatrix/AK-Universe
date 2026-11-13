@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { VideoPlayer } from "./VideoPlayer";
 
 export function MarketingView() {
+  const t = useT();
   return (
     <main className="mk-hero stars">
       <svg className="mk-waves" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
@@ -43,11 +45,12 @@ export function MarketingView() {
             <span className="gold">Digital</span>
           </h1>
           <p>
-            Attirez plus de clients, développez votre visibilité et automatisez votre communication grâce à des outils
-            marketing simples et puissants, propulsés par l&apos;IA.
+            {t(
+              "Attirez plus de clients, développez votre visibilité et automatisez votre communication grâce à des outils marketing simples et puissants, propulsés par l'IA.",
+            )}
           </p>
           <Link href="/services" className="btn btn-primary btn-lg">
-            Commencer maintenant <Icon name="arrow" />
+            {t("Commencer maintenant")} <Icon name="arrow" />
           </Link>
         </div>
         <VideoPlayer

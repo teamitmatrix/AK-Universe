@@ -1,17 +1,21 @@
-import { COMPANY, phoneHref, TODO } from "@/config/company";
+import { phoneHref, TODO } from "@/config/company";
+import { getCompany } from "@/lib/company";
+import { getT } from "@/i18n/server";
 import { Icon } from "@/components/ui/Icon";
 
 /** Address, phone and e-mail from config/company.ts, under the project details step (/projet/informations). */
-export function ContactCard() {
+export async function ContactCard() {
+  const COMPANY = await getCompany();
+  const t = await getT();
   const rows = [
     {
       icon: "pin",
-      label: "Adresse",
+      label: t("Adresse"),
       value: COMPANY.address,
       href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(COMPANY.address)}`,
     },
-    { icon: "phone", label: "Téléphone", value: COMPANY.phone, href: phoneHref(COMPANY.phone) },
-    { icon: "mail", label: "E-mail", value: COMPANY.email, href: `mailto:${COMPANY.email}` },
+    { icon: "phone", label: t("Téléphone"), value: COMPANY.phone, href: phoneHref(COMPANY.phone) },
+    { icon: "mail", label: t("E-mail"), value: COMPANY.email, href: `mailto:${COMPANY.email}` },
   ].filter((row) => row.value !== TODO);
   if (!rows.length) return null;
 
@@ -19,7 +23,7 @@ export function ContactCard() {
     <section className="container contact-section" aria-labelledby="contact-title">
       <div className="dark-card contact-card">
         <h2 id="contact-title">
-          Nous <span className="gold">contacter</span>
+          {t.rich("Nous <gold>contacter</gold>")}
         </h2>
         <ul className="contact-list">
           {rows.map((row) => (
@@ -31,8 +35,7 @@ export function ContactCard() {
                 <small>{row.label}</small>
                 <a
                   href={row.href}
-                  className="notranslate"
-                  {...(row.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                                    {...(row.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 >
                   {row.value}
                 </a>

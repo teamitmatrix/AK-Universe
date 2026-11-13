@@ -44,6 +44,17 @@ const nextConfig: NextConfig = {
         destination: "/services/video-recrutement-marque-employeur",
         permanent: true,
       },
+      // Admin-space legacy entry points (handoff): kept working, pointing into the new space.
+      { source: "/admin-commerciaux.html", destination: "/admin/commerciaux", permanent: true },
+      { source: "/admin-commerciaux", destination: "/admin/commerciaux", permanent: true },
+      { source: "/admin-videastes.html", destination: "/admin/videastes", permanent: true },
+      { source: "/admin-videastes", destination: "/admin/videastes", permanent: true },
+      // Role landing pages after sign-in (handoff): temporary, until each space has its own dashboard.
+      // /compte already shows the client's account and, for a company, its organisation.
+      // (/commercial/dashboard is a real page: app/commercial/dashboard.)
+      { source: "/dashboard", destination: "/compte", permanent: false },
+      { source: "/entreprise/dashboard", destination: "/compte", permanent: false },
+      { source: "/videaste/dashboard", destination: "/equipe", permanent: false },
       // Every former .html page now lives at the same path without the suffix.
       { source: "/:path*.html", destination: "/:path*", permanent: true },
     ];
@@ -61,7 +72,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
           { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-          // No script allow-list: the static pages use inline scripts and Google Translate loads its own.
+          // No script allow-list yet: some pages still use inline scripts.
           {
             key: "Content-Security-Policy",
             value: "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'",

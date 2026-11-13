@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { LANGUAGES, SOURCE_LANG, isLang, type FlagSpec, type Lang, type TextLang } from "@/config/languages";
+import { useEffect, useState } from "react";
+import { SITE_LANGUAGES, type FlagSpec, type Lang, type SiteLang } from "@/config/languages";
+import { useLang, useSiteLang } from "@/i18n/client";
 import { Icon } from "./Icon";
 
-export type { Lang, TextLang };
+export type { Lang, SiteLang };
+export { useLang, useSiteLang };
 
-const STORAGE_KEY = "aku-language";
-/** Values written by the static site before the 24 languages existed. */
-const LEGACY_LABELS: Record<string, Lang> = { Français: "fr", English: "en" };
+/** Language of the hand-written chatbot texts: English, or French (machine-translated for the other languages). */
+export const textLang = (lang: SiteLang): "fr" | "en" => (lang === "en" ? "en" : "fr");
+
+/** Texts already written in the visitor's language must be kept away from Google Translate. */
+export const nativeTranslate = (lang: SiteLang) => (lang === "en" ? ("no" as const) : undefined);
 
 function Flag({ spec }: { spec: FlagSpec }) {
   let body;
@@ -35,16 +39,6 @@ function Flag({ spec }: { spec: FlagSpec }) {
         <rect y={8} width={30} height={4} fill={spec.cross} />
       </>
     );
-  } else if (spec.special === "uk") {
-    body = (
-      <>
-        <rect width={30} height={20} fill="#012169" />
-        <path d="M0 0l30 20M30 0L0 20" stroke="#fff" strokeWidth={4} />
-        <path d="M0 0l30 20M30 0L0 20" stroke="#c8102e" strokeWidth={1.5} />
-        <path d="M15 0v20M0 10h30" stroke="#fff" strokeWidth={6} />
-        <path d="M15 0v20M0 10h30" stroke="#c8102e" strokeWidth={3.5} />
-      </>
-    );
   } else if (spec.special === "cz") {
     body = (
       <>
@@ -53,7 +47,7 @@ function Flag({ spec }: { spec: FlagSpec }) {
         <path d="M0 0l15 10L0 20z" fill="#11457e" />
       </>
     );
-  } else {
+  } else if (spec.special === "gr") {
     body = (
       <>
         {Array.from({ length: 9 }, (_, i) => (
@@ -62,6 +56,16 @@ function Flag({ spec }: { spec: FlagSpec }) {
         <rect width={11.1} height={11.1} fill="#0d5eaf" />
         <rect x={4.44} width={2.22} height={11.1} fill="#fff" />
         <rect y={4.44} width={11.1} height={2.22} fill="#fff" />
+      </>
+    );
+  } else {
+    body = (
+      <>
+        <rect width={30} height={20} fill="#012169" />
+        <path d="M0 0l30 20M30 0L0 20" stroke="#fff" strokeWidth={4} />
+        <path d="M0 0l30 20M30 0L0 20" stroke="#c8102e" strokeWidth={1.5} />
+        <path d="M15 0v20M0 10h30" stroke="#fff" strokeWidth={6} />
+        <path d="M15 0v20M0 10h30" stroke="#c8102e" strokeWidth={3.5} />
       </>
     );
   }
@@ -74,83 +78,18 @@ function Flag({ spec }: { spec: FlagSpec }) {
   );
 }
 
-// One store for the whole page, so every component switches together.
-const listeners = new Set<() => void>();
-let fallback: Lang = SOURCE_LANG;
-
-function readLang(): Lang {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY) ?? "";
-    return isLang(saved) ? saved : (LEGACY_LABELS[saved] ?? SOURCE_LANG);
-  } catch {
-    return fallback;
-  }
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", listener);
-  };
-}
-
-/** Cookie read by Google Translate: "/fr/de" translates the page from French to German. */
-export function setTranslateCookie(lang: Lang) {
-  const host = location.hostname;
-  const domains = ["", `; domain=${host}`, `; domain=.${host.split(".").slice(-2).join(".")}`];
-  for (const domain of domains) document.cookie = `googtrans=; path=/; max-age=0${domain}`;
-  if (lang !== SOURCE_LANG) document.cookie = `googtrans=/${SOURCE_LANG}/${lang}; path=/; max-age=31536000; samesite=lax`;
-}
-
-/** Selected language, shared with the static pages (same localStorage key). */
-export function useLang() {
-  const lang = useSyncExternalStore(subscribe, readLang, () => SOURCE_LANG);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const change = (next: Lang) => {
-    if (next === lang) return;
-    fallback = next;
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {}
-    setTranslateCookie(next);
-    // Once Google Translate has rewritten the page, only a reload restores or re-translates it cleanly.
-    if ((window as { google?: { translate?: unknown } }).google?.translate) {
-      location.reload();
-      return;
-    }
-    listeners.forEach((listener) => listener());
-  };
-
-  return [lang, change] as const;
-}
-
-/** Language of the hand-written texts: English, or French (machine-translated for the other languages). */
-export const textLang = (lang: Lang): TextLang => (lang === "en" ? "en" : "fr");
-
-/** On pages with hand-written English, keep Google Translate away from it. */
-export const nativeTranslate = (lang: Lang) => (lang === "en" ? ("no" as const) : undefined);
-
 type SwitchProps = {
-  lang: Lang;
-  onChange: (lang: Lang) => void;
   /** Menu opens upwards (floating switch at the bottom of the screen). */
   up?: boolean;
   /** Shows "FR" instead of "Français" to take less room. */
   compact?: boolean;
-  /** Limits the menu to these languages (admin: French and English only). */
-  only?: Lang[];
 };
 
-export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
+/** Language menu. Other languages than French are translated by Google Translate (see SiteTranslator). */
+export function LangSwitch({ up, compact }: SwitchProps) {
+  const [lang, setLang] = useSiteLang();
   const [open, setOpen] = useState(false);
-  const options = only ? LANGUAGES.filter((l) => only.includes(l.code)) : LANGUAGES;
-  const current = options.find((l) => l.code === lang) ?? options[0];
+  const current = SITE_LANGUAGES.find((l) => l.code === lang) ?? SITE_LANGUAGES[0];
 
   useEffect(() => {
     if (!open) return;
@@ -165,7 +104,7 @@ export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
   }, [open]);
 
   return (
-    <div className={`lang notranslate${open ? " open" : ""}${up ? " up" : ""}`} translate="no" data-react-lang="">
+    <div className={`lang notranslate${open ? " open" : ""}${up ? " up" : ""}`} translate="no">
       <button
         type="button"
         className="lang-btn"
@@ -181,7 +120,7 @@ export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
         <span className="lang-label">{compact ? current.code.toUpperCase() : current.name}</span> <Icon name="chev-down" />
       </button>
       <ul className="lang-menu">
-        {options.map((option) => (
+        {SITE_LANGUAGES.map((option) => (
           <li key={option.code}>
             <button
               type="button"
@@ -189,7 +128,7 @@ export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
               aria-current={option.code === lang ? "true" : undefined}
               onClick={() => {
                 setOpen(false);
-                onChange(option.code);
+                setLang(option.code);
               }}
             >
               <Flag spec={option.flag} /> {option.name}
@@ -198,17 +137,5 @@ export function LangSwitch({ lang, onChange, up, compact, only }: SwitchProps) {
         ))}
       </ul>
     </div>
-  );
-}
-
-/** "Accueil", or "Home" in English: Google Translate would make it "Welcome". */
-export function HomeLabel() {
-  const [lang] = useLang();
-  return lang === "en" ? (
-    <span className="notranslate" translate="no">
-      Home
-    </span>
-  ) : (
-    <>Accueil</>
   );
 }

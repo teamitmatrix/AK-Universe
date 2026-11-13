@@ -65,12 +65,39 @@ const TEXT = {
     changedNotYou: "If you did not make this change, reset your password immediately and reply to this email.",
     signature: "The AK Universe team",
   },
+  de: {
+    signup: {
+      subject: (code: string) => `${code} — Ihr Bestätigungscode für AK Universe`,
+      title: "Bestätigen Sie Ihre E-Mail-Adresse",
+      intro: "Willkommen bei AK Universe! Geben Sie diesen Code auf der Registrierungsseite ein, um Ihr Konto zu aktivieren:",
+    },
+    login: {
+      subject: (code: string) => `${code} — Ihr Anmeldecode für AK Universe`,
+      title: "Anmeldecode",
+      intro: "Um Ihre Anmeldung abzuschließen, geben Sie diesen Code ein:",
+    },
+    reset: {
+      subject: () => "Setzen Sie Ihr AK-Universe-Passwort zurück",
+      title: "Passwort zurücksetzen",
+      intro: "Klicken Sie auf die Schaltfläche unten, um ein neues Passwort zu wählen. Der Link kann nur einmal verwendet werden.",
+      button: "Neues Passwort wählen",
+    },
+    password_changed: {
+      subject: () => "Ihr AK-Universe-Passwort wurde geändert",
+      title: "Passwort geändert",
+      intro: "Das Passwort Ihres AK-Universe-Kontos wurde soeben geändert.",
+    },
+    validity: "Dieser Code ist persönlich und nur für begrenzte Zeit gültig. Geben Sie ihn an niemanden weiter.",
+    notYou: "Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.",
+    changedNotYou: "Wenn Sie diese Änderung nicht vorgenommen haben, setzen Sie Ihr Passwort sofort zurück und antworten Sie auf diese E-Mail.",
+    signature: "Ihr AK-Universe-Team",
+  },
 };
 
 const muted = (text: string) => `<p style="margin:16px 0 0;color:#a89c8e;font-size:13px">${text}</p>`;
 
 function build(kind: AuthEmail, lang: string | undefined, value: string) {
-  const t = lang === "en" ? TEXT.en : TEXT.fr;
+  const t = TEXT[lang as keyof typeof TEXT] ?? TEXT.fr;
   const k = t[kind];
   let body: string;
   let text: string;

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { quoteHref } from "@/lib/contact/quote";
-import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
 
@@ -14,6 +14,7 @@ export type VideoNav = "" | "services" | "realisations" | "projet";
 
 /** Marketing / video header. Same links as renderHeader() in the static projet.js. */
 export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; currentSlug?: string }) {
+  const t = useT();
   const { config } = useVideo();
   const cart = useCart(config);
   const count = cart.items.length;
@@ -41,14 +42,14 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
   return (
     <header className="site-header">
       <div className="container nav nav-video">
-        <Link href="/" className="logo notranslate" aria-label="AK Universe — retour à l'accueil">
+        <Link href="/" className="logo notranslate" translate="no" aria-label={t("AK Universe — retour à l'accueil")}>
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
           <img src="/assets/img/logo.svg" alt="" />
           <span>
             <span className="ak">AK</span> UNIVERSE
           </span>
         </Link>
-        <Link href="/projet" className="projet-link projet-link-mobile" aria-label="Mon projet" title="Mon projet">
+        <Link href="/projet" className="projet-link projet-link-mobile" aria-label={t("Mon projet")} title={t("Mon projet")}>
           <Icon name="clapper" />
           <span className="projet-badge" hidden={count === 0}>
             {count}
@@ -57,7 +58,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
         <button
           type="button"
           className="burger"
-          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-label={menuOpen ? t("Fermer le menu") : t("Ouvrir le menu")}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((open) => !open)}
         >
@@ -67,7 +68,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
           <ul className="nav-links" ref={navRef}>
             <li>
               <Link href="/" className="nav-link" onClick={closeAll}>
-                <HomeLabel />
+                {t("Accueil")}
               </Link>
             </li>
             <li
@@ -89,7 +90,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
                 aria-haspopup="true"
                 onClick={() => setServicesOpen((open) => !open)}
               >
-                Services <Icon name="chev-down" className="chev" />
+                {t("Services")} <Icon name="chev-down" className="chev" />
               </button>
               <div className="dropdown services-dd">
                 <ul className="dropdown-list">
@@ -107,7 +108,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
                   ))}
                 </ul>
                 <Link href="/services" className="dd-all" onClick={closeAll}>
-                  Voir tous les services <Icon name="arrow" />
+                  {t("Voir tous les services")} <Icon name="arrow" />
                 </Link>
               </div>
             </li>
@@ -117,20 +118,20 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
                 className={`nav-link${active === "realisations" ? " active" : ""}`}
                 onClick={closeAll}
               >
-                Réalisation
+                {t("Réalisation")}
               </Link>
             </li>
           </ul>
           <div className="nav-actions">
             <Link href="/projet" className={`projet-link${active === "projet" ? " active" : ""}`} onClick={closeAll}>
               <Icon name="clapper" />
-              <span className="projet-count-label">Mon projet</span>
+              <span className="projet-count-label">{t("Mon projet")}</span>
               <span className="projet-badge" hidden={count === 0}>
                 {count}
               </span>
             </Link>
             <Link href={quoteHref()} className="btn btn-primary" onClick={closeAll}>
-              Devis gratuit <Icon name="arrow" />
+              {t("Devis gratuit")} <Icon name="arrow" />
             </Link>
           </div>
         </div>

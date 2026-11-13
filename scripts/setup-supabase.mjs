@@ -61,6 +61,34 @@ else {
   await sql(read("config/supabase/migrations/004_chatbot_rag.sql"));
   console.log("  ✅ 004_chatbot_rag appliquée");
 }
+const [{ exists: hasAdminSpace }] = await sql("select to_regclass('public.commissions') is not null as exists");
+if (hasAdminSpace) console.log("  ✅ 005_admin_space déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/005_admin_space.sql"));
+  console.log("  ✅ 005_admin_space appliquée");
+}
+const [{ exists: hasRevisions }] = await sql(
+  "select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'video_projects' and column_name = 'revision_rounds') as exists"
+);
+if (hasRevisions) console.log("  ✅ 006_revision_rounds déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/006_revision_rounds.sql"));
+  console.log("  ✅ 006_revision_rounds appliquée");
+}
+const [{ exists: hasFinance }] = await sql(
+  "select exists (select 1 from pg_policies where tablename = 'payments' and policyname = 'payments: admin insert') as exists"
+);
+if (hasFinance) console.log("  ✅ 007_finance déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/007_finance.sql"));
+  console.log("  ✅ 007_finance appliquée");
+}
+const [{ exists: hasTasks }] = await sql("select to_regclass('public.tasks') is not null as exists");
+if (hasTasks) console.log("  ✅ 008_tasks_documents déjà appliquée");
+else {
+  await sql(read("config/supabase/migrations/008_tasks_documents.sql"));
+  console.log("  ✅ 008_tasks_documents appliquée");
+}
 
 // ---------- 2–5. Auth ----------
 const site = (env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { discountOf, durationsOf, euro, qtyChoicesOf, qtyWord, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { quoteHref } from "@/lib/contact/quote";
 import { isForfait, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
@@ -23,6 +24,7 @@ export function Configurator({
   mode: "add" | "quote";
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const { config } = useVideo();
   const cart = useCart(config);
@@ -72,7 +74,8 @@ export function Configurator({
 
   const draft = { qty, dur, opts };
   const price = videoPrice(config, service, draft);
-  const verb = editId ? "Mettre à jour" : mode === "quote" ? "Continuer vers mon devis" : "Ajouter à mon projet";
+  const verb = editId ? t("Mettre à jour") : mode === "quote" ? t("Continuer vers mon devis") : t("Ajouter à mon projet");
+  const qtyLabel = service.qtyLabel || t("Nombre de vidéos");
   const showOptions = !done && tab === "options";
 
   const submit = () => {
@@ -98,7 +101,7 @@ export function Configurator({
       }}
     >
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="cfg-title" ref={dialogRef}>
-        <button type="button" className="modal-close" aria-label="Fermer" onClick={onClose} ref={closeRef}>
+        <button type="button" className="modal-close" aria-label={t("Fermer")} onClick={onClose} ref={closeRef}>
           <Icon name="x" />
         </button>
         {!done && (
@@ -117,18 +120,18 @@ export function Configurator({
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
               >
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
         )}
         {showOptions && (
           <div className="tab-panel">
-            <h2 id="cfg-title">Personnalisez votre {service.name.toLowerCase()}</h2>
+            <h2 id="cfg-title">{t("Personnalisez votre {name}", { name: t.lang === "de" ? service.name : service.name.toLowerCase() })}</h2>
             {quantities.length > 1 && (
               <div className="cfg-group">
-                <span className="cfg-label">{service.qtyLabel || "Nombre de vidéos"}</span>
-                <div className="seg" role="radiogroup" aria-label={service.qtyLabel || "Nombre de vidéos"}>
+                <span className="cfg-label">{qtyLabel}</span>
+                <div className="seg" role="radiogroup" aria-label={qtyLabel}>
                   {quantities.map((amount) => (
                     <button
                       key={amount}
@@ -145,8 +148,8 @@ export function Configurator({
               </div>
             )}
             <div className="cfg-group">
-              <span className="cfg-label">{service.durations ? "Format / durée" : "Durée par vidéo"}</span>
-              <div className="seg" role="radiogroup" aria-label="Durée">
+              <span className="cfg-label">{service.durations ? t("Format / durée") : t("Durée par vidéo")}</span>
+              <div className="seg" role="radiogroup" aria-label={t("Durée")}>
                 {durations.map((duration, index) => (
                   <button key={duration.label} type="button" role="radio" aria-checked={dur === index} onClick={() => setDur(index)}>
                     {duration.label}
@@ -163,7 +166,7 @@ export function Configurator({
                     <span>{option.label}</span>
                     <span className="cfg-price">
                       + {euro(option.price)}
-                      {option.per === "video" && quantities.length > 1 ? " / unité" : ""}
+                      {option.per === "video" && quantities.length > 1 ? ` ${t("/ unité")}` : ""}
                     </span>
                     <span className="switch dark">
                       <input
@@ -184,7 +187,7 @@ export function Configurator({
             <button type="button" className="btn btn-primary btn-block btn-lg cfg-submit" onClick={submit}>
               <Icon name="cart" /> {verb} – {euro(price)}
             </button>
-            <p className="cfg-note">Prix indicatif, ajusté selon vos besoins.</p>
+            <p className="cfg-note">{t("Prix indicatif, ajusté selon vos besoins.")}</p>
           </div>
         )}
         {!done && tab === "exemples" && (
@@ -210,16 +213,16 @@ export function Configurator({
             <span className="done-ic">
               <Icon name="check" />
             </span>
-            <h2 id="cfg-title">{editId ? "Service mis à jour" : "Ajouté à votre projet"}</h2>
+            <h2 id="cfg-title">{editId ? t("Service mis à jour") : t("Ajouté à votre projet")}</h2>
             <p className="done-summary">
-              {service.name} — {videoSummary(config, service, draft)} — {euro(price)} HT
+              {service.name} — {videoSummary(config, service, draft)} — {euro(price)} {t("HT")}
             </p>
             <div className="cta-row center">
               <a href="/projet" className="btn btn-primary">
-                Voir mon projet <Icon name="arrow" />
+                {t("Voir mon projet")} <Icon name="arrow" />
               </a>
               <a href="/services" className="btn btn-outline">
-                Ajouter un autre service
+                {t("Ajouter un autre service")}
               </a>
             </div>
           </div>

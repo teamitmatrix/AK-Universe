@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
-import { PLAN, computeQuote, eur, type Selection } from "@/config/pricing";
+import { DEFAULT_AGENTS_PRICING, PLAN, computeQuote, eur, type AgentsPricing, type Selection } from "@/config/pricing";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
 import { Icon } from "@/components/ui/Icon";
-import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+import { LangSwitch, useLang, useSiteLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 
 const METHODS = ["card", "sepa", "paypal", "revolut", "satispay"] as const;
@@ -113,6 +113,57 @@ const TEXT = {
       home: "Back to home",
     },
   },
+  de: {
+    back: "Zurück",
+    title: "Zusammenfassung Ihres Abonnements",
+    planText: "Ideal für Unternehmen, die weiterkommen möchten.",
+    perMonth: "/ Monat",
+    billing: "Abrechnung",
+    billedYearly: "Jährliche Abrechnung",
+    billedMonthly: "Monatliche Abrechnung",
+    addPromo: "Promo-Code hinzufügen",
+    promoPlaceholder: "Promo-Code",
+    apply: "Anwenden",
+    promoEmpty: "Geben Sie einen Code ein.",
+    promoOk: "Code angewendet: Der Rabatt wird im nächsten Schritt berechnet.",
+    promoBad: "Dieser Promo-Code ist ungültig.",
+    subtotal: "Zwischensumme",
+    vat: "MwSt. (0 %)",
+    vatInfo: "Mehrwertsteuer je nach Ihrem Status nicht anwendbar oder im Reverse-Charge-Verfahren.",
+    dueToday: "Heute fälliger Betrag",
+    assurances: [
+      ["lock", "100 % sichere Zahlung", "Ihre Daten sind geschützt und verschlüsselt."],
+      ["bolt", "Sofortige Aktivierung", "Zugriff auf Ihre KI-Agenten direkt nach der Zahlung."],
+      ["check-circle", "Keine Vertragsbindung", "Sie können jederzeit kündigen."],
+    ],
+    applePay: "Mit Apple Pay bezahlen",
+    applePayToast: "Apple Pay wird auf der sicheren Zahlungsseite (Kreditkarte) automatisch angeboten.",
+    or: "oder",
+    contact: "Kontaktdaten",
+    email: "E-Mail",
+    method: "Zahlungsmethode",
+    methods: {
+      card: "Kreditkarte",
+      sepa: "SEPA-Lastschrift",
+      paypal: "PayPal",
+      revolut: "Revolut Pay",
+      satispay: "Satispay",
+    },
+    submit: "Bezahlen und abonnieren",
+    submitting: "Weiterleitung…",
+    securedBy: "Sichere Zahlung über",
+    note: "Mit dem Abonnement ermächtigen Sie AK Universe, Ihnen bis zur Kündigung Beträge gemäß den Nutzungsbedingungen zu belasten.",
+    errors: {
+      not_configured: "Die Online-Zahlung ist noch nicht eingerichtet. Es wurde nichts abgebucht.",
+      prepare_failed: "Die Zahlung konnte nicht vorbereitet werden. Bitte versuchen Sie es erneut.",
+      method_unavailable: "Diese Zahlungsmethode ist nicht verfügbar. Bitte wählen Sie eine Kreditkarte.",
+    },
+    success: {
+      heading: ["Vielen Dank, Ihr Abonnement ist ", "bestätigt"],
+      text: "Sie haben eine Quittung per E-Mail erhalten. Ihre KI-Agenten werden aktiviert, sobald die Zahlung bestätigt ist.",
+      home: "Zurück zur Startseite",
+    },
+  },
 };
 
 type PromoMsg = "promoEmpty" | "promoOk" | "promoBad";
@@ -152,9 +203,18 @@ function MethodLogo({ method }: { method: string }) {
   }
 }
 
-export function PaiementScreen({ selection, email: initialEmail }: { selection: Selection; email: string }) {
-  const [lang, setLang] = useLang();
-  const t = TEXT[textLang(lang)];
+export function PaiementScreen({
+  selection,
+  email: initialEmail,
+  pricing = DEFAULT_AGENTS_PRICING,
+}: {
+  selection: Selection;
+  email: string;
+  pricing?: AgentsPricing;
+}) {
+  const [lang] = useLang();
+  const [siteLang] = useSiteLang();
+  const t = TEXT[lang];
   const [toast, toastNode] = useToast();
   const [email, setEmail] = useState(initialEmail);
   const [method, setMethod] = useState("card");
@@ -166,7 +226,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
   const [error, setError] = useState<keyof typeof TEXT.fr.errors | "">("");
   const [pending, startTransition] = useTransition();
 
-  const quote = computeQuote(selection);
+  const quote = computeQuote(selection, pricing);
   const annual = selection.cycle === "annuel";
 
   async function applyPromo(event: FormEvent<HTMLFormElement>) {
@@ -175,7 +235,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
       setPromoMsg("promoEmpty");
       return;
     }
-    const result = await checkPromoCode(promo);
+    const result = await checkPromoCode(promo, selection.cycle);
     setPromotionCodeId(result.valid ? result.id : undefined);
     setPromoMsg(result.valid ? "promoOk" : "promoBad");
   }
@@ -190,19 +250,19 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
     }
     startTransition(async () => {
       // Redirects to Stripe Checkout on success.
-      const result = await startSubscriptionCheckout({ selection, email, method, promotionCodeId, lang });
+      const result = await startSubscriptionCheckout({ selection, email, method, promotionCodeId, lang: siteLang });
       if (result && !result.success) setError(result.code);
     });
   }
 
   return (
-    <div className="theme-light" translate={nativeTranslate(lang)}>
+    <div className="theme-light">
       <div className="container" id="paiement">
         <div className="light-top" style={{ maxWidth: 1100, margin: "0 auto" }}>
           <Link href="/abonnement" className="back">
             <Icon name="arrow-left" /> {t.back}
           </Link>
-          <LangSwitch lang={lang} onChange={setLang} />
+          <LangSwitch />
         </div>
 
         <div className="pay-grid">
@@ -219,7 +279,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
                     <p>{t.planText}</p>
                   </div>
                   <div className="amt">
-                    <span id="p-plan-price" className="notranslate">{eur(quote.monthly)}</span>
+                    <span id="p-plan-price">{eur(quote.monthly)}</span>
                     <small>{t.perMonth}</small>
                   </div>
                 </div>
@@ -229,7 +289,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
                   {t.billing}
                   <small id="p-billing-note">{annual ? t.billedYearly : t.billedMonthly}</small>
                 </span>
-                <b className="p-due notranslate">{eur(quote.due)}</b>
+                <b className="p-due">{eur(quote.due)}</b>
               </div>
 
               <button className="promo" id="promo-toggle" type="button" onClick={() => setPromoOpen((v) => !v)}>
@@ -258,7 +318,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
 
               <div className="line" style={{ padding: "14px 2px" }}>
                 <span>{t.subtotal}</span>
-                <b className="p-due notranslate">{eur(quote.due)}</b>
+                <b className="p-due">{eur(quote.due)}</b>
               </div>
               <div className="sep-line" />
               <div className="line" style={{ padding: "14px 2px" }}>
@@ -272,7 +332,7 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
               </div>
               <div className="total-box">
                 <span>{t.dueToday}</span>
-                <span className="v p-due notranslate">{eur(quote.due)}</span>
+                <span className="v p-due">{eur(quote.due)}</span>
               </div>
             </section>
 
@@ -356,10 +416,10 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
 /** Shown on /paiement?success=1 after Stripe Checkout. */
 export function PaiementSuccess() {
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)].success;
+  const t = TEXT[lang].success;
 
   return (
-    <div className="theme-light" translate={nativeTranslate(lang)}>
+    <div className="theme-light">
       <div className="container" style={{ maxWidth: 640, padding: "80px 0", textAlign: "center" }}>
         <h1>
           {t.heading[0]}

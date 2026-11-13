@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "setup:supabase": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/setup-supabase.mjs",
     "check:setup": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/check-setup.mjs"
   },

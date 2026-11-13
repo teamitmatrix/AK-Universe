@@ -4,10 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { quoteHref } from "@/lib/contact/quote";
 import { useVideo } from "./context";
 
 export function ServicesList() {
+  const t = useT();
   const { config, openConfig } = useVideo();
 
   return (
@@ -15,17 +17,15 @@ export function ServicesList() {
       <section className="page-hero stars" style={{ position: "relative" }}>
         <div className="container">
           <Link href="/marketing" className="back-link">
-            <Icon name="arrow-left" /> Retour
+            <Icon name="arrow-left" /> {t("Retour")}
           </Link>
-          <p className="eyebrow">Services vidéo</p>
-          <h1>
-            Composez votre <span className="gold">projet vidéo</span>
-          </h1>
-          <p>Choisissez un ou plusieurs services, personnalisez-les, puis demandez un devis ou réservez avec un acompte.</p>
+          <p className="eyebrow">{t("Services vidéo")}</p>
+          <h1>{t.rich("Composez votre <gold>projet vidéo</gold>")}</h1>
+          <p>{t("Choisissez un ou plusieurs services, personnalisez-les, puis demandez un devis ou réservez avec un acompte.")}</p>
           <ol className="how">
-            <li>Choisissez vos services</li>
-            <li>Personnalisez les options</li>
-            <li>Devis ou acompte</li>
+            <li>{t("Choisissez vos services")}</li>
+            <li>{t("Personnalisez les options")}</li>
+            <li>{t("Devis ou acompte")}</li>
           </ol>
         </div>
       </section>
@@ -50,17 +50,17 @@ export function ServicesList() {
                 <p>{service.description}</p>
                 <div className="svc-card-foot">
                   <span className="from-price">
-                    À partir de <strong>{euro(service.price)}</strong> {service.unit}
+                    {t.rich("À partir de <strong>{price}</strong>", {}, { price: euro(service.price) })} {service.unit}
                   </span>
                   <div className="svc-card-actions">
                     <Link href={`/services/${service.slug}`} className="btn btn-outline btn-sm">
-                      Découvrir
+                      {t("Découvrir")}
                     </Link>
                     <Link href={quoteHref(service.slug)} className="btn btn-outline btn-sm">
-                      Devis
+                      {t("Devis")}
                     </Link>
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => openConfig(service.slug)}>
-                      <Icon name="plus" /> Ajouter
+                      <Icon name="plus" /> {t("Ajouter")}
                     </button>
                   </div>
                 </div>

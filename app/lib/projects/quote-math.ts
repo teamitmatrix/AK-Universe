@@ -40,8 +40,10 @@ export function discountOf(config: VideoConfig, service: Service, qty: number) {
   return table[String(qty)] ?? 0;
 }
 
+/** "Nombre de vidéos" → "3 vidéos" / "1 vidéo"; also "Number of videos" once translated. */
 export function qtyWord(service: Service, n: number) {
-  const plural = (service.qtyLabel || "Nombre de vidéos").replace(/^Nombre de /, "");
+  if (service.qtyWords) return `${n} ${service.qtyWords[n > 1 ? 1 : 0]}`;
+  const plural = (service.qtyLabel || "Nombre de vidéos").replace(/^(Nombre de |Number of )/i, "");
   if (n > 1) return `${n} ${plural}`;
   const parts = plural.split(" ");
   parts[0] = parts[0].replace(/s$/, "");

@@ -13,3 +13,5 @@ yarn-debug.log*
 pnpm-debug.log*
 .p8
 .apple-secret-expires
+# Local database backups (contain personal data — never commit)
+/db-backups/

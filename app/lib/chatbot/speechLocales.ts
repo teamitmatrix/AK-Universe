@@ -1,4 +1,4 @@
-import type { Lang } from "@/config/languages";
+import type { SiteLang as Lang } from "@/config/languages";
 
 /**
  * BCP-47 tags for the Web Speech API, keyed by the site language switch.

@@ -1,8 +1,19 @@
 /**
- * Languages offered in the language switch (24 official EU languages, plus Hindi and Urdu).
- * French is the source language of the site. Pages rebuilt in React also ship hand-written English;
- * every other language (and English on the static pages) is machine-translated by Google Translate.
+ * Languages of the site.
+ *
+ * French is the source language: every text is written in French in the code.
+ *
+ * For now the other languages come from Google Translate in the browser (SITE_LANGUAGES, the
+ * language switch). Fixed, hand-checked translations (catalogues in app/i18n/catalogs/<code>/) are
+ * ready for English and German but switched off with FIXED_TRANSLATIONS until the site is finished.
+ *
+ * To switch fixed translations back on later:
+ *   1. set FIXED_TRANSLATIONS to true;
+ *   2. run `npm run check:i18n` to list texts added since then that still need a translation.
  */
+
+/** false: pages are always rendered in French and Google Translate does the other languages. */
+export const FIXED_TRANSLATIONS = false;
 
 /** Flag drawn in a 30×20 box: stripes ("v" vertical, "h" horizontal) with optional weights, or a special design. */
 export type FlagSpec =
@@ -10,7 +21,28 @@ export type FlagSpec =
   | { cross: string; bg: string }
   | { special: "uk" | "cz" | "gr" };
 
+/** Languages with a fixed catalogue (French text → translation). */
 export const LANGUAGES = [
+  { code: "fr", name: "Français", locale: "fr-FR" },
+  { code: "en", name: "English", locale: "en-GB" },
+  { code: "de", name: "Deutsch", locale: "de-DE" },
+] as const satisfies readonly { code: string; name: string; locale: string }[];
+
+/** Language of the texts written in the code / catalogues. */
+export type Lang = (typeof LANGUAGES)[number]["code"];
+
+export const SOURCE_LANG: Lang = "fr";
+
+/** Cookie holding the visitor's choice in the language switch (any SiteLang). */
+export const LANG_COOKIE = "aku-lang";
+
+export const isLang = (value: unknown): value is Lang => LANGUAGES.some((l) => l.code === value);
+
+/** Locale used for dates and numbers ("fr-FR", "en-GB"). */
+export const localeOf = (lang: Lang) => LANGUAGES.find((l) => l.code === lang)?.locale ?? "fr-FR";
+
+/** Language switch: 24 official EU languages, plus Hindi and Urdu, translated by Google Translate. */
+export const SITE_LANGUAGES = [
   { code: "fr", name: "Français", flag: { stripes: "v", colors: ["#1f4fb4", "#fff", "#e03a3e"] } },
   { code: "en", name: "English", flag: { special: "uk" } },
   { code: "bg", name: "Български", flag: { stripes: "h", colors: ["#fff", "#00966e", "#d62612"] } },
@@ -39,11 +71,7 @@ export const LANGUAGES = [
   { code: "ur", name: "اردو", flag: { stripes: "v", colors: ["#fff", "#01411c"], weights: [1, 3] } },
 ] as const satisfies readonly { code: string; name: string; flag: FlagSpec }[];
 
-export type Lang = (typeof LANGUAGES)[number]["code"];
+/** Language chosen in the switch (Google Translate target, chatbot language, Stripe Checkout locale). */
+export type SiteLang = (typeof SITE_LANGUAGES)[number]["code"];
 
-/** Languages with hand-written texts in the React pages; the others start from French. */
-export type TextLang = "fr" | "en";
-
-export const SOURCE_LANG: Lang = "fr";
-
-export const isLang = (value: unknown): value is Lang => LANGUAGES.some((l) => l.code === value);
+export const isSiteLang = (value: unknown): value is SiteLang => SITE_LANGUAGES.some((l) => l.code === value);

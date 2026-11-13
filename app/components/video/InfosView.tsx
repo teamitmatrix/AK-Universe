@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { useCart, useClientDraft, writeClient } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, Summary, useMounted } from "./flow";
 
 export function InfosView() {
+  const t = useT();
   const router = useRouter();
   const mounted = useMounted();
   const { config } = useVideo();
@@ -36,10 +38,10 @@ export function InfosView() {
                 router.push("/finaliser");
               }}
             >
-              <h2>Vos informations</h2>
+              <h2>{t("Vos informations")}</h2>
               <div className="d-row">
                 <label className="d-field">
-                  <span>Prénom *</span>
+                  <span>{t("Prénom")} *</span>
                   <input
                     name="prenom"
                     required
@@ -50,7 +52,7 @@ export function InfosView() {
                   />
                 </label>
                 <label className="d-field">
-                  <span>Nom *</span>
+                  <span>{t.in("nom-famille", "Nom")} *</span>
                   <input
                     name="nom"
                     required
@@ -62,18 +64,18 @@ export function InfosView() {
                 </label>
               </div>
               <label className="d-field">
-                <span>Entreprise</span>
+                <span>{t("Entreprise")}</span>
                 <input
                   name="entreprise"
                   autoComplete="organization"
                   value={client.entreprise}
-                  placeholder="Nom de votre société (facultatif)"
+                  placeholder={t("Nom de votre société (facultatif)")}
                   onChange={(event) => update({ entreprise: event.target.value })}
                 />
               </label>
               <div className="d-row">
                 <label className="d-field">
-                  <span>E-mail *</span>
+                  <span>{t("E-mail")} *</span>
                   <input
                     name="email"
                     type="email"
@@ -85,7 +87,7 @@ export function InfosView() {
                   />
                 </label>
                 <label className="d-field">
-                  <span>Téléphone *</span>
+                  <span>{t("Téléphone")} *</span>
                   <input
                     name="tel"
                     type="tel"
@@ -100,7 +102,7 @@ export function InfosView() {
               </div>
               <div className="d-row">
                 <label className="d-field">
-                  <span>Ville / lieu du tournage *</span>
+                  <span>{t("Ville / lieu du tournage")} *</span>
                   <input
                     name="lieu"
                     required
@@ -111,7 +113,7 @@ export function InfosView() {
                   />
                 </label>
                 <label className="d-field">
-                  <span>Date souhaitée</span>
+                  <span>{t("Date souhaitée")}</span>
                   <input
                     name="date"
                     type="date"
@@ -122,19 +124,19 @@ export function InfosView() {
                 </label>
               </div>
               <label className="d-field">
-                <span>Votre message (optionnel)</span>
+                <span>{t("Votre message (optionnel)")}</span>
                 <textarea
                   name="message"
                   rows={3}
-                  placeholder="Décrivez votre projet, vos objectifs, etc."
+                  placeholder={t("Décrivez votre projet, vos objectifs, etc.")}
                   value={client.message}
                   onChange={(event) => update({ message: event.target.value })}
                 />
               </label>
               <button className="btn btn-primary btn-block">
-                Continuer <Icon name="arrow" />
+                {t("Continuer")} <Icon name="arrow" />
               </button>
-              <p className="muted-note">* Champs obligatoires. Vos données servent uniquement à traiter votre demande.</p>
+              <p className="muted-note">{t("* Champs obligatoires. Vos données servent uniquement à traiter votre demande.")}</p>
             </form>
           </div>
         )}

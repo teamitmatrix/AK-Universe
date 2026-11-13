@@ -2,9 +2,9 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { createOrganization } from "@/lib/account/actions";
-import { SECTORS, SECTORS_EN, SIZES, SIZES_EN } from "@/config/organisation";
+import { SECTORS, SECTORS_DE, SECTORS_EN, SIZES, SIZES_DE, SIZES_EN } from "@/config/organisation";
 import { Icon } from "@/components/ui/Icon";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 
 const TEXT = {
   fr: {
@@ -47,11 +47,31 @@ const TEXT = {
       failed: "Unable to create the organization. Please try again.",
     },
   },
+  de: {
+    steps: ["Konto", "Organisation", "Team", "Bestätigung"],
+    stepsLabel: "Schritte",
+    heading: ["Erstellen Sie Ihre ", "Organisation"],
+    subtitle: "Erstellen Sie eine Organisation, um Ihre KI-Agenten zu organisieren und mit Ihrem Team zusammenzuarbeiten.",
+    name: "Name der Organisation",
+    namePlaceholder: "Z. B. Meine Firma, AK Consulting…",
+    sector: "Branche",
+    sectorPlaceholder: "Branche auswählen",
+    sectors: SECTORS_DE,
+    size: "Größe der Organisation",
+    sizePlaceholder: "Größe auswählen",
+    sizes: SIZES_DE,
+    submit: "Organisation erstellen",
+    submitting: "Wird erstellt…",
+    errors: {
+      invalid_input: "Bitte prüfen Sie Ihre Angaben.",
+      failed: "Die Organisation konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+    },
+  },
 };
 
 export function OrganisationForm() {
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)];
+  const t = TEXT[lang];
   const [name, setName] = useState("");
   const [sector, setSector] = useState("");
   const [size, setSize] = useState("");

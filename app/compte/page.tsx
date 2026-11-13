@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getT } from "@/i18n/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
@@ -10,10 +11,13 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { openBillingPortal } from "@/lib/billing/actions";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Mon compte — AK Universe",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("Mon compte — AK Universe"),
+    robots: { index: false, follow: false },
+  };
+}
 
 const SUBSCRIPTION_STATUS: Record<string, string> = {
   active: "Actif",
@@ -23,12 +27,13 @@ const SUBSCRIPTION_STATUS: Record<string, string> = {
   incomplete: "Paiement incomplet",
 };
 
-const euros = (cents: number) => `${(cents / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`;
-const date = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function ComptePage({ searchParams }: { searchParams: Promise<{ portal?: string }> }) {
-  const user = await getCurrentUser();
+  const [user, t] = await Promise.all([getCurrentUser(), getT()]);
   if (!user) redirect("/connexion?redirectTo=/compte");
+  const euros = (cents: number) => `${(cents / 100).toLocaleString(t.locale, { maximumFractionDigits: 2 })} €`;
+  const date = (iso: string) =>
+    new Date(iso).toLocaleDateString(t.locale, { day: "numeric", month: "long", year: "numeric" });
   const { portal } = await searchParams;
 
   // User-scoped client: RLS only returns this user's rows.
@@ -64,57 +69,59 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
       <SiteHeader active="none" signedIn />
       <main className="section stars account">
         <div className="container account-body">
-          <p className="eyebrow">Mon compte</p>
+          <p className="eyebrow">{t("Mon compte")}</p>
           <h1 className="section-title">
-            Bonjour{name ? <> {name}</> : null}
+            {name ? t("Bonjour {name}", { name }) : t("Bonjour")}
           </h1>
 
           <div className="account-grid">
             <section className="account-card">
               <h2>
-                <Icon name="user" /> Profil
+                <Icon name="user" /> {t("Profil")}
               </h2>
               <dl>
-                <dt>E-mail</dt>
+                <dt>{t("E-mail")}</dt>
                 <dd>{profile?.email ?? user.email}</dd>
                 {org && (
                   <>
-                    <dt>Organisation</dt>
+                    <dt>{t("Organisation")}</dt>
                     <dd>
-                      {org.name} — {org.sector}, {org.size}
+                      {org.name} — {t.data(org.sector)}, {t.data(org.size)}
                     </dd>
                   </>
                 )}
               </dl>
               {!org && (
                 <Link href="/organisation" className="btn btn-outline-gold">
-                  Créer mon organisation <Icon name="arrow" />
+                  {t("Créer mon organisation")} <Icon name="arrow" />
                 </Link>
               )}
             </section>
 
             <section className="account-card">
               <h2>
-                <Icon name="sparkle" /> Abonnement Agents IA
+                <Icon name="sparkle" /> {t("Abonnement Agents IA")}
               </h2>
               {subscription ? (
                 <>
                   <dl>
-                    <dt>Formule</dt>
+                    <dt>{t("Formule")}</dt>
                     <dd>
-                      {PLAN.name} — {subscription.cycle}
+                      {PLAN.name} — {t(subscription.cycle === "annuel" ? "annuel" : "mensuel")}
                     </dd>
-                    <dt>Statut</dt>
+                    <dt>{t("Statut")}</dt>
                     <dd>
                       <span className={`status status-${subscription.status}`}>
-                        {SUBSCRIPTION_STATUS[subscription.status] ?? subscription.status}
+                        {SUBSCRIPTION_STATUS[subscription.status] ? t(SUBSCRIPTION_STATUS[subscription.status]) : subscription.status}
                       </span>
                     </dd>
-                    <dt>Montant</dt>
-                    <dd className="notranslate">{euros(subscription.monthly_total_cents)} HT / mois</dd>
+                    <dt>{t("Montant")}</dt>
+                    <dd>
+                      {euros(subscription.monthly_total_cents)} {t("HT / mois")}
+                    </dd>
                     {subscription.current_period_end && (
                       <>
-                        <dt>{subscription.status === "canceled" ? "Fin d'accès" : "Prochain renouvellement"}</dt>
+                        <dt>{subscription.status === "canceled" ? t("Fin d'accès") : t("Prochain renouvellement")}</dt>
                         <dd>{date(subscription.current_period_end)}</dd>
                       </>
                     )}
@@ -122,23 +129,23 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
                   {subscription.stripe_customer_id && (
                     <form action={openBillingPortal}>
                       <button type="submit" className="btn btn-primary">
-                        Gérer mon abonnement <Icon name="arrow" />
+                        {t("Gérer mon abonnement")} <Icon name="arrow" />
                       </button>
-                      <p className="account-hint">Changer de carte, télécharger vos factures ou résilier.</p>
+                      <p className="account-hint">{t("Changer de carte, télécharger vos factures ou résilier.")}</p>
                     </form>
                   )}
                 </>
               ) : (
                 <>
-                  <p>Vous n&apos;avez pas encore d&apos;abonnement.</p>
+                  <p>{t("Vous n'avez pas encore d'abonnement.")}</p>
                   <Link href="/abonnement" className="btn btn-primary">
-                    Choisir mon abonnement <Icon name="arrow" />
+                    {t("Choisir mon abonnement")} <Icon name="arrow" />
                   </Link>
                 </>
               )}
               {portal === "unavailable" && (
                 <p className="account-error" role="alert">
-                  La gestion de l&apos;abonnement est momentanément indisponible. Contactez-nous si besoin.
+                  {t("La gestion de l'abonnement est momentanément indisponible. Contactez-nous si besoin.")}
                 </p>
               )}
             </section>
@@ -146,28 +153,28 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
 
           <section className="account-card">
             <h2>
-              <Icon name="video" /> Mes projets vidéo
+              <Icon name="video" /> {t("Mes projets vidéo")}
             </h2>
             {projects?.length ? (
               <div className="legal-table">
                 <table>
                   <thead>
                     <tr>
-                      <th>Référence</th>
-                      <th>Date</th>
-                      <th>Type</th>
-                      <th>Statut</th>
-                      <th>Total HT</th>
+                      <th>{t("Référence")}</th>
+                      <th>{t("Date")}</th>
+                      <th>{t("Type")}</th>
+                      <th>{t("Statut")}</th>
+                      <th>{t("Total HT")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {projects.map((p) => (
                       <tr key={p.reference}>
-                        <td className="notranslate">{p.reference}</td>
+                        <td>{p.reference}</td>
                         <td>{date(p.created_at)}</td>
-                        <td>{p.kind === "acompte" ? "Réservation" : "Devis"}</td>
-                        <td>{PROJECT_STATUS[p.status] ?? p.status}</td>
-                        <td className="notranslate">{euros(p.total_cents)}</td>
+                        <td>{p.kind === "acompte" ? t("Réservation") : t("Devis")}</td>
+                        <td>{PROJECT_STATUS[p.status] ? t.data(PROJECT_STATUS[p.status]) : p.status}</td>
+                        <td>{euros(p.total_cents)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -175,14 +182,14 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
               </div>
             ) : (
               <p>
-                Aucun projet pour le moment. <a href="/services">Découvrir nos services vidéo</a>
+                {t("Aucun projet pour le moment.")} <a href="/services">{t("Découvrir nos services vidéo")}</a>
               </p>
             )}
           </section>
 
           <form action="/auth/signout" method="post" className="account-signout">
             <button type="submit" className="btn btn-outline">
-              Se déconnecter
+              {t("Se déconnecter")}
             </button>
           </form>
         </div>

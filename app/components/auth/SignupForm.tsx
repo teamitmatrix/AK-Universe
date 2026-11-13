@@ -7,7 +7,7 @@ import { signUp } from "@/lib/auth/signup";
 import { PASSWORD_RULES, isStrongPassword } from "@/lib/auth/password";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { GoogleLogo } from "./SocialLogos";
 
@@ -68,6 +68,34 @@ const TEXT = {
       failed: "Unable to create the account. Please try again.",
     },
   },
+  de: {
+    heading: ["Erstellen Sie ", "Ihr Konto"],
+    subtitle: "Treten Sie AK Universe bei und automatisieren Sie Ihr Geschäft mit KI.",
+    firstName: "Vorname",
+    lastName: "Nachname",
+    email: "E-Mail-Adresse",
+    emailPlaceholder: "ihre@email.de",
+    password: "Passwort",
+    passwordPlaceholder: "Passwort erstellen",
+    showPassword: "Passwort anzeigen",
+    hidePassword: "Passwort verbergen",
+    rules: { len: "Mindestens 8 Zeichen", upper: "1 Großbuchstabe", digit: "1 Ziffer", lower: "1 Kleinbuchstabe" },
+    weakToast: "Ihr Passwort erfüllt noch nicht alle Regeln.",
+    submit: "Mein Konto erstellen",
+    submitting: "Wird erstellt…",
+    or: "oder",
+    google: "Weiter mit Google",
+    googleFailed: "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    haveAccount: "Sie haben bereits ein Konto?",
+    login: "Anmelden",
+    errors: {
+      exists: "Mit dieser E-Mail-Adresse existiert bereits ein Konto.",
+      weak: "Dieses Passwort ist zu schwach.",
+      rate: "Zu viele Anfragen. Bitte versuchen Sie es in einigen Minuten erneut.",
+      invalid: "Bitte prüfen Sie Ihre Angaben.",
+      failed: "Das Konto konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+    },
+  },
 };
 
 type ErrorKey = keyof typeof TEXT.fr.errors;
@@ -90,7 +118,7 @@ export function SignupForm() {
   // Message keys (not strings) so they follow the language switch.
   const [error, setError] = useState<ErrorKey | "googleFailed" | "">("");
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)];
+  const t = TEXT[lang];
 
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));

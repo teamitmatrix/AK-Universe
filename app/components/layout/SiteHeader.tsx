@@ -4,16 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+import { useT } from "@/i18n/client";
 import { NAV_MENUS, type NavMenu } from "@/config/navigation";
 
 const DESKTOP = "(min-width: 981px)";
-
-/** Top-level labels; in English they are written out (Google Translate makes "Accueil" "Welcome"). */
-const LABELS = {
-  fr: { home: "Accueil", about: "À propos", contact: "Contact", project: "Mes projets" },
-  en: { home: "Home", about: "About Us", contact: "Contact", project: "My Projects" },
-};
 
 type Menu = NavMenu["id"];
 
@@ -25,13 +19,9 @@ type Props = {
 /** Main site header (home, agents IA, digital). Mirrors initNav() from the static main.js. */
 export function SiteHeader({ active = "home", signedIn = false }: Props) {
   const pathname = usePathname();
-  const [lang] = useLang();
-  const en = textLang(lang) === "en";
-  const labels = LABELS[textLang(lang)];
+  const t = useT();
   const onProject =
     pathname === "/projet" || pathname.startsWith("/projet/") || pathname === "/finaliser";
-  /** Keeps Google Translate off the written-out English labels. */
-  const translate = nativeTranslate(lang);
   const [menuOpen, setMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<Menu | null>(null);
   const navRef = useRef<HTMLUListElement>(null);
@@ -79,14 +69,15 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
         <Link
           href="/"
           className="logo notranslate"
-          aria-label="AK Universe — accueil"
+          translate="no"
+          aria-label={t("AK Universe — accueil")}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
           <img src="/assets/img/logo.svg" alt="" />
         </Link>
         <button
           className="burger"
-          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-label={menuOpen ? t("Fermer le menu") : t("Ouvrir le menu")}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -97,11 +88,10 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
             <li>
               <Link
                 href="/"
-                className={`nav-link${active === "home" ? " active" : ""}${en ? " notranslate" : ""}`}
-                translate={translate}
+                className={`nav-link${active === "home" ? " active" : ""}`}
                 onClick={closeAll}
               >
-                {labels.home}
+                {t("Accueil")}
               </Link>
             </li>
             {NAV_MENUS.map((menu) => (
@@ -109,18 +99,15 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                 {/* The label opens the section page; the chevron opens the menu (on mobile there is no hover). */}
                 <Link
                   href={menu.href}
-                  className={`nav-link${active === menu.id ? " active" : ""}${en ? " notranslate" : ""}`}
-                  translate={translate}
-                  onClick={closeAll}
+                  className={`nav-link${active === menu.id ? " active" : ""}`}
+                    onClick={closeAll}
                 >
-                  {en ? menu.labelEn : menu.label}
+                  {t(menu.label)}
                 </Link>
                 <button
                   type="button"
                   className="nav-chev"
-                  aria-label={
-                    en ? `${menu.labelEn} submenu` : `Sous-menu ${menu.label}`
-                  }
+                  aria-label={t("Sous-menu {name}", { name: t(menu.label) })}
                   aria-expanded={openMenu === menu.id}
                   aria-haspopup="true"
                   onClick={() => toggle(menu.id)}
@@ -142,8 +129,8 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
                           onClick={closeAll}
                         >
                           <span>
-                            <strong>{link.label}</strong>
-                            <small>{link.text}</small>
+                            <strong>{t(link.label)}</strong>
+                            <small>{t(link.text)}</small>
                           </span>
                           <Icon name="chev-right" />
                         </Link>
@@ -156,31 +143,28 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
             <li>
               <Link
                 href="/a-propos"
-                className={`nav-link${active === "about" ? " active" : ""}${en ? " notranslate" : ""}`}
-                translate={translate}
+                className={`nav-link${active === "about" ? " active" : ""}`}
                 onClick={closeAll}
               >
-                {labels.about}
+                {t("À propos")}
               </Link>
             </li>
             <li>
               <Link
                 href="/contact"
-                className={`nav-link${active === "contact" ? " active" : ""}${en ? " notranslate" : ""}`}
-                translate={translate}
+                className={`nav-link${active === "contact" ? " active" : ""}`}
                 onClick={closeAll}
               >
-                {labels.contact}
+                {t("Contact")}
               </Link>
             </li>
             <li>
               <Link
                 href="/projet"
-                className={`nav-link${onProject ? " active" : ""}${en ? " notranslate" : ""}`}
-                translate={translate}
+                className={`nav-link${onProject ? " active" : ""}`}
                 onClick={closeAll}
               >
-                {labels.project}
+                {t("Mes projets")}
               </Link>
             </li>
           </ul>
@@ -188,21 +172,21 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
             {signedIn ? (
               <form action="/auth/signout" method="post">
                 <button type="submit" className="btn btn-outline">
-                  Se déconnecter
+                  {t("Se déconnecter")}
                 </button>
               </form>
             ) : (
               <Link href="/connexion" className="btn btn-outline">
-                Se connecter
+                {t("Se connecter")}
               </Link>
             )}
             {signedIn ? (
               <Link href="/compte" className="btn btn-primary">
-                Mon compte <Icon name="arrow" />
+                {t("Mon compte")} <Icon name="arrow" />
               </Link>
             ) : (
               <Link href="/inscription" className="btn btn-primary">
-                Essayer gratuitement <Icon name="arrow" />
+                {t("Essayer gratuitement")} <Icon name="arrow" />
               </Link>
             )}
           </div>

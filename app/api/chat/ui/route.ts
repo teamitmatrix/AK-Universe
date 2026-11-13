@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isLang } from "@/config/languages";
+import { isSiteLang as isLang } from "@/config/languages";
 import { builtInWidgetText, isWidgetText, WIDGET_TEXT, type WidgetText } from "@/lib/chatbot/widgetText";
 
 /*

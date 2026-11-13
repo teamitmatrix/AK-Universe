@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
+import { getT } from "@/i18n/server";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ProjetView } from "@/components/video/ProjetView";
 import { VideoShell } from "@/components/video/VideoShell";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getVideoConfig } from "@/lib/video-config";
+import { getLocalizedVideoConfig } from "@/i18n/data";
 
-export const metadata: Metadata = {
-  title: { absolute: "Mon projet — AK Universe" },
-  description: "Votre projet vidéo AK Universe.",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: { absolute: t("Mon projet — AK Universe") },
+    description: t("Votre projet vidéo AK Universe."),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function Page() {
-  const [config, user] = await Promise.all([getVideoConfig(), getCurrentUser()]);
+  const [config, user] = await Promise.all([getLocalizedVideoConfig(), getCurrentUser()]);
   return (
     <>
       <SiteHeader active="none" signedIn={!!user} />

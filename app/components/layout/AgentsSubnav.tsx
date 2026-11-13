@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useLang } from "@/components/ui/LangSwitch";
+import { useT } from "@/i18n/client";
 
-type SubnavLink = { id: string; href: string; label: string; labelEn?: string };
+type SubnavLink = { id: string; href: string; label: string };
 
 /** Tab that matches the address: a section hash on this page, or the page itself. */
 function selectedId(links: readonly SubnavLink[], pathname: string, hash: string, fallback?: string) {
@@ -34,7 +34,7 @@ const AGENT_LINKS = [
 /** Secondary bar of a section, under the site header. */
 export function Subnav({ label, links, active }: { label: string; links: readonly SubnavLink[]; active?: string }) {
   const pathname = usePathname();
-  const [lang] = useLang();
+  const t = useT();
   const [hash, setHash] = useState("");
 
   useEffect(() => {
@@ -47,18 +47,16 @@ export function Subnav({ label, links, active }: { label: string; links: readonl
   const current = selectedId(links, pathname, hash, active);
 
   return (
-    <nav className="agents-subnav" aria-label={label}>
+    <nav className="agents-subnav" aria-label={t(label)}>
       <div className="container">
         <ul>
           {links.map((link) => {
             const on = link.id === current;
-            const english = lang === "en" && link.labelEn;
             return (
               <li key={link.id}>
                 <Link
                   href={link.href}
-                  className={[on ? "active" : "", english ? "notranslate" : ""].filter(Boolean).join(" ") || undefined}
-                  translate={english ? "no" : undefined}
+                  className={on ? "active" : undefined}
                   aria-current={on ? "page" : undefined}
                   onClick={(event) => {
                     const mark = link.href.indexOf("#");
@@ -75,7 +73,7 @@ export function Subnav({ label, links, active }: { label: string; links: readonl
                     }
                   }}
                 >
-                  {english ? link.labelEn : link.label}
+                  {t(link.label)}
                 </Link>
               </li>
             );

@@ -10,7 +10,7 @@ import {
   micSupported,
   speakReply,
 } from "./chatVoice";
-import { nativeTranslate, textLang, useLang, type Lang } from "./LangSwitch";
+import { nativeTranslate, textLang, useSiteLang as useLang, type SiteLang as Lang } from "./LangSwitch";
 import { builtInWidgetText, isRtl, isWidgetText, WIDGET_TEXT, type WidgetText } from "@/lib/chatbot/widgetText";
 
 /*

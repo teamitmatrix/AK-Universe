@@ -1,5 +1,6 @@
 "use server";
 
+import { getT } from "@/i18n/server";
 import { sendContactEmails } from "@/lib/contact/emails";
 import { quoteServiceLabel } from "@/lib/contact/services";
 import { QUOTE_SUBJECT, isContactSubject } from "@/lib/contact/subjects";
@@ -52,6 +53,7 @@ function clean(value: unknown, max: number) {
 }
 
 export async function submitContactMessage(raw: ContactPayload): Promise<ContactResult> {
+  const t = await getT();
   const name = clean(raw.name, MAX.name);
   const email = clean(raw.email, MAX.email);
   const company = clean(raw.company, MAX.company);
@@ -63,22 +65,22 @@ export async function submitContactMessage(raw: ContactPayload): Promise<Contact
 
   const fieldErrors: FieldErrors = {};
 
-  if (!name) fieldErrors.name = "Indiquez votre nom.";
-  if (!email) fieldErrors.email = "Indiquez votre e-mail.";
-  else if (!EMAIL_RE.test(email)) fieldErrors.email = "E-mail invalide.";
-  if (!isContactSubject(subject)) fieldErrors.subject = "Choisissez un sujet.";
-  if (serviceId && !service) fieldErrors.service = "Choisissez un service de la liste.";
-  if (!message) fieldErrors.message = "Écrivez votre message.";
-  else if (message.length < 10) fieldErrors.message = "Message trop court.";
+  if (!name) fieldErrors.name = t("Indiquez votre nom.");
+  if (!email) fieldErrors.email = t("Indiquez votre e-mail.");
+  else if (!EMAIL_RE.test(email)) fieldErrors.email = t("E-mail invalide.");
+  if (!isContactSubject(subject)) fieldErrors.subject = t("Choisissez un sujet.");
+  if (serviceId && !service) fieldErrors.service = t("Choisissez un service de la liste.");
+  if (!message) fieldErrors.message = t("Écrivez votre message.");
+  else if (message.length < 10) fieldErrors.message = t("Message trop court.");
 
   if (Object.keys(fieldErrors).length) {
-    return { success: false, error: "Vérifiez les champs obligatoires.", fieldErrors };
+    return { success: false, error: t("Vérifiez les champs obligatoires."), fieldErrors };
   }
 
   if (rateLimited(email)) {
     return {
       success: false,
-      error: "Trop de messages envoyés avec cet e-mail. Réessayez dans quelques minutes.",
+      error: t("Trop de messages envoyés avec cet e-mail. Réessayez dans quelques minutes."),
     };
   }
 
@@ -86,7 +88,7 @@ export async function submitContactMessage(raw: ContactPayload): Promise<Contact
   if (!sent) {
     return {
       success: false,
-      error: "Impossible d’envoyer le message pour le moment. Réessayez ou écrivez-nous par e-mail.",
+      error: t("Impossible d'envoyer le message pour le moment. Réessayez ou écrivez-nous par e-mail."),
     };
   }
 

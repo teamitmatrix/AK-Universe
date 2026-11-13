@@ -1,5 +1,7 @@
 import { after, NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { markProjectProspectWon } from "@/lib/commercial/project-prospects";
+import { notifyProjectPayment } from "@/lib/notify";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/server";
@@ -95,6 +97,9 @@ export async function POST(request: Request) {
         });
         // A failed insert means a parallel delivery of the same event already recorded (and e-mailed) it.
         if (project && !duplicate) {
+          // Quote accepted: tell the assigned sales rep (idempotent per Stripe session).
+          after(() => markProjectProspectWon(meta.project_id!));
+          after(() => notifyProjectPayment("quote_accepted", meta.project_id!, session.amount_total ?? 0, `deposit:${session.id}`));
           after(() =>
             sendProjectEmails(
               {

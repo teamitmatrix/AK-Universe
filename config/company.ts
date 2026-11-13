@@ -49,7 +49,7 @@ export const PROCESSORS = [
   { name: "Supabase Inc.", role: "Base de données et comptes clients", country: "Union européenne (région choisie à la création du projet)" },
   { name: "Stripe Payments Europe Ltd.", role: "Paiements en ligne", country: "Irlande / Union européenne" },
   { name: "Resend (Plus Five Five Inc.)", role: "Envoi des e-mails", country: "États-Unis (clauses contractuelles types)" },
-  { name: "Google LLC", role: "Traduction de la page (seulement si vous choisissez une autre langue) et connexion avec Google", country: "États-Unis (Data Privacy Framework)" },
+  { name: "Google LLC", role: "Connexion avec Google (seulement si vous choisissez cette option)", country: "États-Unis (Data Privacy Framework)" },
 ];
 
 export const missingCompanyFields = () =>

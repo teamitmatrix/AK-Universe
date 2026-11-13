@@ -66,6 +66,8 @@ export type Service = {
   qtyChoices?: number[];
   qtyDiscounts?: Record<string, number>;
   qtyLabel?: string;
+  /** [singular, plural] quantity word in the visitor's language, when the language needs it ("Video", "Videos"). */
+  qtyWords?: [string, string];
   mockup?: number | null;
   duration?: string;
   realisations?: string;
@@ -94,6 +96,8 @@ export type PricingOverrides = {
   options?: Record<string, number>;
   /** slug → base price and, for services with their own durations, the extra per duration */
   services?: Record<string, { price?: number; durations?: number[] }>;
+  /** Marketing package key → monthly price and set-up fee (admin catalogue). */
+  plans?: Record<string, { price?: number; setupPrice?: number }>;
 };
 
 let defaults: { mtime: number; config: VideoConfig } | null = null;
@@ -128,6 +132,13 @@ export function applyOverrides(config: VideoConfig, o: PricingOverrides | null |
     so.durations?.forEach((extra, i) => {
       if (service.durations?.[i] && isPrice(extra)) service.durations[i].extra = extra;
     });
+  }
+  // Packages "on quote" (price null) stay on quote: only priced packages can be changed.
+  for (const plan of config.marketing?.plans ?? []) {
+    const po = o.plans?.[plan.key];
+    if (!po) continue;
+    if (plan.price !== null && isPrice(po.price)) plan.price = po.price;
+    if (plan.setupPrice != null && isPrice(po.setupPrice)) plan.setupPrice = po.setupPrice;
   }
   return config;
 }

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS, PLAN, USER_PRICE, computeQuote, eur, type Cycle } from "@/config/pricing";
+import { DEFAULT_AGENTS_PRICING, MAX_EXTRA_USERS, OPTIONS, PLAN, computeQuote, eur, type AgentsPricing, type Cycle } from "@/config/pricing";
 import { Icon } from "@/components/ui/Icon";
-import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+import { LangSwitch, useLang } from "@/components/ui/LangSwitch";
 
 const TEXT = {
   fr: {
@@ -60,16 +60,45 @@ const TEXT = {
     continue: "Continue to payment",
     secure: "Secure payment",
   },
+  de: {
+    back: "Zurück",
+    heading: ["Passen Sie Ihr ", "Abonnement an"],
+    subtitle: "Wählen Sie den Tarif und die Optionen, die zu den Anforderungen Ihrer Organisation passen.",
+    cycleLabel: "Abrechnungszeitraum",
+    cycles: { mensuel: "Monatlich", annuel: "Jährlich" },
+    planText: "Ideal für Unternehmen, die mit KI weiterkommen möchten.",
+    features: ["Unbegrenzte KI-Agenten", "Alle Funktionen", "Priorisierter Support", "Updates inklusive"],
+    perMonth: "/ Monat",
+    usersTitle: "Zusätzliche Agenten",
+    usersText: "Fügen Sie Ihrer Organisation weitere Nutzer hinzu.",
+    usersLabel: "Zusätzliche Nutzer",
+    perUser: "/ Nutzer / Monat",
+    removeUser: "Nutzer entfernen",
+    addUser: "Nutzer hinzufügen",
+    optionsTitle: "Zusätzliche Optionen",
+    options: {
+      telephonie: ["KI-Telefonie", "Ein KI-Agent nimmt rund um die Uhr Ihre Anrufe an."],
+      "maj-premium": ["Premium-Updates", "Früher Zugang zu neuen Funktionen."],
+      "statut-premium": ["Premium-Status", "Premium-Abzeichen und bevorzugte Bearbeitung."],
+      generateur: ["Erweiterter Content-Generator", "Erweiterte Vorlagen für Texte, Visuals und Videos."],
+      analyse: ["Erweiterte Analysen", "Detaillierte Dashboards und Berichte."],
+    } as Record<string, readonly [string, string]>,
+    summary: "Zusammenfassung",
+    total: "Monatliche Summe netto",
+    perYear: (amount: string) => `/ Monat, also ${amount} / Jahr`,
+    continue: "Weiter zur Zahlung",
+    secure: "Sichere Zahlung",
+  },
 };
 
-export function AbonnementScreen() {
+export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing?: AgentsPricing }) {
   const router = useRouter();
-  const [lang, setLang] = useLang();
-  const t = TEXT[textLang(lang)];
+  const [lang] = useLang();
+  const t = TEXT[lang];
   const [cycle, setCycle] = useState<Cycle>("mensuel");
   const [users, setUsers] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
-  const quote = computeQuote({ cycle, users, options });
+  const quote = computeQuote({ cycle, users, options }, pricing);
 
   const toggle = (id: string) =>
     setOptions((list) => (list.includes(id) ? list.filter((o) => o !== id) : [...list, id]));
@@ -80,13 +109,13 @@ export function AbonnementScreen() {
   }
 
   return (
-    <div className="theme-light" translate={nativeTranslate(lang)}>
+    <div className="theme-light">
       <div className="container" id="abonnement">
         <div className="light-top">
           <Link href="/organisation" className="back">
             <Icon name="arrow-left" /> {t.back}
           </Link>
-          <LangSwitch lang={lang} onChange={setLang} />
+          <LangSwitch />
         </div>
 
         <div className="page-title">
@@ -101,7 +130,7 @@ export function AbonnementScreen() {
                 {t.cycles[c]}
               </button>
             ))}
-            <span className="discount">-{ANNUAL_DISCOUNT * 100}%</span>
+            <span className="discount">-{Math.round(pricing.annualDiscount * 100)}%</span>
           </div>
         </div>
 
@@ -117,7 +146,7 @@ export function AbonnementScreen() {
                   <p>{t.planText}</p>
                 </div>
                 <div className="amt">
-                  <span id="plan-price" className="notranslate">{eur(quote.plan)}</span>
+                  <span id="plan-price">{eur(quote.plan)}</span>
                   <small>{t.perMonth}</small>
                 </div>
               </div>
@@ -144,12 +173,12 @@ export function AbonnementScreen() {
               <div className="stepper-row">
                 <Icon name="users" />
                 <span>{t.usersLabel}</span>
-                <span className="muted">{eur(USER_PRICE)} {t.perUser}</span>
+                <span className="muted">{eur(pricing.userPrice)} {t.perUser}</span>
                 <div className="stepper">
                   <button id="users-minus" aria-label={t.removeUser} onClick={() => setUsers((u) => Math.max(0, u - 1))}>
                     −
                   </button>
-                  <output id="users-count" className="notranslate" aria-live="polite">
+                  <output id="users-count" aria-live="polite">
                     {users}
                   </output>
                   <button
@@ -180,7 +209,7 @@ export function AbonnementScreen() {
                         <Icon name="info" />
                       </span>
                     </span>
-                    <span className="muted">{eur(o.price)} {t.perMonth}</span>
+                    <span className="muted">{eur(pricing.options[o.id] ?? o.price)} {t.perMonth}</span>
                     <span className="switch">
                       <input type="checkbox" name={o.id} checked={options.includes(o.id)} onChange={() => toggle(o.id)} />
                       <span />
@@ -200,27 +229,27 @@ export function AbonnementScreen() {
               <div className="line">
                 <span>{PLAN.name}</span>
                 <b>
-                  <span id="r-plan" className="notranslate">{eur(quote.plan)}</span>
+                  <span id="r-plan">{eur(quote.plan)}</span>
                   <small>{t.perMonth}</small>
                 </b>
               </div>
               <div className="line">
                 <span>
-                  {t.usersLabel} (<span id="r-users-n" className="notranslate">{users}</span>)
+                  {t.usersLabel} (<span id="r-users-n">{users}</span>)
                 </span>
-                <b id="r-users" className="notranslate">{eur(quote.usersTotal)}</b>
+                <b id="r-users">{eur(quote.usersTotal)}</b>
               </div>
               <div className="line">
                 <span>
-                  {t.optionsTitle} (<span id="r-opts-n" className="notranslate">{quote.optionsCount}</span>)
+                  {t.optionsTitle} (<span id="r-opts-n">{quote.optionsCount}</span>)
                 </span>
-                <b id="r-opts" className="notranslate">{eur(quote.optionsTotal)}</b>
+                <b id="r-opts">{eur(quote.optionsTotal)}</b>
               </div>
             </div>
             <div className="total">
               <strong>{t.total}</strong>
               <div className="big">
-                <span id="r-total" className="notranslate">{eur(quote.monthly)}</span>
+                <span id="r-total">{eur(quote.monthly)}</span>
                 <small id="r-total-note" key={cycle}>
                   {cycle === "annuel" ? t.perYear(eur(quote.due)) : t.perMonth}
                 </small>

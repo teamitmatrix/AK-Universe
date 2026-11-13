@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
+import { getT } from "@/i18n/server";
 import { ContactCard } from "@/components/layout/ContactCard";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { InfosView } from "@/components/video/InfosView";
 import { VideoShell } from "@/components/video/VideoShell";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getVideoConfig } from "@/lib/video-config";
+import { getLocalizedVideoConfig } from "@/i18n/data";
 
-export const metadata: Metadata = {
-  title: { absolute: "Vos informations — AK Universe" },
-  description: "Vos coordonnées pour finaliser votre projet vidéo.",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: { absolute: t("Vos informations — AK Universe") },
+    description: t("Vos coordonnées pour finaliser votre projet vidéo."),
+    robots: { index: false, follow: false },
+  };
+}
 
 /** Checkout step after /projet. A quote request uses the contact form instead. */
 export default async function Page() {
-  const [config, user] = await Promise.all([getVideoConfig(), getCurrentUser()]);
+  const [config, user] = await Promise.all([getLocalizedVideoConfig(), getCurrentUser()]);
   return (
     <>
       <SiteHeader active="none" signedIn={!!user} />

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { resetPricing, savePricing } from "@/lib/admin/actions";
 import type { PricingOverrides, VideoConfig } from "@/lib/video-config";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { ADMIN_TEXT } from "./adminText";
+import { adminTextFor } from "./adminText";
 
 const num = (v: string) => Math.max(0, Number(v) || 0);
 
@@ -16,7 +16,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
   const [pending, startTransition] = useTransition();
   const [toast, toastNode] = useToast();
   const [lang] = useLang();
-  const all = ADMIN_TEXT[textLang(lang)];
+  const all = adminTextFor(lang);
   const t = all.pricing;
 
   const update = (fn: (draft: VideoConfig) => void) => {
@@ -61,7 +61,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
   }
 
   return (
-    <main className="container admin notranslate" translate="no">
+    <main className="container admin">
       <h1>
         {t.title[0]}
         <span className="gold">{t.title[1]}</span>

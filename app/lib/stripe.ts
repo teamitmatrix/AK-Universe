@@ -1,6 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
-import { isLang } from "@/config/languages";
+import { isSiteLang as isLang } from "@/config/languages";
 
 let client: Stripe | null = null;
 

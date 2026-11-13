@@ -7,6 +7,7 @@ import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { ensureProfile } from "@/lib/auth/session";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 
 // Restricts Checkout to the method picked on paiement.html (it must also be enabled in Stripe).
 const METHODS: Record<string, Stripe.Checkout.SessionCreateParams.AllowedPaymentMethodType[]> = {
@@ -17,11 +18,33 @@ const METHODS: Record<string, Stripe.Checkout.SessionCreateParams.AllowedPayment
   satispay: ["satispay"],
 };
 
-export async function checkPromoCode(code: string) {
+/**
+ * Rules set in /admin/promotions on top of Stripe's own checks (active, expiry, usage cap):
+ * metadata.starts_at (not before) and metadata.target (which subscription cycle accepts the code).
+ */
+function promotionAllowed(p: Stripe.PromotionCode, cycle: Selection["cycle"]) {
+  const startsAt = Number(p.metadata?.starts_at) || 0;
+  const target = p.metadata?.target ?? "tous";
+  return p.active && startsAt <= Date.now() / 1000 && (target === "tous" || target === cycle);
+}
+
+export async function checkPromoCode(code: string, cycle: Selection["cycle"] = "mensuel") {
   const stripe = getStripe();
   if (!stripe || !code.trim()) return { valid: false as const };
   const { data } = await stripe.promotionCodes.list({ code: code.trim(), active: true, limit: 1 });
-  return data[0] ? { valid: true as const, id: data[0].id } : { valid: false as const };
+  const promo = data[0];
+  return promo && promotionAllowed(promo, cycle === "annuel" ? "annuel" : "mensuel") ? { valid: true as const, id: promo.id } : { valid: false as const };
+}
+
+/** The promotion code id comes from the browser: re-check it on the server before giving it to Stripe. */
+async function validatePromotion(stripe: Stripe, id: string | undefined, cycle: Selection["cycle"]) {
+  if (!id || !/^promo_[A-Za-z0-9]+$/.test(id)) return undefined;
+  try {
+    const promo = await stripe.promotionCodes.retrieve(id);
+    return promotionAllowed(promo, cycle) ? promo.id : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function startSubscriptionCheckout(input: {
@@ -43,7 +66,8 @@ export async function startSubscriptionCheckout(input: {
 
   // Never trust client totals: recompute from the sanitized selection.
   const selection = sanitizeSelection(input.selection);
-  const quote = computeQuote(selection);
+  const quote = computeQuote(selection, await getAgentsPricing());
+  const promotionCodeId = await validatePromotion(stripe, input.promotionCodeId, selection.cycle);
   const admin = createAdminClient();
 
   const { data: membership } = await admin
@@ -97,7 +121,7 @@ export async function startSubscriptionCheckout(input: {
           },
         },
       ],
-      discounts: input.promotionCodeId ? [{ promotion_code: input.promotionCodeId }] : undefined,
+      discounts: promotionCodeId ? [{ promotion_code: promotionCodeId }] : undefined,
       metadata: { kind: "subscription", subscription_id: subscription.id, user_id: auth.user.id },
       subscription_data: { metadata: { subscription_id: subscription.id, user_id: auth.user.id } },
       success_url: `${site}/paiement?success=1`,

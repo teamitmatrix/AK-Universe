@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { clearCart, readLast } from "./cart";
 import { useMounted } from "./flow";
 
@@ -17,6 +18,7 @@ const NEXT = [
 ];
 
 export function ConfirmationView() {
+  const t = useT();
   const mounted = useMounted();
   const paid = useSearchParams().get("paid") === "1";
   const request = mounted ? readLast() : null;
@@ -35,56 +37,52 @@ export function ConfirmationView() {
             <span className="confirm-ic">
               <Icon name="check" />
             </span>
-            <h1>Votre projet est bien enregistré !</h1>
+            <h1>{t("Votre projet est bien enregistré !")}</h1>
             <p>
-              Nous vous remercions pour votre confiance.
+              {t("Nous vous remercions pour votre confiance.")}
               {request?.client?.email ? (
                 <>
                   <br />
-                  Un e-mail récapitulatif va être envoyé à <strong>{request.client.email}</strong>.
+                  {t.rich("Un e-mail récapitulatif va être envoyé à <strong>{email}</strong>.", {}, { email: request.client.email })}
                 </>
               ) : null}
             </p>
             {request && (
               <div className="confirm-ref">
                 <span>
-                  Référence <strong>{request.ref}</strong>
+                  {t("Référence")} <strong>{request.ref}</strong>
                 </span>
                 <span>
                   {request.type === "acompte" ? (
                     paid ? (
-                      <>
-                        Acompte réglé : <strong>{euro(request.acompte)} HT</strong>
-                      </>
+                      t.rich("Acompte réglé : <strong>{amount}</strong>", {}, { amount: `${euro(request.acompte)} ${t("HT")}` })
                     ) : (
-                      <>
-                        Acompte en attente : <strong>{euro(request.acompte)} HT</strong>
-                      </>
+                      t.rich("Acompte en attente : <strong>{amount}</strong>", {}, { amount: `${euro(request.acompte)} ${t("HT")}` })
                     )
                   ) : (
-                    "Demande de devis"
+                    t("Demande de devis")
                   )}
                 </span>
                 <span>
-                  Estimation : <strong>{euro(request.total)} HT</strong>
+                  {t.rich("Estimation : <strong>{amount}</strong>", {}, { amount: `${euro(request.total)} ${t("HT")}` })}
                 </span>
               </div>
             )}
             <div className="next-steps">
               <h2>
-                <Icon name="calendar-o" /> Prochaines étapes
+                <Icon name="calendar-o" /> {t("Prochaines étapes")}
               </h2>
               <ol>
                 {NEXT.map((step, index) => (
                   <li key={step}>
                     <span className="n">{index + 1}</span>
-                    {step}
+                    {t(step)}
                   </li>
                 ))}
               </ol>
             </div>
             <Link href="/marketing" className="btn btn-primary btn-lg">
-              Retour à l&apos;accueil
+              {t("Retour à l'accueil")}
             </Link>
           </div>
         )}

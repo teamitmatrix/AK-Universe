@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isLang, SOURCE_LANG } from "@/config/languages";
+import { isSiteLang as isLang, SOURCE_LANG } from "@/config/languages";
 import { buildCorpus, OVERVIEW } from "@/lib/chatbot/corpus";
 import { buildSystemPrompt, getChatbotSettings, languageReminder } from "@/lib/chatbot/knowledge";
 import { ensureIndex, retrieve, searchQuery } from "@/lib/chatbot/rag";

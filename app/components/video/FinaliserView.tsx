@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { readClient, submitProject, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, useMounted } from "./flow";
 
 export function FinaliserView() {
+  const t = useT();
   const router = useRouter();
   const mounted = useMounted();
   const { config, toast } = useVideo();
@@ -29,32 +31,35 @@ export function FinaliserView() {
           <EmptyProject />
         ) : (
           <>
-            <h1 className="flow-title">Comment souhaitez-vous finaliser ?</h1>
+            <h1 className="flow-title">{t("Comment souhaitez-vous finaliser ?")}</h1>
             <p className="flow-sub">
-              Estimation de votre projet : <strong className="gold">{euro(cart.total)} HT</strong>
+              {t("Estimation de votre projet :")}{" "}
+              <strong className="gold">
+                {euro(cart.total)} {t("HT")}
+              </strong>
             </p>
             <div className="choice-grid">
               <div className="choice">
                 <span className="choice-ic">
                   <Icon name="file-text" />
                 </span>
-                <h2>Recevoir un devis personnalisé</h2>
+                <h2>{t("Recevoir un devis personnalisé")}</h2>
                 <ul className="gold-checks">
                   <li>
                     <Icon name="check-circle" />
-                    Étude personnalisée du projet
+                    {t("Étude personnalisée du projet")}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Prix final adapté aux besoins
+                    {t("Prix final adapté aux besoins")}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Réponse sous 24 à 48h
+                    {t("Réponse sous 24 à 48h")}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Aucun paiement immédiat
+                    {t("Aucun paiement immédiat")}
                   </li>
                 </ul>
                 <button
@@ -63,7 +68,7 @@ export function FinaliserView() {
                   disabled={sending}
                   onClick={() => {
                     setSending(true);
-                    submitProject(config, "devis", cart.items, client)
+                    submitProject(t, config, "devis", cart.items, client)
                       .then(() => router.push("/confirmation"))
                       .catch((error: Error) => {
                         toast(error.message);
@@ -72,10 +77,10 @@ export function FinaliserView() {
                   }}
                 >
                   {sending ? (
-                    "Envoi en cours…"
+                    t("Envoi en cours…")
                   ) : (
                     <>
-                      <Icon name="mail" /> Demander mon devis
+                      <Icon name="mail" /> {t("Demander mon devis")}
                     </>
                   )}
                 </button>
@@ -84,27 +89,30 @@ export function FinaliserView() {
                 <span className="choice-ic">
                   <Icon name="credit-card" />
                 </span>
-                <h2>Réserver avec un acompte</h2>
+                <h2>{t("Réserver avec un acompte")}</h2>
                 <ul className="gold-checks">
                   <li>
                     <Icon name="check-circle" />
-                    Réservation sécurisée de votre date
+                    {t("Réservation sécurisée de votre date")}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Acompte de {config.depositPercent} % : <strong>{euro(cart.deposit)} HT</strong>
+                    {t.rich("Acompte de {percent} % : <strong>{amount}</strong>", {}, {
+                      percent: config.depositPercent,
+                      amount: `${euro(cart.deposit)} ${t("HT")}`,
+                    })}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Confirmation immédiate
+                    {t("Confirmation immédiate")}
                   </li>
                   <li>
                     <Icon name="check-circle" />
-                    Solde selon le devis final
+                    {t("Solde selon le devis final")}
                   </li>
                 </ul>
                 <Link href="/acompte" className="btn btn-primary btn-block btn-lg">
-                  Payer un acompte <Icon name="arrow" />
+                  {t("Payer un acompte")} <Icon name="arrow" />
                 </Link>
               </div>
             </div>

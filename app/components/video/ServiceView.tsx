@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 import { quoteHref } from "@/lib/contact/quote";
 import { serviceOf } from "./cart";
 import { useVideo } from "./context";
@@ -11,6 +12,7 @@ import { Mockup } from "./Mockup";
 import { VideoPlayer } from "./VideoPlayer";
 
 export function ServiceView({ slug }: { slug: string }) {
+  const t = useT();
   const { config, openConfig } = useVideo();
   const service = serviceOf(config, slug);
 
@@ -18,9 +20,9 @@ export function ServiceView({ slug }: { slug: string }) {
     return (
       <main id="service-root">
         <div className="container empty-state">
-          <h1>Service introuvable</h1>
+          <h1>{t("Service introuvable")}</h1>
           <Link className="btn btn-primary" href="/services">
-            Voir tous les services
+            {t("Voir tous les services")}
           </Link>
         </div>
       </main>
@@ -33,12 +35,10 @@ export function ServiceView({ slug }: { slug: string }) {
         <div className="container svc-hero-grid">
           <div className="svc-copy">
             <Link href="/marketing" className="back-link">
-              <Icon name="arrow-left" /> Retour
+              <Icon name="arrow-left" /> {t("Retour")}
             </Link>
             <h1 className="svc-title">
-              {service.titleTop || "Vidéo"}
-              <br />
-              <span className="gold">{service.gold}</span>
+              {t.rich("{top}<br/><gold>{name}</gold>", {}, { top: service.titleTop || t("Vidéo"), name: service.gold ?? "" })}
             </h1>
             <p className="svc-lead">{service.description}</p>
             <ul className="benefits">
@@ -53,10 +53,10 @@ export function ServiceView({ slug }: { slug: string }) {
             </ul>
             <div className="cta-row">
               <button type="button" className="btn btn-primary btn-lg" onClick={() => openConfig(service.slug)}>
-                <Icon name="plus" /> Ajouter à mon projet
+                <Icon name="plus" /> {t("Ajouter à mon projet")}
               </button>
               <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-lg">
-                Demander un devis
+                {t("Demander un devis")}
               </Link>
             </div>
           </div>
@@ -70,9 +70,9 @@ export function ServiceView({ slug }: { slug: string }) {
       </section>
 
       {!!config.clients?.length && (
-        <section className="clients" aria-label="Ils nous font confiance">
+        <section className="clients" aria-label={t("Ils nous font confiance")}>
           <div className="container clients-row">
-            <span className="clients-title">Ils nous font confiance</span>
+            <span className="clients-title">{t("Ils nous font confiance")}</span>
             {config.clients.map((client) => (
               <span key={client} className="client">
                 {client}
@@ -99,11 +99,13 @@ export function ServiceView({ slug }: { slug: string }) {
           </ul>
         </div>
         <aside className="price-card">
-          <span className="from">À partir de</span>
+          <span className="from">{t("À partir de")}</span>
           <div className="price-line">
             <strong>{euro(service.price)}</strong> <span>{service.unit}</span>
           </div>
-          <p className="price-note">{service.priceNote} Prix indicatif selon les besoins du projet.</p>
+          <p className="price-note">
+            {service.priceNote} {t("Prix indicatif selon les besoins du projet.")}
+          </p>
           <ul className="gold-checks small">
             {(service.priceList ?? []).map((line) => (
               <li key={line}>
@@ -113,21 +115,19 @@ export function ServiceView({ slug }: { slug: string }) {
             ))}
           </ul>
           <button type="button" className="btn btn-primary btn-block" onClick={() => openConfig(service.slug)}>
-            Ajouter à mon projet <Icon name="arrow" />
+            {t("Ajouter à mon projet")} <Icon name="arrow" />
           </button>
           <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-block">
-            Demander un devis
+            {t("Demander un devis")}
           </Link>
         </aside>
       </section>
 
       <section className="container svc-examples" id="realisations">
         <div className="examples-head">
-          <h2>
-            Nos réalisations <span className="gold">{service.realisations}</span>
-          </h2>
+          <h2>{t.rich("Nos réalisations <gold>{what}</gold>", {}, { what: service.realisations ?? "" })}</h2>
           <Link href="/marketing/realisations" className="link-gold">
-            Voir toutes les réalisations <Icon name="arrow" />
+            {t("Voir toutes les réalisations")} <Icon name="arrow" />
           </Link>
         </div>
         <Examples service={service} className="examples-grid" onAdd={() => openConfig(service.slug)} />

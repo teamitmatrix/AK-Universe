@@ -1,10 +1,10 @@
-﻿"use client";
+"use client";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { isStrongPassword } from "@/lib/auth/password";
 import { notifyPasswordChanged } from "@/lib/auth/reset-password";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 
 const TEXT = {
   fr: {
@@ -43,13 +43,31 @@ const TEXT = {
       failed: "Unable to change the password.",
     },
   },
+  de: {
+    heading: ["Setzen Sie Ihr ", "Passwort zurück"],
+    subtitle: "Wählen Sie ein neues Passwort für Ihr AK-Universe-Konto.",
+    done: "Ihr Passwort wurde geändert. Sie können sich jetzt anmelden.",
+    backToLogin: "Zurück zur Anmeldung",
+    newPassword: "Neues Passwort",
+    confirmPassword: "Passwort bestätigen",
+    submit: "Neues Passwort speichern",
+    submitting: "Wird gespeichert...",
+    checking: "Link wird geprüft...",
+    errors: {
+      invalidLink: "Dieser Link ist ungültig oder abgelaufen. Fordern Sie eine neue E-Mail zum Zurücksetzen an.",
+      weak: "Verwenden Sie mindestens 8 Zeichen, einen Großbuchstaben, einen Kleinbuchstaben und eine Ziffer.",
+      mismatch: "Die Passwörter stimmen nicht überein.",
+      samePassword: "Das neue Passwort muss sich vom alten unterscheiden.",
+      failed: "Das Passwort konnte nicht geändert werden.",
+    },
+  },
 };
 
 type ErrorKey = keyof typeof TEXT.fr.errors;
 
 export function ResetPasswordForm() {
   const [lang] = useLang();
-  const t = TEXT[textLang(lang)];
+  const t = TEXT[lang];
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [ready, setReady] = useState(false);

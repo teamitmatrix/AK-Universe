@@ -9,7 +9,7 @@ import { safeRedirect } from "@/lib/auth/redirect";
 import { sendResetEmail } from "@/lib/auth/reset-password";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
-import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+import { LangSwitch, useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { AppleLogo, GoogleLogo, MicrosoftLogo } from "./SocialLogos";
 
@@ -47,6 +47,7 @@ const TEXT = {
     unconfirmed: "Veuillez d'abord confirmer votre adresse e-mail.",
     failed: "Connexion impossible. Veuillez réessayer.",
     oauthFailed: "La connexion avec ce fournisseur a échoué. Veuillez réessayer.",
+    disabled: "Ce compte est désactivé. Contactez l'administrateur AK Universe.",
     resetNeedsEmail: "Saisissez votre adresse e-mail pour réinitialiser votre mot de passe.",
     resetSent: "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé.",
     resetFailed: "Impossible d'envoyer l'e-mail de réinitialisation. Réessayez plus tard.",
@@ -83,15 +84,53 @@ const TEXT = {
     unconfirmed: "Please confirm your email address first.",
     failed: "Unable to sign in. Please try again.",
     oauthFailed: "Signing in with this provider failed. Please try again.",
+    disabled: "This account is deactivated. Please contact the AK Universe administrator.",
     resetNeedsEmail: "Enter your email address to reset your password.",
     resetSent: "If an account exists for this address, a reset email has just been sent.",
     resetFailed: "Unable to send the reset email. Please try again later.",
     pending: (p: string) => `${p} sign-in: coming soon.`,
   },
+  de: {
+    welcome: ["Willkommen in", "Ihrem AK-Universe-", "Bereich."],
+    intro: "Melden Sie sich an, um auf Ihre KI-Agenten zuzugreifen, Ihre Projekte zu verwalten und alle Funktionen Ihres Kontos zu nutzen.",
+    benefits: [
+      ["Ihre KI-Agenten", "Rund um die Uhr verfügbar"],
+      ["Ihre Projekte", "Einfache Verfolgung und Verwaltung"],
+      ["Ihre Einstellungen", "Personalisieren Sie Ihr Erlebnis"],
+      ["Ein komplettes Ökosystem", "Marketing, Videos und mehr"],
+    ],
+    heading: ["", "Anmelden"],
+    subtitle: "Greifen Sie auf Ihren AK-Universe-Bereich zu.",
+    account: ["Kundenkonto", "Unternehmenskonto"],
+    accountGroup: "Kontotyp",
+    email: "E-Mail-Adresse",
+    emailPlaceholder: "name@beispiel.de",
+    password: "Passwort",
+    passwordPlaceholder: "Ihr Passwort",
+    remember: "Angemeldet bleiben",
+    forgot: "Passwort vergessen?",
+    sending: "Wird gesendet…",
+    submit: "Anmelden",
+    submitting: "Anmeldung läuft…",
+    or: "oder weiter mit",
+    signup: "Sie haben noch kein Konto?",
+    signupLink: "Konto erstellen",
+    showPassword: "Passwort anzeigen",
+    hidePassword: "Passwort verbergen",
+    invalid: "E-Mail-Adresse oder Passwort ist falsch.",
+    unconfirmed: "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.",
+    failed: "Anmeldung nicht möglich. Bitte versuchen Sie es erneut.",
+    oauthFailed: "Die Anmeldung mit diesem Anbieter ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    disabled: "Dieses Konto ist deaktiviert. Bitte wenden Sie sich an den AK-Universe-Administrator.",
+    resetNeedsEmail: "Geben Sie Ihre E-Mail-Adresse ein, um Ihr Passwort zurückzusetzen.",
+    resetSent: "Falls ein Konto mit dieser Adresse existiert, wurde soeben eine E-Mail zum Zurücksetzen gesendet.",
+    resetFailed: "Die E-Mail zum Zurücksetzen konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.",
+    pending: (p: string) => `Anmeldung mit ${p}: bald verfügbar.`,
+  },
 };
 
 type MessageKey =
-  | "invalid" | "unconfirmed" | "failed" | "oauthFailed"
+  | "invalid" | "unconfirmed" | "failed" | "oauthFailed" | "disabled"
   | "resetNeedsEmail" | "resetSent" | "resetFailed";
 
 const BENEFIT_ICONS = ["bolt", "chart", "gear", "calendar"];
@@ -103,9 +142,9 @@ const EXTRA_PROVIDERS = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? "").split(",
 export function LoginScreen() {
   const router = useRouter();
   const params = useSearchParams();
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const [toast, toastNode] = useToast();
-  const t = TEXT[textLang(lang)];
+  const t = TEXT[lang];
 
   const [account, setAccount] = useState<"client" | "entreprise">("client");
   const [email, setEmail] = useState("");
@@ -115,9 +154,11 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   // Message keys (not strings) so they follow the language switch.
-  const [error, setError] = useState<MessageKey | "">(() =>
-    params.get("error") === "oauth" ? "oauthFailed" : ""
-  );
+  // ?error=oauth (provider failed) or ?error=disabled (account deactivated by an admin, see /espace).
+  const [error, setError] = useState<MessageKey | "">(() => {
+    const e = params.get("error");
+    return e === "oauth" ? "oauthFailed" : e === "disabled" ? "disabled" : "";
+  });
   const [notice, setNotice] = useState<MessageKey | "">("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -135,7 +176,7 @@ export function LoginScreen() {
         );
         return;
       }
-      const next = safeRedirect(params.get("redirectTo"));
+      const next = safeRedirect(params.get("redirectTo"), "/espace");
       if (result.step === "code") {
         // Two-factor: the 6-digit code was e-mailed (Resend).
         router.push(`/verification?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
@@ -173,7 +214,7 @@ export function LoginScreen() {
   async function handleOAuth(provider: OAuthProvider) {
     setError("");
     const supabase = createClient();
-    const next = encodeURIComponent(safeRedirect(params.get("redirectTo")));
+    const next = encodeURIComponent(safeRedirect(params.get("redirectTo"), "/espace"));
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
@@ -190,10 +231,10 @@ export function LoginScreen() {
     provider === "google" || EXTRA_PROVIDERS.includes(provider) ? handleOAuth(provider) : toast(t.pending(label));
 
   return (
-    <div className="theme-light" translate={nativeTranslate(lang)}>
+    <div className="theme-light">
       <div className="auth auth-login">
         <aside className="auth-side">
-          <Link href="/" className="logo notranslate">
+          <Link href="/" className="logo notranslate" translate="no">
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
             <img src="/assets/img/logo.svg" alt="" />
             <span>
@@ -243,7 +284,7 @@ export function LoginScreen() {
 
         <main className="auth-main">
           <div className="light-top">
-            <LangSwitch lang={lang} onChange={setLang} />
+            <LangSwitch />
           </div>
 
           <form className="auth-form" id="login-form" style={{ maxWidth: 545 }} onSubmit={handleSubmit}>

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { saveChatbot } from "@/lib/admin/actions";
 import type { ChatbotSettings } from "@/lib/chatbot/knowledge";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { ADMIN_TEXT } from "./adminText";
+import { adminTextFor } from "./adminText";
 
 /** Knowledge the site assistant (components/ui/ChatWidget.tsx) answers from, saved to Supabase. */
 export function AdminChatbot({ initial, maxChars, hasKey }: { initial: ChatbotSettings; maxChars: number; hasKey: boolean }) {
@@ -15,7 +15,7 @@ export function AdminChatbot({ initial, maxChars, hasKey }: { initial: ChatbotSe
   const [pending, startTransition] = useTransition();
   const [toast, toastNode] = useToast();
   const [lang] = useLang();
-  const all = ADMIN_TEXT[textLang(lang)];
+  const all = adminTextFor(lang);
   const t = all.chatbot;
 
   const update = (patch: Partial<ChatbotSettings>) => {
@@ -42,7 +42,7 @@ export function AdminChatbot({ initial, maxChars, hasKey }: { initial: ChatbotSe
   const tooLong = settings.knowledge.length > maxChars;
 
   return (
-    <main className="container admin notranslate" translate="no">
+    <main className="container admin">
       <h1>
         {t.title[0]}
         <span className="gold">{t.title[1]}</span>

@@ -6,7 +6,7 @@ import {
   sendEmail,
   teamAddresses,
 } from "@/lib/email";
-import { COMPANY } from "@/config/company";
+import { getCompany } from "@/lib/company";
 
 export type ContactMessage = {
   name: string;
@@ -18,14 +18,15 @@ export type ContactMessage = {
   message: string;
 };
 
-function recipients() {
+async function recipients() {
   const team = teamAddresses();
   if (team.length) return team;
-  return COMPANY.email && COMPANY.email !== "À COMPLÉTER" ? [COMPANY.email] : [];
+  const { email } = await getCompany();
+  return email && email !== "À COMPLÉTER" ? [email] : [];
 }
 
 export async function sendContactEmails(data: ContactMessage) {
-  const to = recipients();
+  const to = await recipients();
   if (!emailConfigured() || !to.length) {
     console.warn("Contact message kept locally (e-mail not configured):", {
       subject: data.subject,

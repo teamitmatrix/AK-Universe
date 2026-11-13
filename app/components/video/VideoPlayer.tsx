@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useT } from "@/i18n/client";
 
 function clock(seconds: number) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
@@ -19,6 +20,7 @@ export function VideoPlayer({
   poster: React.ReactNode;
   playClassName?: string;
 }) {
+  const t = useT();
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [icon, setIcon] = useState<"play" | "pause">("play");
@@ -30,7 +32,7 @@ export function VideoPlayer({
   const fail = () => {
     cardRef.current?.classList.remove("playing");
     setIcon("play");
-    setMessage(`Vidéo à venir — ajoutez le fichier : ${src}`);
+    setMessage(t("Vidéo à venir — ajoutez le fichier : {src}", { src }));
     setShowMessage(true);
     window.setTimeout(() => setShowMessage(false), 3500);
   };
@@ -66,12 +68,12 @@ export function VideoPlayer({
             setTime(`${clock(video.currentTime)} / ${clock(video.duration)}`);
           }}
         />
-        <button type="button" className={`video-big-play ${playClassName}`.trim()} aria-label="Lire la vidéo" onClick={toggle}>
+        <button type="button" className={`video-big-play ${playClassName}`.trim()} aria-label={t("Lire la vidéo")} onClick={toggle}>
           <Icon name="play" />
         </button>
       </div>
       <div className="video-controls">
-        <button type="button" className="v-toggle" aria-label="Lecture / pause" onClick={toggle}>
+        <button type="button" className="v-toggle" aria-label={t("Lecture / pause")} onClick={toggle}>
           <Icon name={icon} />
         </button>
         <div
@@ -90,7 +92,7 @@ export function VideoPlayer({
         <button
           type="button"
           className="v-full"
-          aria-label="Plein écran"
+          aria-label={t("Plein écran")}
           onClick={() => void cardRef.current?.requestFullscreen?.()}
         >
           <Icon name="fullscreen" />

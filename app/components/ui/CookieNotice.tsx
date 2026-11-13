@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
+import { useT } from "@/i18n/client";
 
 const STORAGE_KEY = "aku-cookie-notice";
 const HIDDEN_ON = ["/admin"];
@@ -27,6 +28,7 @@ const dismissed = () => {
  * under the CNIL rules; visitors are still told once, with a link to the policy.
  */
 export function CookieNotice() {
+  const t = useT();
   const hidden = useSyncExternalStore(subscribe, dismissed, () => true);
   const pathname = usePathname();
   if (hidden || HIDDEN_ON.includes(pathname)) return null;
@@ -42,11 +44,11 @@ export function CookieNotice() {
   return (
     <div className="cookie-notice" role="region" aria-label="Cookies">
       <p>
-        Uniquement les cookies essentiels au fonctionnement du site.{" "}
-        <a href="/confidentialite#cookies">En savoir plus</a>
+        {t("Uniquement les cookies essentiels au fonctionnement du site.")}{" "}
+        <a href="/confidentialite#cookies">{t("En savoir plus")}</a>
       </p>
       <button type="button" className="btn btn-primary" onClick={close}>
-        Compris
+        {t("Compris")}
       </button>
     </div>
   );

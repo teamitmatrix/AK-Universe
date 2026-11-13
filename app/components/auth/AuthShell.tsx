@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { LangSwitch, nativeTranslate, textLang, useLang, type TextLang } from "@/components/ui/LangSwitch";
+import type { Lang } from "@/config/languages";
+import { LangSwitch, useLang } from "@/components/ui/LangSwitch";
 
 type Feat = [icon: string, line1: string, line2: string];
 type Side = { heading: [string, string]; text: string; feats?: Feat[] };
 
 /** Left column of each auth page, in both languages. */
-const SIDES: Record<string, Record<TextLang, Side>> = {
+const SIDES: Record<string, Record<Lang, Side>> = {
   signup: {
     fr: {
       heading: ["Rejoignez", "AK Universe"],
@@ -30,10 +31,20 @@ const SIDES: Record<string, Record<TextLang, Side>> = {
         ["gear", "Quick and simple", "setup"],
       ],
     },
+    de: {
+      heading: ["Willkommen bei", "AK Universe"],
+      text: "Erstellen Sie Ihr Konto und nutzen Sie noch heute Ihre KI-Agenten, um Ihr Unternehmen voranzubringen.",
+      feats: [
+        ["rocket", "Alle Ihre KI-Agenten", "an einem Ort"],
+        ["chart", "Echtzeit-Verfolgung", "Ihrer Ergebnisse"],
+        ["gear", "Schnelle und einfache", "Einrichtung"],
+      ],
+    },
   },
   verification: {
     fr: { heading: ["Bienvenue sur", "AK Universe"], text: "Accédez à votre espace et gérez tous vos agents IA en toute simplicité." },
     en: { heading: ["Welcome to", "AK Universe"], text: "Access your workspace and manage all your AI agents with ease." },
+    de: { heading: ["Willkommen bei", "AK Universe"], text: "Greifen Sie auf Ihren Bereich zu und verwalten Sie alle Ihre KI-Agenten ganz einfach." },
   },
   organisation: {
     fr: {
@@ -54,10 +65,20 @@ const SIDES: Record<string, Record<TextLang, Side>> = {
         ["gear", "Simple and collaborative", "management"],
       ],
     },
+    de: {
+      heading: ["Erstellen Sie Ihre", "Organisation"],
+      text: "Strukturieren Sie Ihren Bereich und arbeiten Sie mit Ihrem Team zusammen, um Ihre KI-Agenten ganz einfach zu verwalten.",
+      feats: [
+        ["rocket", "Alle Ihre KI-Agenten", "an einem Ort"],
+        ["chart", "Echtzeit-Verfolgung", "Ihrer Ergebnisse"],
+        ["gear", "Einfache und gemeinsame", "Verwaltung"],
+      ],
+    },
   },
   reset: {
     fr: { heading: ["Bienvenue sur", "AK Universe"], text: "Choisissez un nouveau mot de passe pour retrouver l'accès à votre espace." },
     en: { heading: ["Welcome to", "AK Universe"], text: "Choose a new password to regain access to your workspace." },
+    de: { heading: ["Willkommen bei", "AK Universe"], text: "Wählen Sie ein neues Passwort, um wieder auf Ihren Bereich zuzugreifen." },
   },
 };
 
@@ -69,14 +90,14 @@ type Props = {
 
 /** Two-column light layout shared by inscription, verification, organisation (.auth in style.css). */
 export function AuthShell({ page, backHref, children }: Props) {
-  const [lang, setLang] = useLang();
-  const { heading, text, feats } = SIDES[page][textLang(lang)];
+  const [lang] = useLang();
+  const { heading, text, feats } = SIDES[page][lang];
 
   return (
-    <div className="theme-light" translate={nativeTranslate(lang)}>
+    <div className="theme-light">
       <div className="auth">
         <aside className="auth-side auth-side-hero">
-          <Link href="/" className="logo notranslate">
+          <Link href="/" className="logo notranslate" translate="no">
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}
             <img src="/assets/img/logo.svg" alt="" />
             <span>
@@ -123,10 +144,10 @@ export function AuthShell({ page, backHref, children }: Props) {
           <div className="light-top">
             {backHref && (
               <Link href={backHref} className="back">
-                <Icon name="arrow-left" /> {textLang(lang) === "en" ? "Back" : "Retour"}
+                <Icon name="arrow-left" /> {{ fr: "Retour", en: "Back", de: "Zurück" }[lang]}
               </Link>
             )}
-            <LangSwitch lang={lang} onChange={setLang} />
+            <LangSwitch />
           </div>
           {children}
         </main>

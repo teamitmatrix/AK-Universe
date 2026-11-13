@@ -9,20 +9,30 @@ import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { MARKETING_CATEGORIES, SERVICE_TAGS } from "@/config/marketing";
 import { contactHref, quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getVideoConfig } from "@/lib/video-config";
+import { getLocalizedVideoConfig, localized } from "@/i18n/data";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = {
-  title: { absolute: "Marketing — AK Universe" },
-  description:
-    "Découvrez nos services marketing : vidéos et contenus conçus pour mettre en valeur votre entreprise.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: { absolute: t("Marketing — AK Universe") },
+    description: t(
+      "Découvrez nos services marketing : vidéos et contenus conçus pour mettre en valeur votre entreprise.",
+    ),
+  };
+}
 
 const FAQ = CHATBOT_FAQ.filter(
   (topic) => topic.topic.startsWith("Vidéo") || topic.topic.startsWith("Forfaits Marketing"),
 ).flatMap((topic) => topic.entries);
 
 export default async function Page() {
-  const [user, config] = await Promise.all([getCurrentUser(), getVideoConfig()]);
+  const [user, config, t, data] = await Promise.all([
+    getCurrentUser(),
+    getLocalizedVideoConfig(),
+    getT(),
+    localized({ categories: MARKETING_CATEGORIES, faq: FAQ }),
+  ]);
   const bySlug = Object.fromEntries(config.services.map((service) => [service.slug, service]));
 
   return (
@@ -32,23 +42,21 @@ export default async function Page() {
       <main>
         <section className="pricing stars agents-hero" id="marketing">
           <div className="container pricing-head">
-            <p className="eyebrow eyebrow-lines">Nos services marketing</p>
-            <h1>
-              Découvrez nos <span className="gold">services marketing</span>
-            </h1>
-            <p>Des vidéos et des contenus conçus pour mettre en valeur votre entreprise.</p>
+            <p className="eyebrow eyebrow-lines">{t("Nos services marketing")}</p>
+            <h1>{t.rich("Découvrez nos <gold>services marketing</gold>")}</h1>
+            <p>{t("Des vidéos et des contenus conçus pour mettre en valeur votre entreprise.")}</p>
           </div>
         </section>
 
         <section className="section agents-catalog" id="tous">
           <div className="container">
-            <p className="eyebrow">Tous les services</p>
+            <p className="eyebrow">{t("Tous les services")}</p>
             <h2 className="section-title">
-              Choisissez <span className="gold">votre service</span>
+              {t.rich("Choisissez <gold>votre service</gold>")}
             </h2>
             <div className="agent-tiles marketing-tiles">
               {config.services.map((service) => {
-                const tag = SERVICE_TAGS[service.slug] ?? service.gold ?? service.name;
+                const tag = SERVICE_TAGS[service.slug] ? t.data(SERVICE_TAGS[service.slug]) : (service.gold ?? service.name);
                 return (
                   <Link
                     key={service.slug}
@@ -70,7 +78,7 @@ export default async function Page() {
                     <strong>{service.name}</strong>
                     <span className="agent-tile-text">{service.description}</span>
                     <span className="agent-tile-cta">
-                      Découvrir <Icon name="arrow" />
+                      {t("Découvrir")} <Icon name="arrow" />
                     </span>
                   </Link>
                 );
@@ -81,12 +89,12 @@ export default async function Page() {
 
         <section className="section" id="categories">
           <div className="container">
-            <p className="eyebrow">Catégories</p>
+            <p className="eyebrow">{t("Catégories")}</p>
             <h2 className="section-title">
-              Un service pour <span className="gold">chaque besoin</span>
+              {t.rich("Un service pour <gold>chaque besoin</gold>")}
             </h2>
             <div className="agent-categories marketing-categories">
-              {MARKETING_CATEGORIES.map((category) => (
+              {data.categories.map((category) => (
                 <div key={category.id} className="dark-card agent-category">
                   <span className="icon-circle">
                     <Icon name={category.icon} />
@@ -114,16 +122,16 @@ export default async function Page() {
 
         <section className="section" id="realisations">
           <div className="container">
-            <p className="eyebrow">Réalisations</p>
+            <p className="eyebrow">{t("Réalisations")}</p>
             <h2 className="section-title">
-              Nos <span className="gold">projets</span>
+              {t.rich("Nos <gold>projets</gold>")}
             </h2>
             <p className="section-sub">
-              Découvrez une sélection de projets, campagnes et contenus déjà réalisés pour nos clients.
+              {t("Découvrez une sélection de projets, campagnes et contenus déjà réalisés pour nos clients.")}
             </p>
             <div className="agents-cta">
               <Link href="/marketing/realisations" className="btn btn-outline-gold btn-lg">
-                Voir les réalisations <Icon name="arrow" />
+                {t("Voir les réalisations")} <Icon name="arrow" />
               </Link>
             </div>
           </div>
@@ -131,22 +139,22 @@ export default async function Page() {
 
         <section className="section" id="devis">
           <div className="container">
-            <p className="eyebrow">Devis</p>
+            <p className="eyebrow">{t("Devis")}</p>
             <h2 className="section-title">
-              Parlons de <span className="gold">votre projet</span>
+              {t.rich("Parlons de <gold>votre projet</gold>")}
             </h2>
             <p className="section-sub">
-              Demandez un devis gratuit, ou composez votre projet vidéo service par service.
+              {t("Demandez un devis gratuit, ou composez votre projet vidéo service par service.")}
             </p>
             <div className="cta-row" style={{ justifyContent: "center" }}>
               <Link href={contactHref("Demande de devis")} className="btn btn-primary btn-lg">
-                Demander un devis <Icon name="arrow" />
+                {t("Demander un devis")} <Icon name="arrow" />
               </Link>
               <Link href="/services" className="btn btn-outline btn-lg">
-                Composer mon projet
+                {t("Composer mon projet")}
               </Link>
               <Link href="/marketing/forfaits" className="btn btn-outline-gold btn-lg">
-                Voir les forfaits
+                {t("Voir les forfaits")}
               </Link>
             </div>
           </div>
@@ -156,9 +164,9 @@ export default async function Page() {
           <div className="container agents-faq">
             <p className="eyebrow">FAQ</p>
             <h2 className="section-title">
-              Questions <span className="gold">fréquentes</span>
+              {t.rich("Questions <gold>fréquentes</gold>")}
             </h2>
-            {FAQ.map((entry) => (
+            {data.faq.map((entry) => (
               <details key={entry.q} className="dark-card">
                 <summary>
                   {entry.q} <Icon name="chev-down" className="chev" />
@@ -168,7 +176,7 @@ export default async function Page() {
             ))}
             <div className="agents-cta">
               <Link href={quoteHref()} className="btn btn-primary btn-lg">
-                Une autre question ? Écrivez-nous <Icon name="arrow" />
+                {t("Une autre question ? Écrivez-nous")} <Icon name="arrow" />
               </Link>
             </div>
           </div>

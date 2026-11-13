@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
+import { getLang, getSiteLang, getT } from "@/i18n/server";
 import { ensureProfile } from "@/lib/auth/session";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
@@ -48,30 +49,31 @@ function parseContact(raw: Record<string, unknown> = {}) {
 }
 
 export async function POST(request: Request) {
+  const t = await getT();
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) {
-    return NextResponse.json({ error: "Requête trop volumineuse." }, { status: 413 });
+    return NextResponse.json({ error: t("Requête trop volumineuse.") }, { status: 413 });
   }
 
   let body: Body;
   try {
     const raw = await request.text();
     if (raw.length > MAX_BODY_BYTES) {
-      return NextResponse.json({ error: "Requête trop volumineuse." }, { status: 413 });
+      return NextResponse.json({ error: t("Requête trop volumineuse.") }, { status: 413 });
     }
     body = JSON.parse(raw);
   } catch {
-    return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
+    return NextResponse.json({ error: t("Requête invalide.") }, { status: 400 });
   }
 
   const kind = body.kind === "acompte" ? "acompte" : body.kind === "devis" ? "devis" : null;
   const contact = parseContact(body.client);
   if (!kind || !contact || !Array.isArray(body.items)) {
-    return NextResponse.json({ error: "Informations incomplètes." }, { status: 400 });
+    return NextResponse.json({ error: t("Informations incomplètes.") }, { status: 400 });
   }
 
   const priced = await priceProject(body.items);
   if (!priced.items.length) {
-    return NextResponse.json({ error: "Votre projet est vide." }, { status: 400 });
+    return NextResponse.json({ error: t("Votre projet est vide.") }, { status: 400 });
   }
 
   // "virement": the booking is confirmed when the bank transfer is received, no online payment.
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
   const stripe = byCard ? getStripe() : null;
   if (byCard && (!stripe || priced.deposit <= 0)) {
     return NextResponse.json(
-      { error: "Le paiement en ligne n'est pas encore configuré. Aucun paiement n'a été effectué." },
+      { error: t("Le paiement en ligne n'est pas encore configuré. Aucun paiement n'a été effectué.") },
       { status: 503 }
     );
   }
@@ -93,7 +95,7 @@ export async function POST(request: Request) {
     .gte("created_at", since);
   if ((count ?? 0) >= MAX_REQUESTS_PER_EMAIL) {
     return NextResponse.json(
-      { error: "Trop de demandes envoyées. Veuillez réessayer dans quelques minutes." },
+      { error: t("Trop de demandes envoyées. Veuillez réessayer dans quelques minutes.") },
       { status: 429 }
     );
   }
@@ -118,11 +120,12 @@ export async function POST(request: Request) {
     .single();
   if (error || !project) {
     console.error("video_projects insert failed:", error?.message);
-    return NextResponse.json({ error: "Enregistrement impossible. Veuillez réessayer." }, { status: 500 });
+    return NextResponse.json({ error: t("Enregistrement impossible. Veuillez réessayer.") }, { status: 500 });
   }
 
   const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? priced.deposit : 0 };
-  const lang = body.lang === "en" ? "en" : "fr";
+  // Language of the e-mails and of Stripe Checkout: the one the visitor is browsing in.
+  const lang = await getLang();
   if (!byCard) {
     // Card deposits are confirmed (and e-mailed) by the Stripe webhook once paid.
     after(() =>
@@ -137,7 +140,7 @@ export async function POST(request: Request) {
     session = await stripe!.checkout.sessions.create({
       mode: "payment",
       customer_email: contact.email,
-      locale: checkoutLocale(body.lang),
+      locale: checkoutLocale(await getSiteLang()),
       line_items: [
         {
           quantity: 1,

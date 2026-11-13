@@ -1,9 +1,10 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getT } from "@/i18n/server";
 
 const pillars = [
   {
@@ -42,7 +43,7 @@ const pillars = [
 ] as const;
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
+  const [user, t] = await Promise.all([getCurrentUser(), getT()]);
 
   return (
     <>
@@ -51,13 +52,14 @@ export default async function HomePage() {
       <main>
         <section className="home-hero stars">
           <div className="container home-hero-inner">
-            <h1>Agents IA, Marketing et Digital</h1>
+            <h1>{t("Agents IA, Marketing et Digital")}</h1>
             <p className="home-hero-lead">
-              Automatisez vos échanges, faites connaître votre activité et créez les outils dont
-              votre entreprise a besoin.
+              {t(
+                "Automatisez vos échanges, faites connaître votre activité et créez les outils dont votre entreprise a besoin.",
+              )}
             </p>
             <Link href="/contact" className="btn btn-primary btn-lg">
-              Parlons de votre projet
+              {t("Parlons de votre projet")}
             </Link>
 
             <div className="home-pillars">
@@ -66,7 +68,7 @@ export default async function HomePage() {
                   <div className="home-pillar-media">
                     <Image
                       src={pillar.image}
-                      alt={pillar.imageAlt}
+                      alt={t(pillar.imageAlt)}
                       width={876}
                       height={312}
                       sizes="(max-width: 900px) 100vw, 33vw"
@@ -74,10 +76,10 @@ export default async function HomePage() {
                     />
                   </div>
                   <p className="home-pillar-n">{pillar.number}</p>
-                  <h2>{pillar.title}</h2>
-                  <p className="home-pillar-desc">{pillar.description}</p>
+                  <h2>{t(pillar.title)}</h2>
+                  <p className="home-pillar-desc">{t(pillar.description)}</p>
                   <Link href={pillar.href} className="btn btn-outline-gold">
-                    {pillar.cta} <Icon name="arrow" />
+                    {t(pillar.cta)} <Icon name="arrow" />
                   </Link>
                 </article>
               ))}
