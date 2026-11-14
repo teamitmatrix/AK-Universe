@@ -51,10 +51,9 @@ const nextConfig: NextConfig = {
       { source: "/admin-videastes", destination: "/admin/videastes", permanent: true },
       // Role landing pages after sign-in (handoff): temporary, until each space has its own dashboard.
       // /compte already shows the client's account and, for a company, its organisation.
-      // (/commercial/dashboard is a real page: app/commercial/dashboard.)
+      // (/commercial/dashboard and /videaste/dashboard are real pages: app/commercial, app/videaste.)
       { source: "/dashboard", destination: "/compte", permanent: false },
       { source: "/entreprise/dashboard", destination: "/compte", permanent: false },
-      { source: "/videaste/dashboard", destination: "/equipe", permanent: false },
       // Every former .html page now lives at the same path without the suffix.
       { source: "/:path*.html", destination: "/:path*", permanent: true },
     ];

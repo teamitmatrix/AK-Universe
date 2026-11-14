@@ -5,7 +5,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { localeOf } from "@/config/languages";
 import { useLang } from "@/components/ui/LangSwitch";
-import { getMyNotifications, markNotificationsRead } from "@/lib/commercial/actions";
+import { getMyNotifications as commercialFeed, markNotificationsRead as commercialMarkRead } from "@/lib/commercial/actions";
 import type { Feed, FeedItem } from "@/lib/commercial/notifications";
 import { createClient } from "@/lib/supabase/client";
 import { comTextFor } from "./comText";
@@ -27,7 +27,16 @@ function timeAgo(iso: string, locale: string) {
  * the signed-in rep's own rows (RLS + filter). Updates arrive live through Supabase Realtime (a ping that triggers
  * a re-fetch, subject to the same RLS policy), with a 60-second poll as a fallback.
  */
-export function NotificationBell({ userId }: { userId: string }) {
+export function NotificationBell({
+  userId,
+  load = commercialFeed,
+  markReadAction = commercialMarkRead,
+}: {
+  userId: string;
+  /** Server actions of the space using the bell (each re-checks its own role). Default: the Commercial space. */
+  load?: () => Promise<{ success: true; feed: Feed } | { success: false; error: string }>;
+  markReadAction?: (ids: string[] | null) => Promise<unknown>;
+}) {
   const router = useRouter();
   const [lang] = useLang();
   const t = comTextFor(lang).notif;
@@ -40,7 +49,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await getMyNotifications();
+      const res = await load();
       if (res.success) {
         setFeed(res.feed);
         setFailed(false);
@@ -48,7 +57,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     } catch {
       setFailed(true);
     }
-  }, []);
+  }, [load]);
 
   useEffect(() => {
     const first = setTimeout(() => void refresh(), 0);
@@ -101,7 +110,7 @@ export function NotificationBell({ userId }: { userId: string }) {
   async function markRead(ids: string[] | null) {
     // Optimistic, then re-read from the server (source of truth).
     setFeed((f) => f && { ...f, unread: ids ? Math.max(0, f.unread - ids.length) : 0, items: f.items.map((n) => (!ids || ids.includes(n.id) ? { ...n, read: true } : n)) });
-    await markNotificationsRead(ids);
+    await markReadAction(ids);
     void refresh();
   }
 

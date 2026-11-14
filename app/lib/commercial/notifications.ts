@@ -1,7 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createDueReminders, type NotificationData, type NotificationType } from "@/lib/notify";
-import type { CommercialMe } from "./session";
 
 /*
  * The rep's notification feed (handoff page 03: "scope the notification feed server-side to the authenticated
@@ -12,13 +11,14 @@ import type { CommercialMe } from "./session";
 export type FeedItem = { id: string; type: NotificationType; data: NotificationData; link: string | null; createdAt: string; read: boolean };
 export type Feed = { ready: boolean; unread: number; items: FeedItem[] };
 
-export async function loadMyNotifications(me: CommercialMe): Promise<Feed> {
+/** `home` = where the bell sends the user for a task reminder (their own space's dashboard). */
+export async function loadMyNotifications(me: { id: string }, home = "/commercial/dashboard"): Promise<Feed> {
   const supabase = await createClient();
 
   // "Reminder due" notifications for the rep's own open tasks due within 24 h (idempotent, one per task).
   const horizon = new Date(Date.now() + 24 * 3_600_000).toISOString();
   const { data: dueTasks } = await supabase.from("tasks").select("id, title, due_at, status").eq("assigned_to", me.id).eq("status", "a_faire").lte("due_at", horizon).limit(50);
-  if (dueTasks?.length) await createDueReminders(me.id, dueTasks);
+  if (dueTasks?.length) await createDueReminders(me.id, dueTasks, home);
 
   const [list, unread] = await Promise.all([
     supabase.from("notifications").select("id, type, data, link, created_at, read_at").eq("user_id", me.id).order("created_at", { ascending: false }).limit(20),

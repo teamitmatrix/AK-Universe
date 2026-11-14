@@ -10,6 +10,8 @@ import { createAdminClient } from "@/lib/supabase/server";
  *   commission_validated  / commission_paid  — admin moves a commission along its workflow
  *   task_assigned         admin creates a task for someone
  *   reminder_due          an open task is due within 24 h (created when the owner's feed is loaded)
+ *   project_assigned      admin assigns a video project to a videographer (migration 013)
+ *   version_reviewed      the client's answer on a sent version (validated / changes requested), recorded by an admin
  * `data` holds only what the bell displays (reference, client, amount…); texts are rendered in the reader's language.
  * Every function swallows its errors: a notification must never make the real action fail. Before migration 010
  * the table does not exist and nothing is written.
@@ -23,9 +25,11 @@ export const NOTIFICATION_TYPES = [
   "commission_paid",
   "task_assigned",
   "reminder_due",
+  "project_assigned",
+  "version_reviewed",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
-export type NotificationData = { reference?: string; client?: string; amountCents?: number; title?: string; dueAt?: string };
+export type NotificationData = { reference?: string; client?: string; amountCents?: number; title?: string; dueAt?: string; decision?: "validee" | "modifications" };
 
 type NewNotification = { userId: string; type: NotificationType; data?: NotificationData; link?: string | null; ref: string };
 
@@ -103,11 +107,45 @@ export async function notifyCommission(commissionId: string, status: "validee" |
 
 /** A task was created for this person. */
 export async function notifyTaskAssigned(taskId: string, userId: string, title: string, dueAt: string) {
-  await notify([{ userId, type: "task_assigned", data: { title, dueAt }, link: "/commercial/dashboard", ref: taskId }]);
+  // The link opens the assignee's own space (sales rep or videographer).
+  let link = "/commercial/dashboard";
+  try {
+    const { data } = await createAdminClient().from("profiles").select("role").eq("id", userId).maybeSingle();
+    if (data?.role === "videaste") link = "/videaste/dashboard";
+  } catch {
+    // Keep the default link: a notification must never make the real action fail.
+  }
+  await notify([{ userId, type: "task_assigned", data: { title, dueAt }, link, ref: taskId }]);
 }
 
 /** Reminders for the owner's open tasks due within 24 h (or overdue): one per task, created when their feed loads. */
-export async function createDueReminders(userId: string, tasks: { id: string; title: string; due_at: string; status: string }[], now = Date.now()) {
+export async function createDueReminders(userId: string, tasks: { id: string; title: string; due_at: string; status: string }[], link = "/commercial/dashboard", now = Date.now()) {
   const due = tasks.filter((t) => t.status === "a_faire" && new Date(t.due_at).getTime() <= now + 24 * 3_600_000);
-  await notify(due.map((t) => ({ userId, type: "reminder_due" as const, data: { title: t.title, dueAt: t.due_at }, link: "/commercial/dashboard", ref: t.id })));
+  await notify(due.map((t) => ({ userId, type: "reminder_due" as const, data: { title: t.title, dueAt: t.due_at }, link, ref: t.id })));
+}
+
+/** A video project was assigned to this videographer (one notification per project and videographer). */
+export async function notifyProjectAssigned(projectId: string, videasteId: string | null) {
+  if (!videasteId) return;
+  try {
+    const p = await projectInfo(projectId);
+    if (!p) return;
+    await notify([{ userId: videasteId, type: "project_assigned", data: { reference: p.reference, client: clientOf(p) }, link: `/videaste/projet?id=${projectId}`, ref: projectId }]);
+  } catch (cause) {
+    console.warn("notifyProjectAssigned failed:", cause);
+  }
+}
+
+/** The client's answer on a version reached the assigned videographer. */
+export async function notifyVersionReviewed(versionId: string, projectId: string, videasteId: string | null, decision: "validee" | "modifications", versionLabel: string) {
+  if (!videasteId) return;
+  try {
+    const p = await projectInfo(projectId);
+    if (!p) return;
+    await notify([
+      { userId: videasteId, type: "version_reviewed", data: { reference: p.reference, client: clientOf(p), title: versionLabel, decision }, link: `/videaste/projet?id=${projectId}`, ref: versionId },
+    ]);
+  } catch (cause) {
+    console.warn("notifyVersionReviewed failed:", cause);
+  }
 }

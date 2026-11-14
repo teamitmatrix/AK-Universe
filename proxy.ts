@@ -13,6 +13,7 @@ const PROTECTED_ROUTES = [
   "/dashboard",
   "/entreprise",
   "/commercial",
+  "/videaste",
 ];
 
 /** Signed-in users are sent away from these. */

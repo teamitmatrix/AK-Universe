@@ -32,6 +32,27 @@ function invariants(ctx) {
 const block = (body) => `do $chk$\nbegin\n${body}\nend $chk$;`;
 
 export const CHECKS = {
+  "013": {
+    up: (ctx) =>
+      block(`
+  ${assert(["project_briefs", "project_files", "project_versions", "client_feedback"].map((t) => tableExists(t) + " and " + rls(t)).join(" and "), "013 tables missing or RLS off")}
+  ${assert(col("video_projects", "stage") + " and " + col("video_projects", "stage_changed_at") + " and " + col("tasks", "started_at") + " and " + col("agenda_events", "project_id") + " and " + col("profiles", "phone") + " and " + col("profiles", "specialties"), "013 columns missing")}
+  ${assert("(select count(*) from public.video_projects where stage is null and status <> 'annule') = 0", "backfill: every non-cancelled project must have a stage")}
+  ${assert("(select count(*) from public.video_projects where stage is not null and status = 'annule') = 0", "backfill: cancelled projects must have no stage")}
+  ${assert(["is_active_videaste", "is_project_videaste", "set_project_stage", "send_version_for_validation", "respond_to_version", "set_feedback_status", "set_task_progress", "is_storage_link"].map((f) => fnDef(f) + " is not null").join(" and "), "013 functions missing")}
+  ${assert(fnDef("respond_to_version") + " like '%is_admin()%'", "respond_to_version must be admin-only")}
+  ${assert("(select qual from pg_policies where schemaname = 'public' and tablename = 'video_projects' and policyname = 'video_projects: staff read assigned') like '%is_active_videaste%'", "staff read assigned must require an active account")}
+  ${assert("(select count(*) from pg_policies where schemaname = 'public' and tablename = 'project_versions') = 3", "project_versions must have exactly 3 policies (no direct update)")}
+  ${assert("(select count(*) from pg_policies where schemaname = 'public' and tablename = 'project_files') = 3", "project_files must have exactly 3 policies (no update)")}
+  ${assert("(select count(*) from pg_policies where schemaname = 'public' and tablename = 'agenda_events' and policyname like 'agenda_events: videaste %') = 4", "agenda_events videaste policies missing")}
+  ${assert(conDef("notifications_type_check") + " like '%project_assigned%' and " + conDef("agenda_events_type_check") + " like '%tournage%'", "type constraints not extended")}
+  ${assert("public.is_storage_link('https://drive.google.com/file/d/x/view?usp=sharing') and not public.is_storage_link('https://evil.com/drive.google.com') and not public.is_storage_link('http://www.dropbox.com/s/x')", "is_storage_link accepts the wrong links")}
+  ${invariants(ctx)}`),
+    down: (ctx) =>
+      block(`  ${assert("not " + tableExists("project_versions") + " and not " + tableExists("project_files") + " and not " + tableExists("client_feedback") + " and not " + tableExists("project_briefs") + " and not " + col("video_projects", "stage") + " and not " + col("tasks", "started_at") + " and not " + col("profiles", "phone"), "013 objects still present")}
+  ${assert("(select qual from pg_policies where schemaname = 'public' and tablename = 'video_projects' and policyname = 'video_projects: staff read assigned') not like '%is_active%'", "005 policy not restored")}
+  ${invariants(ctx)}`),
+  },
   "012": {
     up: (ctx) =>
       block(`
@@ -175,6 +196,7 @@ declare
   r jsonb := '{}'; fails int := 0; n int; b boolean;
   a uuid := gen_random_uuid(); v uuid := gen_random_uuid(); c uuid := gen_random_uuid(); d uuid := gen_random_uuid();
   p uuid; t uuid;
+  w uuid := gen_random_uuid(); vv uuid; vv2 uuid; fb uuid; t2 uuid; x uuid;
 begin
   insert into auth.users (id, email, aud, role) values
     (a, 'test-a-' || a || '@test.invalid', 'authenticated', 'authenticated'),
@@ -360,6 +382,109 @@ begin
   ${as("a")} select (select count(*) from public.sales_documents where client_name like 'Test%') + (select count(*) from public.agenda_events where title like 'Test%') into n; ${back}
   ${ok("012 deactivated rep sees no document or event", "n = 0")}
   update public.profiles set active = true where id = a;`
+      : ""
+  }
+
+  ${
+    has("013")
+      ? `-- 013: videographer workspace (v = videaste assigned to p, w = another videaste)
+  insert into auth.users (id, email, aud, role) values (w, 'test-w-' || w || '@test.invalid', 'authenticated', 'authenticated');
+  update public.profiles set role = 'videaste' where id = w;
+  update public.video_projects set stage = 'brief_recu' where id = p;
+  ${as("v")} select count(*) into n from public.video_projects; ${back}
+  ${ok("013 videaste sees his assigned project", "n = 1")}
+  ${as("w")} select count(*) into n from public.video_projects; ${back}
+  ${ok("013 other videaste sees no project of v", "n = 0")}
+  ${as("v")} b := public.set_project_stage(p, 'tournage'); ${back}
+  ${ok("013 videaste moves his project to tournage", "b and (select stage from public.video_projects where id = p) = 'tournage'")}
+  ${as("w")} b := public.set_project_stage(p, 'montage'); ${back}
+  ${ok("013 other videaste cannot change the stage", "not b and (select stage from public.video_projects where id = p) = 'tournage'")}
+  ${as("c")} b := public.set_project_stage(p, 'montage'); ${back}
+  ${ok("013 plain user cannot change the stage", "not b")}
+  ${blocked("013 videaste cannot validate his own project", "v", "perform public.set_project_stage(p, 'valide')")}
+  ${blocked("013 videaste cannot set 'à faire valider' by hand", "v", "perform public.set_project_stage(p, 'a_valider')")}
+  ${blocked("013 videaste cannot deliver before validation", "v", "perform public.set_project_stage(p, 'livre')")}
+  ${blocked("013 videaste cannot update video_projects directly", "v", "update public.video_projects set stage = 'valide' where id = p returning 1 into strict n")}
+  ${allowed("013 videaste writes the brief", "v", "insert into public.project_briefs (project_id, objective, updated_by) values (p, 'Test objective', v)")}
+  ${blocked("013 other videaste cannot write the brief", "w", "update public.project_briefs set objective = 'Hacked' where project_id = p returning 1 into strict n")}
+  ${as("w")} select count(*) into n from public.project_briefs where project_id = p; ${back}
+  ${ok("013 other videaste cannot read the brief", "n = 0")}
+  ${allowed("013 videaste links a Drive file", "v", "insert into public.project_files (project_id, category, name, external_url, provider, added_by) values (p, 'rushs', 'Test rush', 'https://drive.google.com/file/d/abc/view', 'google_drive', v)")}
+  ${blocked("013 non-storage link rejected", "v", "insert into public.project_files (project_id, category, name, external_url, provider, added_by) values (p, 'rushs', 'Bad', 'https://evil.example/x', 'google_drive', v)")}
+  ${blocked("013 http (not https) link rejected", "v", "insert into public.project_files (project_id, category, name, external_url, provider, added_by) values (p, 'rushs', 'Bad', 'http://www.dropbox.com/s/x', 'dropbox', v)")}
+  ${blocked("013 other videaste cannot link a file to p", "w", "insert into public.project_files (project_id, category, name, external_url, provider, added_by) values (p, 'rushs', 'Bad', 'https://www.dropbox.com/s/x', 'dropbox', w)")}
+  ${blocked("013 file in someone else's name rejected", "v", "insert into public.project_files (project_id, category, name, external_url, provider, added_by) values (p, 'rushs', 'Bad', 'https://www.dropbox.com/s/x', 'dropbox', w)")}
+  ${as("w")} select count(*) into n from public.project_files where project_id = p; ${back}
+  ${ok("013 other videaste cannot read the links", "n = 0")}
+  ${as("c")} select count(*) into n from public.project_files where project_id = p; ${back}
+  ${ok("013 plain user cannot read the links", "n = 0")}
+  ${as("w")} delete from public.project_files where project_id = p; get diagnostics n = row_count; ${back}
+  ${ok("013 other videaste cannot delete the links", "n = 0")}
+  ${allowed("013 videaste adds a draft version", "v", "insert into public.project_versions (project_id, number, external_url, provider, author_id) values (p, 99, 'https://f.io/abc', 'frameio', v)")}
+  select id into vv from public.project_versions where project_id = p order by created_at desc limit 1;
+  ${ok("013 version numbered by the database (V1)", "(select number from public.project_versions where id = vv) = 1")}
+  ${blocked("013 videaste cannot insert an already validated version", "v", "insert into public.project_versions (project_id, number, external_url, provider, author_id, status) values (p, 1, 'https://f.io/x', 'frameio', v, 'validee')")}
+  ${as("v")} update public.project_versions set status = 'validee' where id = vv; get diagnostics n = row_count; ${back}
+  ${ok("013 videaste cannot change a version status directly", "n = 0")}
+  ${as("w")} select public.send_version_for_validation(vv) into x; ${back}
+  ${ok("013 other videaste cannot send the version", "x is null and (select status from public.project_versions where id = vv) = 'brouillon'")}
+  ${as("v")} select public.send_version_for_validation(vv) into x; ${back}
+  ${ok("013 videaste sends V1 → envoyée, project à faire valider", "x = p and (select status from public.project_versions where id = vv) = 'envoyee' and (select stage from public.video_projects where id = p) = 'a_valider'")}
+  ${allowed("013 videaste adds V2 draft", "v", "insert into public.project_versions (project_id, number, external_url, provider, author_id) values (p, 0, 'https://we.tl/t-abc', 'wetransfer', v)")}
+  select id into vv2 from public.project_versions where project_id = p and status = 'brouillon' limit 1;
+  ${blocked("013 a second version cannot be sent while one waits", "v", "perform public.send_version_for_validation(vv2)")}
+  ${as("v")} select public.respond_to_version(vv, 'validee', null) into x; ${back}
+  ${ok("013 videaste cannot answer for the client", "x is null and (select status from public.project_versions where id = vv) = 'envoyee'")}
+  ${as("d")} select public.respond_to_version(vv, 'validee', null) into x; ${back}
+  ${ok("013 deactivated admin cannot answer", "x is null and (select status from public.project_versions where id = vv) = 'envoyee'")}
+  ${blocked("013 changes request needs a comment", admin, "perform public.respond_to_version(vv, 'modifications', '  ')")}
+  select coalesce(revision_rounds, 0) into n from public.video_projects where id = p;
+  ${allowed("013 admin records requested changes", admin, "perform public.respond_to_version(vv, 'modifications', 'Test: changer la musique')")}
+  ${ok("013 changes → stage modifications, +1 round, feedback created", "(select stage from public.video_projects where id = p) = 'modifications' and (select revision_rounds from public.video_projects where id = p) = n + 1 and exists (select 1 from public.client_feedback where project_id = p and version_id = vv and status = 'a_traiter')")}
+  select id into fb from public.client_feedback where project_id = p limit 1;
+  ${as("v")} select count(*) into n from public.client_feedback where project_id = p; ${back}
+  ${ok("013 videaste sees the client feedback", "n = 1")}
+  ${as("w")} select count(*) into n from public.client_feedback where project_id = p; ${back}
+  ${ok("013 other videaste cannot see it", "n = 0")}
+  ${blocked("013 videaste cannot create client feedback", "v", "insert into public.client_feedback (project_id, comment) values (p, 'forged')")}
+  ${as("w")} b := public.set_feedback_status(fb, 'corrige'); ${back}
+  ${ok("013 other videaste cannot change its status", "not b")}
+  ${as("v")} b := public.set_feedback_status(fb, 'corrige'); ${back}
+  ${ok("013 videaste marks the feedback corrigé", "b and (select status from public.client_feedback where id = fb) = 'corrige'")}
+  ${as("v")} select public.send_version_for_validation(vv2) into x; ${back}
+  ${allowed("013 admin validates V2", admin, "perform public.respond_to_version(vv2, 'validee', 'Parfait')")}
+  ${ok("013 validated → stage validé", "(select stage from public.video_projects where id = p) = 'valide' and (select status from public.project_versions where id = vv2) = 'validee'")}
+  ${blocked("013 a version cannot be answered twice", admin, "perform public.respond_to_version(vv2, 'modifications', 'again')")}
+  ${as("v")} b := public.set_project_stage(p, 'livre'); ${back}
+  ${ok("013 videaste delivers after validation", "b and (select stage from public.video_projects where id = p) = 'livre'")}
+  ${blocked("013 delivered project cannot go back", "v", "perform public.set_project_stage(p, 'montage')")}
+  ${allowed("013 admin can still set any stage", admin, "perform public.set_project_stage(p, 'montage')")}
+  ${allowed("013 videaste creates an agenda event on his project", "v", "insert into public.agenda_events (salesperson_id, title, type, starts_at, project_id) values (v, 'TestShoot', 'tournage', now() + interval '1 day', p)")}
+  ${blocked("013 other videaste cannot link an event to p", "w", "insert into public.agenda_events (salesperson_id, title, type, starts_at, project_id) values (w, 'TestForged', 'tournage', now(), p)")}
+  ${blocked("013 videaste cannot create an event for someone else", "v", "insert into public.agenda_events (salesperson_id, title, type, starts_at) values (w, 'TestForged', 'reunion', now())")}
+  ${as("w")} select count(*) into n from public.agenda_events where title = 'TestShoot'; ${back}
+  ${ok("013 other videaste cannot see the event", "n = 0")}
+  ${as("a")} select count(*) into n from public.agenda_events where title = 'TestShoot'; ${back}
+  ${ok("013 sales rep cannot see the event", "n = 0")}
+  insert into public.tasks (assigned_to, assigned_by, title, due_at) values (v, ${admin}::uuid, 'TestVidTask', now()) returning id into t2;
+  ${as("w")} b := public.set_task_progress(t2, 'en_cours'); ${back}
+  ${ok("013 other videaste cannot move the task", "not b")}
+  ${as("v")} b := public.set_task_progress(t2, 'en_cours'); ${back}
+  ${ok("013 assignee sets en cours (status stays a_faire)", "b and (select status = 'a_faire' and started_at is not null from public.tasks where id = t2)")}
+  ${as("v")} b := public.set_task_progress(t2, 'fait'); ${back}
+  ${ok("013 assignee sets fait", "b and (select status = 'fait' and done_at is not null from public.tasks where id = t2)")}
+  ${as("v")} update public.profiles set phone = '06 00 00 00 00', specialties = array['Montage'] where id = v; get diagnostics n = row_count; ${back}
+  ${ok("013 videaste edits his own phone / specialties", "n = 1")}
+  ${blocked("013 videaste cannot deactivate / reactivate himself", "v", "update public.profiles set active = false where id = v")}
+  insert into public.notifications (user_id, type, ref) values (v, 'project_assigned', 'test-013'), (v, 'version_reviewed', 'test-013');
+  ${as("v")} select count(*) into n from public.notifications where ref = 'test-013'; ${back}
+  ${ok("013 new notification types stored and readable by their owner", "n = 2")}
+  update public.profiles set active = false where id = v;
+  ${as("v")} select (select count(*) from public.video_projects) + (select count(*) from public.project_files) + (select count(*) from public.project_briefs) + (select count(*) from public.client_feedback) + (select count(*) from public.agenda_events) into n; ${back}
+  ${ok("013 deactivated videaste sees nothing any more", "n = 0")}
+  ${as("v")} b := public.set_project_stage(p, 'tournage'); ${back}
+  ${ok("013 deactivated videaste cannot change a stage", "not b")}
+  update public.profiles set active = true where id = v;`
       : ""
   }
 

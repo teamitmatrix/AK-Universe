@@ -3,7 +3,7 @@
 Static site (`legacy-source/`) → **Next.js + TypeScript + Tailwind**, **Supabase** (DB + Auth), **Stripe**, hosted on **Vercel**.
 Reference: *AK Universe — Developer handoff* (5 workstreams) + the static HTML pages.
 
-_Last updated: 2026-10-30_
+_Last updated: 2026-11-14_
 
 ---
 
@@ -26,6 +26,7 @@ _Last updated: 2026-10-30_
 | Apple / Microsoft login | ✅ Wired — off until enabled in Supabase (`NEXT_PUBLIC_OAUTH_PROVIDERS`) |
 | Setup guide + automatic setup check | ✅ `SETUP.md`, `npm run check:setup` |
 | Remaining pages rebuilt in React | ✅ Marketing, services, forfaits, tarifs and the quote flow are React pages |
+| Videographer workspace (Espace Vidéaste) + admin videographer management | ✅ Done — migration 013 applied, 145 DB tests + 69 end-to-end checks passed (see `VIDEASTE-WORKSPACE.md`) |
 
 Legend: ✅ done · ⏳ done in code, waiting for setup/testing · ❌ to do
 
@@ -184,6 +185,18 @@ Apple / Microsoft buttons show a "coming soon" toast, as the doc specifies (real
 - [x] Fix: accounts created before the database migration had no `profiles` row, so creating an organisation or paying failed ("Unable to create the organization"); the row is now created on demand (`ensureProfile`) and the existing account was backfilled
 - [x] Checked in the browser with a temporary admin (deleted afterwards)
 
+### Step 15 — Videographer workspace (Espace Vidéaste) (2026-11-14)
+Full details, security, data model and test results: **`VIDEASTE-WORKSPACE.md`**.
+- [x] Login: `videaste` role → `/videaste/dashboard`, read from `profiles` on the server (the prototype's keyword guessing was not copied); `/videaste` protected in `proxy.ts`
+- [x] 8 videographer screens: dashboard (4 KPIs, today's tasks, deadlines, project cards), mes projets, project detail (brief, spec, file links, versions, client feedback), à monter, retours clients, fichiers, agenda, mon profil
+- [x] Workflow Brief reçu → Tournage → Montage → À faire valider → Modifications → Validé → Livré, re-validated in the database; red / orange / green deadline rule
+- [x] External storage links only (Drive, Dropbox, WeTransfer, Frame.io, OneDrive), checked in code and in the database; version history + "Envoyer à validation"; client answer recorded by an admin (never by the videographer)
+- [x] Admin: inline reassignment, stage change, "Vx à valider" dialog, filters (videographer, client, status, overdue only) on `/admin/projets-video`; roster with phone / specialties / workload; edit + deactivate on the detail page
+- [x] Notifications: project assigned, version reviewed; task links open the right space
+- [x] Migration `013_videaste_workspace.sql` applied to the live database after a verified backup + rehearsal; deactivated staff can no longer read assigned projects through the API either
+- [x] Tests: 145 / 145 database security tests (57 new), 69 / 69 end-to-end checks through the website with temporary accounts (deleted afterwards), live data identical to the backup
+- [x] Fix found during testing: `/admin/videastes` 500 after a profile edit (stale dev build); roster made tolerant of missing values
+
 ---
 
 ## 5. Remaining work
@@ -246,3 +259,5 @@ Short version below — the full click-by-click guide is in **`SETUP.md`**.
 | `app/components/ui/SiteTranslator.tsx` | Floating switch + Google Translate loader |
 | `config/supabase/migrations/` | Database schema |
 | `app/lib/projects/emails.ts` | Project e-mails (texts + layout) |
+| `VIDEASTE-WORKSPACE.md` | Videographer workspace: screens, security, migration 013, tests, manual checklist |
+| `app/videaste/(space)/`, `app/lib/videaste/` | Videographer pages and their loaders / server actions |

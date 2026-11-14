@@ -49,6 +49,11 @@ const fr = {
       commission_paid: (d, m) => ({ title: "Commission payée", body: [d.amountCents !== undefined ? m(d.amountCents) : "", d.reference].filter(Boolean).join(" — ") }),
       task_assigned: (d) => ({ title: "Nouvelle tâche", body: d.title ?? "" }),
       reminder_due: (d) => ({ title: "Rappel à échéance", body: d.title ?? "" }),
+      project_assigned: (d) => ({ title: "Nouveau projet attribué", body: [d.reference, d.client].filter(Boolean).join(" — ") }),
+      version_reviewed: (d) => ({
+        title: d.decision === "validee" ? "Version validée par le client" : "Modifications demandées",
+        body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
     } satisfies Record<NotificationType, NotifText>,
   },
   dash: {
@@ -201,6 +206,11 @@ const en: ComText = {
       commission_paid: (d, m) => ({ title: "Commission paid", body: [d.amountCents !== undefined ? m(d.amountCents) : "", d.reference].filter(Boolean).join(" — ") }),
       task_assigned: (d) => ({ title: "New task", body: d.title ?? "" }),
       reminder_due: (d) => ({ title: "Reminder due", body: d.title ?? "" }),
+      project_assigned: (d) => ({ title: "New project assigned", body: [d.reference, d.client].filter(Boolean).join(" — ") }),
+      version_reviewed: (d) => ({
+        title: d.decision === "validee" ? "Version approved by the client" : "Changes requested",
+        body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
     },
   },
   dash: {
@@ -339,6 +349,11 @@ const de: ComText = {
       commission_paid: (d, m) => ({ title: "Provision ausgezahlt", body: [d.amountCents !== undefined ? m(d.amountCents) : "", d.reference].filter(Boolean).join(" — ") }),
       task_assigned: (d) => ({ title: "Neue Aufgabe", body: d.title ?? "" }),
       reminder_due: (d) => ({ title: "Erinnerung fällig", body: d.title ?? "" }),
+      project_assigned: (d) => ({ title: "Neues Projekt zugewiesen", body: [d.reference, d.client].filter(Boolean).join(" — ") }),
+      version_reviewed: (d) => ({
+        title: d.decision === "validee" ? "Version vom Kunden freigegeben" : "Änderungen angefordert",
+        body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
     },
   },
   dash: {

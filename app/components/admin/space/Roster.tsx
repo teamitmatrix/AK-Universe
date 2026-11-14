@@ -192,7 +192,30 @@ export function VideastesRoster({ rows, sortByLoad, hasRevisions }: { rows: Vide
   const n = (v: number) => v.toLocaleString(locale);
 
   const cols: Col<VideasteRow>[] = [
-    { key: "name", label: c.name, sort: (r) => r.name, cell: (r) => r.name },
+    {
+      key: "name",
+      label: c.name,
+      sort: (r) => r.name,
+      // The first column is rendered by RosterTable itself (avatar, name, e-mail).
+      cell: (r) => r.name,
+    },
+    {
+      key: "contact",
+      label: "Téléphone · spécialités",
+      sort: (r) => (r.specialties ?? []).join(", "),
+      cell: (r) => (
+        <span className="adm-stack">
+          <span>{r.phone || "—"}</span>
+          {(r.specialties ?? []).length > 0 && <span className="adm-muted adm-small">{(r.specialties ?? []).join(", ")}</span>}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      label: t.team.active,
+      sort: (r) => Number(r.active),
+      cell: (r) => <span className={`adm-badge ${r.active ? "is-ok" : "is-muted"}`}>{r.active ? t.team.active : t.team.inactive}</span>,
+    },
     { key: "active", label: c.active, num: true, sort: (r) => r.activeProjects, cell: (r) => n(r.activeProjects) },
     { key: "delivered", label: c.delivered, num: true, sort: (r) => r.delivered, cell: (r) => n(r.delivered) },
     {

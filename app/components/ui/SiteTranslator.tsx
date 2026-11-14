@@ -21,7 +21,7 @@ const INLINE_SWITCH = [
  * Spaces whose header already holds the switch: admin (AdmShell), sales (CommercialFrame), team (/equipe).
  * The printable quote / invoice (/commercial/document) has no header, so it keeps the floating switch.
  */
-const HEADER_SWITCH = ["/admin", "/commercial", "/equipe"];
+const HEADER_SWITCH = ["/admin", "/commercial", "/videaste", "/equipe"];
 const hasHeaderSwitch = (path: string) =>
   path !== "/commercial/document" && HEADER_SWITCH.some((p) => path === p || path.startsWith(`${p}/`));
 

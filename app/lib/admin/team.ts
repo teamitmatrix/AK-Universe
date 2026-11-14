@@ -30,6 +30,9 @@ export type StaffProfile = {
   active?: boolean;
   commission_rate?: number | null;
   monthly_target_cents?: number | null;
+  /** Migration 013 (videographer roster). */
+  phone?: string | null;
+  specialties?: string[] | null;
   created_at?: string;
 };
 export type TeamProject = {
@@ -164,6 +167,9 @@ export function buildVideasteRow(v: StaffProfile, projects: TeamProject[], now =
     id: v.id,
     name: displayName(v),
     email: v.email,
+    // Identity shown in the roster (migration 013; null / [] before it).
+    phone: v.phone ?? null,
+    specialties: v.specialties ?? [],
     active: v.active !== false,
     activeProjects: active.length,
     delivered: mine.filter((p) => p.status === "termine").length,

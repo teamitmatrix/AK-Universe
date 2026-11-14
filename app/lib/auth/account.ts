@@ -31,7 +31,7 @@ export async function homePathFor(uid: string) {
     case "commercial":
       return "/commercial/dashboard";
     case "videaste":
-      return "/equipe";
+      return "/videaste/dashboard";
   }
   const { data } = await createAdminClient().from("organization_members").select("organization_id").eq("user_id", uid).limit(1);
   return data?.length ? "/entreprise/dashboard" : "/dashboard";

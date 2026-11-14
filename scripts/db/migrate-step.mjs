@@ -24,6 +24,7 @@ const MIGRATIONS = {
   "010": "010_notifications",
   "011": "011_prospects",
   "012": "012_sales_tools",
+  "013": "013_videaste_workspace",
 };
 const [action, num] = process.argv.slice(2);
 const root = process.cwd();
@@ -51,7 +52,8 @@ async function status() {
     to_regclass('public.audit_log') is not null as "009",
     to_regclass('public.notifications') is not null as "010",
     to_regclass('public.prospects') is not null as "011",
-    to_regclass('public.sales_documents') is not null as "012"`);
+    to_regclass('public.sales_documents') is not null as "012",
+    to_regclass('public.project_versions') is not null as "013"`);
   return s;
 }
 

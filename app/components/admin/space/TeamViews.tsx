@@ -24,6 +24,8 @@ import { initialsOf } from "./initials";
 import { ProjectTable } from "./ProjectTable";
 import { CommerciauxRoster, VideastesRoster } from "./Roster";
 import { AddStaffButton, StaffSettings } from "./StaffManage";
+import { ProfileForm } from "@/components/videaste/ProfileForm";
+import { updateVideasteProfile } from "@/lib/admin/videaste-actions";
 import { NewTaskButton, type TaskOptions } from "./ToolsClient";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, LOAD_CLASS, MigrationNote, PageHead, formatters } from "./ui";
@@ -91,6 +93,9 @@ export function VideastesView({
     <AdmShell t={t} active="videastes" admin={admin}>
       <div className="adm-content">
         <PageHead title={v.title} subtitle={v.subtitle}>
+          <Link href="/admin/projets-video" className="adm-btn is-ghost">
+            <Film size={15} aria-hidden="true" /> Tous les projets
+          </Link>
           {data.migrated && <AddStaffButton role="videaste" label={v.add} />}
         </PageHead>
         {!data.migrated ? (
@@ -400,6 +405,21 @@ export function VideasteDetailView({
                 today={data.today}
                 showRevisions={data.hasRevisions}
                 empty={v.detail.noProjects}
+              />
+            </section>
+            <section className="adm-card" aria-labelledby="adm-vid-profile">
+              <header className="adm-card-head">
+                <h2 id="adm-vid-profile">Informations du vidéaste</h2>
+              </header>
+              <ProfileForm
+                initial={{
+                  firstName: person.first_name ?? "",
+                  lastName: person.last_name ?? "",
+                  phone: (person as { phone?: string | null }).phone ?? "",
+                  specialties: (person as { specialties?: string[] | null }).specialties ?? [],
+                }}
+                email={person.email}
+                save={updateVideasteProfile.bind(null, person.id)}
               />
             </section>
             <StaffSettings id={person.id} name={name} role="videaste" active={active} />

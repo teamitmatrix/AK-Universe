@@ -6,7 +6,7 @@ import { isAdmin } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid, type StaffRole } from "./team";
 import { syncProjectProspect } from "@/lib/commercial/project-prospects";
-import { notifyLeadAssigned } from "@/lib/notify";
+import { notifyLeadAssigned, notifyProjectAssigned } from "@/lib/notify";
 
 /**
  * Team management writes (admin space). Every action independently re-checks that the caller is an active admin,
@@ -143,5 +143,6 @@ export async function assignProject(projectId: string, input: ProjectAssignment)
   revalidateTeam();
   await syncProjectProspect(projectId, commercialId);
   await notifyLeadAssigned(projectId, commercialId);
+  await notifyProjectAssigned(projectId, videasteId);
   return { success: true };
 }

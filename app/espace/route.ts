@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * "Mon espace": sends a signed-in user to the space of their role (handoff "Roles and redirect targets"):
  *   client → /dashboard · entreprise → /entreprise/dashboard · commercial → /commercial/dashboard
- *   admin → /admin/dashboard · vidéaste → /equipe · logged out → /connexion
+ *   admin → /admin/dashboard · vidéaste → /videaste/dashboard · logged out → /connexion
  * The role is read on the server from profiles, never from the browser. A deactivated account is signed out.
  */
 export async function GET(request: NextRequest) {
