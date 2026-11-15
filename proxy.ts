@@ -7,6 +7,7 @@ const PROTECTED_ROUTES = [
   "/organisation",
   "/abonnement",
   "/paiement",
+  "/acompte",
   "/admin",
 ];
 

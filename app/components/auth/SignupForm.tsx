@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { safeRedirect } from "@/lib/auth/redirect";
 import { signUp } from "@/lib/auth/signup";
 import { PASSWORD_RULES, isStrongPassword } from "@/lib/auth/password";
 import { createClient } from "@/lib/supabase/client";
@@ -96,6 +97,9 @@ const ERROR_KEYS: Record<string, ErrorKey> = {
 
 export function SignupForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const requestedReturn = params.get("redirectTo");
+  const afterAuth = requestedReturn ? safeRedirect(requestedReturn) : "/organisation";
   const [toast, toastNode] = useToast();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -118,15 +122,16 @@ export function SignupForm() {
     }
     setLoading(true);
     try {
-      const result = await signUp({ ...form, lang });
+      const result = await signUp({ ...form, lang, redirectTo: afterAuth });
       if (!result.success) {
         setError(ERROR_KEYS[result.code] ?? "failed");
         return;
       }
       if (result.needsVerification) {
-        router.push(`/verification?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+        const query = new URLSearchParams({ email: form.email.trim().toLowerCase(), redirectTo: afterAuth });
+        router.push(`/verification?${query}`);
       } else {
-        router.push("/organisation");
+        router.push(afterAuth);
         router.refresh();
       }
     } catch {
@@ -144,7 +149,9 @@ export function SignupForm() {
     setError("");
     const { error: oauthError } = await createClient().auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirectTo=/organisation` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(afterAuth)}`,
+      },
     });
     if (oauthError) setError(provider === "google" ? "googleFailed" : "appleFailed");
   }
@@ -234,7 +241,14 @@ export function SignupForm() {
       <p className="alt">
         {t.haveAccount}
         <br />
-        <Link href="/connexion" className="link-orange">
+        <Link
+          href={
+            requestedReturn
+              ? `/connexion?redirectTo=${encodeURIComponent(afterAuth)}`
+              : "/connexion"
+          }
+          className="link-orange"
+        >
           {t.login} <Icon name="arrow" />
         </Link>
       </p>

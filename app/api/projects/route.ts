@@ -102,6 +102,12 @@ export async function POST(request: Request) {
   }
 
   const { data: auth } = await (await createClient()).auth.getUser();
+  if (kind === "acompte" && !auth.user) {
+    return NextResponse.json(
+      { error: "Connectez-vous ou créez un compte pour payer." },
+      { status: 401 }
+    );
+  }
   if (auth.user) await ensureProfile(auth.user);
   const reference = `AKU-${randomBytes(4).toString("hex").toUpperCase()}`;
 

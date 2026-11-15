@@ -354,7 +354,14 @@ export function LoginScreen() {
             <p className="alt">
               {t.signup}
               <br />
-              <Link href="/inscription" className="link-orange">
+              <Link
+                href={
+                  params.get("redirectTo")
+                    ? `/inscription?redirectTo=${encodeURIComponent(safeRedirect(params.get("redirectTo")))}`
+                    : "/inscription"
+                }
+                className="link-orange"
+              >
                 {t.signupLink} <Icon name="arrow" />
               </Link>
             </p>

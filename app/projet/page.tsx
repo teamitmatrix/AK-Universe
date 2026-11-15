@@ -17,7 +17,7 @@ export default async function Page() {
     <>
       <SiteHeader active="none" signedIn={!!user} />
       <VideoShell config={config} header={false}>
-        <ProjetView />
+        <ProjetView signedIn={!!user} />
       </VideoShell>
     </>
   );

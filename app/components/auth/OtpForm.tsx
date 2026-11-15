@@ -110,7 +110,7 @@ export function OtpForm() {
         setError(result.code === "otp_expired" ? "expired" : "failed");
         return;
       }
-      router.replace(loginStep ? safeRedirect(params.get("redirectTo")) : "/organisation");
+      router.replace(safeRedirect(params.get("redirectTo"), loginStep ? "/" : "/organisation"));
       router.refresh();
     } finally {
       setLoading(false);
@@ -120,7 +120,9 @@ export function OtpForm() {
   async function handleResend() {
     if (!email || cooldown > 0) return;
     setCooldown(30);
-    const result = loginStep ? await resendLoginCode(lang) : await resendSignupCode(email, lang);
+    const result = loginStep
+      ? await resendLoginCode(lang)
+      : await resendSignupCode(email, lang, params.get("redirectTo") ?? undefined);
     toast(result.success ? t.resent : result.code === "rate_limited" ? t.wait : t.resendFailed);
   }
 

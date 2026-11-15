@@ -6,6 +6,7 @@ import { getSiteUrl } from "@/lib/supabase/env";
 import { newEmailCode, sendAuthEmail } from "./emails";
 import { clearPendingLogin, getPendingLogin, setPendingLogin } from "./two-factor";
 import { isStrongPassword } from "./password";
+import { safeRedirect } from "./redirect";
 
 export type SignupInput = {
   firstName: string;
@@ -13,6 +14,8 @@ export type SignupInput = {
   email: string;
   password: string;
   lang?: string;
+  /** Same-site path to open once the account exists. Defaults to organisation setup. */
+  redirectTo?: string;
 };
 
 export async function signUp(input: SignupInput) {
@@ -32,7 +35,7 @@ export async function signUp(input: SignupInput) {
       password: input.password,
       options: {
         data: { first_name: firstName, last_name: lastName },
-        emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation`,
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=${encodeURIComponent(safeRedirect(input.redirectTo, "/organisation"))}`,
       },
     });
     if (error) return { success: false as const, code: error.code ?? "unknown" };
@@ -69,13 +72,15 @@ export async function verifySignupCode(email: string, token: string) {
   return { success: true as const };
 }
 
-export async function resendSignupCode(email: string, lang?: string) {
+export async function resendSignupCode(email: string, lang?: string, redirectTo?: string) {
   if (!emailConfigured()) {
     const supabase = await createClient();
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=/organisation` },
+      options: {
+        emailRedirectTo: `${getSiteUrl()}/auth/callback?redirectTo=${encodeURIComponent(safeRedirect(redirectTo, "/organisation"))}`,
+      },
     });
     return error ? { success: false as const, code: error.code ?? "unknown" } : { success: true as const };
   }

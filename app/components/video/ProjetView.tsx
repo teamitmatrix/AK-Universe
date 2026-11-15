@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signInBeforePayment } from "@/lib/auth/redirect";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart } from "./cart";
@@ -10,7 +11,7 @@ import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
 import { Mockup } from "./Mockup";
 
-export function ProjetView() {
+export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
   const router = useRouter();
   const mounted = useMounted();
   const { config, openConfig, toast } = useVideo();
@@ -153,7 +154,11 @@ export function ProjetView() {
                 <Link href="/projet/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
                   <Icon name="mail" /> Demander un devis
                 </Link>
-                <Link href="/projet/informations" className="btn btn-primary btn-lg" style={{ flex: 1 }}>
+                <Link
+                  href={signedIn ? "/projet/informations" : signInBeforePayment()}
+                  className="btn btn-primary btn-lg"
+                  style={{ flex: 1 }}
+                >
                   <Icon name="lock" /> Réserver et payer un acompte
                 </Link>
               </div>
