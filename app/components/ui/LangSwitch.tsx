@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { LANGUAGES, SOURCE_LANG, isLang, type FlagSpec, type Lang, type TextLang } from "@/config/languages";
+import { LANG_COOKIE, LANGUAGES, SOURCE_LANG, isLang, type FlagSpec, type Lang, type TextLang } from "@/config/languages";
 import { Icon } from "./Icon";
 
 export type { Lang, TextLang };
 
-const STORAGE_KEY = "aku-language";
+const STORAGE_KEY = LANG_COOKIE;
+
+/** Cookie the server reads for Admin EN/FR (mirrors localStorage). */
+function setLangCookie(lang: Lang) {
+  document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
+}
 /** Values written by the static site before the 24 languages existed. */
 const LEGACY_LABELS: Record<string, Lang> = { Français: "fr", English: "en" };
 
@@ -118,6 +123,7 @@ export function useLang() {
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {}
+    setLangCookie(next);
     setTranslateCookie(next);
     // Once Google Translate has rewritten the page, only a reload restores or re-translates it cleanly.
     if ((window as { google?: { translate?: unknown } }).google?.translate) {

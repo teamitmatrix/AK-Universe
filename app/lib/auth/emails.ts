@@ -33,7 +33,7 @@ const TEXT = {
       title: "Mot de passe modifié",
       intro: "Le mot de passe de votre compte AK Universe vient d'être modifié.",
     },
-    validity: "Ce code est personnel et valable pendant une durée limitée. Ne le communiquez à personne.",
+    validity: "Ce code est personnel et valable 15 minutes. Ne le communiquez à personne.",
     notYou: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
     changedNotYou: "Si vous n'êtes pas à l'origine de ce changement, réinitialisez immédiatement votre mot de passe et répondez à cet e-mail.",
     signature: "L'équipe AK Universe",
@@ -60,7 +60,7 @@ const TEXT = {
       title: "Password changed",
       intro: "The password of your AK Universe account has just been changed.",
     },
-    validity: "This code is personal and valid for a limited time. Never share it.",
+    validity: "This code is personal and valid for 15 minutes. Never share it.",
     notYou: "If you did not request this, you can ignore this email.",
     changedNotYou: "If you did not make this change, reset your password immediately and reply to this email.",
     signature: "The AK Universe team",
@@ -97,11 +97,16 @@ const MIN_GAP_MS = 60_000;
 const HOURLY_MAX = 5;
 
 async function allowSend(user: User) {
+  const admin = createAdminClient();
+  // Re-read right before writing so two parallel login() calls are less likely to both mint OTPs
+  // (a second generateLink invalidates the first code — the usual "code already expired" report).
+  const { data: fresh } = await admin.auth.admin.getUserById(user.id);
+  const meta = fresh.user?.app_metadata ?? user.app_metadata;
   const now = Date.now();
-  const log = ((user.app_metadata?.aku_auth_mail as number[] | undefined) ?? []).filter((t) => now - t < 3_600_000);
+  const log = ((meta?.aku_auth_mail as number[] | undefined) ?? []).filter((t) => now - t < 3_600_000);
   if (log.length >= HOURLY_MAX || (log.length && now - log[log.length - 1] < MIN_GAP_MS)) return false;
-  await createAdminClient().auth.admin.updateUserById(user.id, {
-    app_metadata: { ...user.app_metadata, aku_auth_mail: [...log, now] },
+  await admin.auth.admin.updateUserById(user.id, {
+    app_metadata: { ...meta, aku_auth_mail: [...log, now] },
   });
   return true;
 }
@@ -123,6 +128,18 @@ export async function sendAuthEmail(
 /** A fresh 6-digit code for an existing user (Supabase magic-link OTP, checked with verifyOtp type "email"). */
 export async function newEmailCode(email: string) {
   const { data, error } = await createAdminClient().auth.admin.generateLink({ type: "magiclink", email });
+  if (error || !data.properties?.email_otp) throw error ?? new Error("No e-mail code returned.");
+  return data.properties.email_otp;
+}
+
+/** Re-issue a sign-up confirmation OTP for an existing unconfirmed address (no password required). */
+export async function newSignupCode(email: string) {
+  // SDK types require `password` for signup links; GoTrue accepts a password-less regenerate
+  // for an existing unconfirmed user (verified against this project).
+  const { data, error } = await createAdminClient().auth.admin.generateLink({
+    type: "signup",
+    email,
+  } as { type: "signup"; email: string; password: string });
   if (error || !data.properties?.email_otp) throw error ?? new Error("No e-mail code returned.");
   return data.properties.email_otp;
 }

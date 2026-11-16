@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { login } from "@/lib/auth/login";
 import { safeRedirect } from "@/lib/auth/redirect";
 import { sendResetEmail } from "@/lib/auth/reset-password";
@@ -120,10 +120,14 @@ export function LoginScreen() {
   );
   const [notice, setNotice] = useState<MessageKey | "">("");
 
+  const submitting = useRef(false);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current || loading) return;
     setError("");
     setNotice("");
+    submitting.current = true;
     setLoading(true);
     try {
       const result = await login(email.trim(), password, remember, lang);
@@ -146,6 +150,7 @@ export function LoginScreen() {
     } catch {
       setError("failed");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }

@@ -74,7 +74,7 @@ export function AuthShell({ page, backHref, children }: Props) {
 
   return (
     <div className="theme-light" translate={nativeTranslate(lang)}>
-      <div className="auth">
+      <div className={`auth${page === "verification" ? " auth-verify" : ""}`}>
         <aside className="auth-side auth-side-hero">
           <Link href="/" className="logo notranslate">
             {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo, same markup as the static site */}

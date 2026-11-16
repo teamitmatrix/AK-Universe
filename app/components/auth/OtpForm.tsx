@@ -22,12 +22,15 @@ const TEXT = {
     submitting: "Vérification…",
     expires: "Le code expire après 15 minutes.",
     resend: "Renvoyer un code",
+    deliveryNote:
+      "Le code peut mettre 1 à 2 minutes à arriver. Patientez, puis réessayez « Renvoyer un code » si besoin.",
     incomplete: "Saisissez les 6 chiffres du code.",
     resent: "Un nouveau code a été envoyé.",
     resendFailed: "Impossible d'envoyer un nouveau code pour le moment.",
     wait: "Un code vient d'être envoyé. Patientez une minute avant d'en demander un autre.",
     missingEmail: "Adresse e-mail manquante. Recommencez l'inscription.",
-    expired: "Ce code est invalide ou a expiré. Demandez un nouveau code.",
+    expired: "Ce code a expiré. Demandez-en un nouveau.",
+    incorrect: "Le code saisi est incorrect.",
     failed: "Vérification impossible. Veuillez réessayer.",
   },
   en: {
@@ -40,15 +43,19 @@ const TEXT = {
     submitting: "Verifying…",
     expires: "The code expires after 15 minutes.",
     resend: "Resend a code",
+    deliveryNote: "The code may take 1–2 minutes to arrive. Wait, then try “Resend a code” again if needed.",
     incomplete: "Enter all 6 digits of the code.",
     resent: "A new code has been sent.",
     resendFailed: "Unable to send a new code right now.",
     wait: "A code was just sent. Please wait a minute before asking for another one.",
     missingEmail: "Email address missing. Please start the sign-up again.",
-    expired: "This code is invalid or has expired. Request a new code.",
+    expired: "This code has expired. Please request a new one.",
+    incorrect: "The code you entered is incorrect.",
     failed: "Verification failed. Please try again.",
   },
 };
+
+type ErrorKey = "missingEmail" | "expired" | "incorrect" | "failed" | "";
 
 export function OtpForm() {
   const router = useRouter();
@@ -62,9 +69,10 @@ export function OtpForm() {
   const [digits, setDigits] = useState<string[]>(Array(LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
   // Message key (not a string) so it follows the language switch.
-  const [error, setError] = useState<"missingEmail" | "expired" | "failed" | "">("");
+  const [error, setError] = useState<ErrorKey>("");
   const [cooldown, setCooldown] = useState(0);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const submitting = useRef(false);
 
   useEffect(() => inputs.current[0]?.focus(), []);
 
@@ -92,6 +100,7 @@ export function OtpForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
     setError("");
     const code = digits.join("");
     if (code.length < LENGTH) {
@@ -103,31 +112,44 @@ export function OtpForm() {
       setError("missingEmail");
       return;
     }
+    submitting.current = true;
     setLoading(true);
     try {
       const result = loginStep ? await verifyLoginCode(code) : await verifySignupCode(email, code);
       if (!result.success) {
-        setError(result.code === "otp_expired" ? "expired" : "failed");
+        setError(result.code === "otp_expired" ? "expired" : result.code === "otp_invalid" ? "incorrect" : "failed");
+        setDigits(Array(LENGTH).fill(""));
+        focus(0);
         return;
       }
       router.replace(safeRedirect(params.get("redirectTo"), loginStep ? "/" : "/organisation"));
       router.refresh();
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
   async function handleResend() {
     if (!email || cooldown > 0) return;
-    setCooldown(30);
+    setCooldown(60);
+    setError("");
     const result = loginStep
       ? await resendLoginCode(lang)
       : await resendSignupCode(email, lang, params.get("redirectTo") ?? undefined);
-    toast(result.success ? t.resent : result.code === "rate_limited" ? t.wait : t.resendFailed);
+    if (result.success) {
+      toast(t.resent);
+      setDigits(Array(LENGTH).fill(""));
+      focus(0);
+      return;
+    }
+    if (result.code === "rate_limited") toast(t.wait);
+    else if (result.code === "otp_expired") setError("expired");
+    else toast(t.resendFailed);
   }
 
   return (
-    <form className="auth-form center" id="otp-form" onSubmit={handleSubmit}>
+    <form className="auth-form center auth-otp-form" id="otp-form" onSubmit={handleSubmit}>
       <h1>{t.heading}</h1>
       <p className="sub">
         {t.sent}
@@ -174,6 +196,7 @@ export function OtpForm() {
           </span>
         </button>
       </p>
+      <p className="otp-note">{t.deliveryNote}</p>
       {toastNode}
     </form>
   );

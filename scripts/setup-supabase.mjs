@@ -75,6 +75,8 @@ const auth = {
   external_email_enabled: true,
   mailer_autoconfirm: false,
   mailer_otp_length: 6,
+  // Must match the 15-minute copy on /verification and aku-2fa cookie TTL.
+  mailer_otp_exp: 900,
   mailer_subjects_confirmation: "Votre code AK Universe : {{ .Token }}",
   mailer_templates_confirmation_content: template("confirm-signup.html"),
   mailer_subjects_recovery: "Réinitialisez votre mot de passe AK Universe",

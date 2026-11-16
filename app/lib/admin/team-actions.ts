@@ -102,6 +102,86 @@ export async function setStaffActive(id: string, active: boolean): Promise<Resul
   return { success: true };
 }
 
+/** First / last name of a sales rep (videographers use updateVideasteProfile). */
+export async function updateCommercialIdentity(
+  id: string,
+  input: { firstName: string; lastName: string },
+): Promise<Result> {
+  if (!(await isAdmin())) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const clean = (v: unknown, max: number) => {
+    const s = String(v ?? "").trim();
+    return s.length > max ? undefined : s || null;
+  };
+  const first_name = clean(input?.firstName, 80);
+  const last_name = clean(input?.lastName, 80);
+  if (first_name === undefined || last_name === undefined) return fail("invalid");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ first_name, last_name })
+    .eq("id", id)
+    .eq("role", "commercial")
+    .select("id");
+  if (error) {
+    console.error("updateCommercialIdentity failed:", error.message);
+    return fail("failed");
+  }
+  if (!data?.length) return fail("notFound");
+  revalidateTeam();
+  await audit("staff.profile", id);
+  return { success: true };
+}
+
+/**
+ * Removes a sales rep / videographer from the team: role back to `user`, staff fields cleared,
+ * project assignments cleared. The login account itself is kept (admin never creates accounts here).
+ */
+export async function removeStaffMember(id: string): Promise<Result> {
+  if (!(await isAdmin())) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+
+  const supabase = await createClient();
+  const { data: person } = await supabase.from("profiles").select("id, role").eq("id", id).maybeSingle();
+  if (!person || !ROLES.includes(person.role as StaffRole)) return fail("notFound");
+
+  const role = person.role as StaffRole;
+  if (role === "commercial") {
+    const { error: clearErr } = await supabase.from("video_projects").update({ commercial_id: null }).eq("commercial_id", id);
+    if (clearErr) {
+      console.error("removeStaffMember clear commercial failed:", clearErr.message);
+      return fail("failed");
+    }
+  } else {
+    const { error: clearErr } = await supabase.from("video_projects").update({ videaste_id: null }).eq("videaste_id", id);
+    if (clearErr) {
+      console.error("removeStaffMember clear videaste failed:", clearErr.message);
+      return fail("failed");
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      role: "user",
+      active: true,
+      commission_rate: null,
+      monthly_target_cents: null,
+    })
+    .eq("id", id)
+    .eq("role", role)
+    .select("id");
+  if (error) {
+    console.error("removeStaffMember failed:", error.message);
+    return fail("failed");
+  }
+  if (!data?.length) return fail("notFound");
+  revalidateTeam();
+  await audit("staff.remove", id, { previousRole: role });
+  return { success: true };
+}
+
 export type ProjectAssignment = {
   commercialId: string | null;
   videasteId: string | null;

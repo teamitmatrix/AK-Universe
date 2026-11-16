@@ -69,7 +69,7 @@ export default async function EquipePage() {
             </div>
           </div>
           <div className="adm-head-tools">
-            <AdminLangSwitch />
+            <AdminLangSwitch initialLang={lang} />
           </div>
         </header>
         <div className="adm-content">

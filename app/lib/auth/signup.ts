@@ -3,8 +3,8 @@
 import { emailConfigured } from "@/lib/email";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
-import { newEmailCode, sendAuthEmail } from "./emails";
-import { clearPendingLogin, getPendingLogin, setPendingLogin } from "./two-factor";
+import { newSignupCode, sendAuthEmail } from "./emails";
+import { clearPendingLogin, codeStillFresh, getPendingLogin, setPendingLogin } from "./two-factor";
 import { isStrongPassword } from "./password";
 import { safeRedirect } from "./redirect";
 
@@ -56,18 +56,30 @@ export async function signUp(input: SignupInput) {
 
   const sent = await sendAuthEmail("signup", data.user, data.properties.email_otp, input.lang);
   if (sent === "failed") return { success: false as const, code: "email_failed" };
+  // rate_limited on a brand-new sign-up is unexpected; still keep the pending cookie so verify can proceed
+  // if an earlier code for this address is still live.
   await setPendingLogin(data.user.id, email, false);
   return { success: true as const, needsVerification: true };
 }
 
 export async function verifySignupCode(email: string, token: string) {
+  const pending = await getPendingLogin();
+  // Pending cookie is the 15-minute clock for this browser; without it the flow must restart.
+  if (!pending) return { success: false as const, code: "otp_expired" };
+
+  const address = email.trim().toLowerCase();
+  if (pending.email !== address) return { success: false as const, code: "otp_invalid" };
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({
-    email: email.trim().toLowerCase(),
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: address,
     token: token.trim(),
     type: "email",
   });
-  if (error) return { success: false as const, code: error.code ?? "unknown" };
+  if (error || data.user?.id !== pending.uid) {
+    if (!error) await supabase.auth.signOut();
+    return { success: false as const, code: "otp_invalid" };
+  }
   await clearPendingLogin();
   return { success: true as const };
 }
@@ -88,8 +100,15 @@ export async function resendSignupCode(email: string, lang?: string, redirectTo?
   // Only the browser that just signed up may ask for a new code (no e-mail bombing of other addresses).
   const pending = await getPendingLogin();
   if (!pending) return { success: false as const, code: "otp_expired" };
+  if (codeStillFresh(pending)) return { success: false as const, code: "rate_limited" };
+
   const { data } = await createAdminClient().auth.admin.getUserById(pending.uid);
   if (!data.user) return { success: false as const, code: "unknown" };
-  const sent = await sendAuthEmail("signup", data.user, () => newEmailCode(pending.email), lang);
+
+  // Re-issue a signup confirmation OTP (no password needed for an existing unconfirmed user).
+  // Using type "signup" keeps the same token family as the original e-mail.
+  const sent = await sendAuthEmail("signup", data.user, () => newSignupCode(pending.email), lang);
+
+  if (sent === "sent") await setPendingLogin(pending.uid, pending.email, false);
   return sent === "sent" ? { success: true as const } : { success: false as const, code: sent };
 }

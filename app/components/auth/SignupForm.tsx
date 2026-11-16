@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { safeRedirect } from "@/lib/auth/redirect";
 import { signUp } from "@/lib/auth/signup";
 import { PASSWORD_RULES, isStrongPassword } from "@/lib/auth/password";
@@ -108,18 +108,21 @@ export function SignupForm() {
   const [error, setError] = useState<ErrorKey | OAuthError | "">("");
   const [lang] = useLang();
   const t = TEXT[textLang(lang)];
+  const submitting = useRef(false);
 
   const set = (key: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current || loading) return;
     setError("");
     if (!isStrongPassword(form.password)) {
       document.getElementById("pw")?.focus();
       toast(t.weakToast);
       return;
     }
+    submitting.current = true;
     setLoading(true);
     try {
       const result = await signUp({ ...form, lang, redirectTo: afterAuth });
@@ -137,6 +140,7 @@ export function SignupForm() {
     } catch {
       setError("failed");
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }

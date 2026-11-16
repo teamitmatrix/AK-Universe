@@ -23,7 +23,7 @@ import { dashTextFor, type DashText } from "./dashText";
 import { initialsOf } from "./initials";
 import { ProjectTable } from "./ProjectTable";
 import { CommerciauxRoster, VideastesRoster } from "./Roster";
-import { AddStaffButton, StaffSettings } from "./StaffManage";
+import { AddStaffButton, CommercialIdentityForm, StaffDetailActions, StaffSettings } from "./StaffManage";
 import { ProfileForm } from "@/components/videaste/ProfileForm";
 import { updateVideasteProfile } from "@/lib/admin/videaste-actions";
 import { NewTaskButton, type TaskOptions } from "./ToolsClient";
@@ -211,7 +211,12 @@ export function CommercialDetailView({
           roleLabel={c.cols.name}
           section={c.title}
           sectionHref="/admin/commerciaux"
-          action={active && taskOptions ? <NewTaskButton options={taskOptions} presetAssignee={person.id} label={toolsTextFor(lang).assignTask} ghost /> : undefined}
+          action={
+            <div className="adm-row-actions">
+              <StaffDetailActions id={person.id} name={name} role="commercial" listHref="/admin/commerciaux" />
+              {active && taskOptions ? <NewTaskButton options={taskOptions} presetAssignee={person.id} label={toolsTextFor(lang).assignTask} ghost /> : null}
+            </div>
+          }
         />
         {!data.migrated ? (
           <MigrationNote t={t} />
@@ -244,6 +249,22 @@ function CommercialDetailBody({
   const { row, person } = data;
   return (
     <>
+      <CommercialIdentityForm
+        id={person.id}
+        firstName={person.first_name ?? ""}
+        lastName={person.last_name ?? ""}
+        email={person.email}
+      />
+      <StaffSettings
+        id={person.id}
+        name={name}
+        role="commercial"
+        active={active}
+        targetCents={person.monthly_target_cents}
+        rate={person.commission_rate}
+        listHref="/admin/commerciaux"
+      />
+
       <section className="adm-kpis" aria-label="KPI">
         <Kpi hero Icon={Euro} label={d.caMonth} value={f.euros(row.caMonth)} />
         <Kpi Icon={ShoppingCart} label={d.salesMonth} value={f.num(row.salesMonth)} />
@@ -339,8 +360,6 @@ function CommercialDetailBody({
         </header>
         <ProjectTable t={t} f={f} projects={data.projects} statuses={statuses} today={today} empty={t.videastes.detail.noProjects} />
       </section>
-
-      <StaffSettings id={person.id} name={name} role="commercial" active={active} targetCents={person.monthly_target_cents} rate={person.commission_rate} />
     </>
   );
 }
@@ -375,13 +394,36 @@ export function VideasteDetailView({
           roleLabel={v.cols.name}
           section={v.title}
           sectionHref="/admin/videastes"
-          action={active && taskOptions ? <NewTaskButton options={taskOptions} presetAssignee={person.id} label={toolsTextFor(lang).assignTask} ghost /> : undefined}
+          action={
+            <div className="adm-row-actions">
+              <StaffDetailActions id={person.id} name={name} role="videaste" listHref="/admin/videastes" />
+              {active && taskOptions ? <NewTaskButton options={taskOptions} presetAssignee={person.id} label={toolsTextFor(lang).assignTask} ghost /> : null}
+            </div>
+          }
           extra={data.migrated ? <span className={`adm-badge ${LOAD_CLASS[data.row.load]}`}>{t.team.loads[data.row.load]}</span> : undefined}
         />
         {!data.migrated ? (
           <MigrationNote t={t} />
         ) : (
           <>
+            <section className="adm-card" id="adm-staff-edit" aria-labelledby="adm-vid-profile">
+              <header className="adm-card-head">
+                <h2 id="adm-vid-profile">{t.manage.profile}</h2>
+              </header>
+              <ProfileForm
+                initial={{
+                  firstName: person.first_name ?? "",
+                  lastName: person.last_name ?? "",
+                  phone: (person as { phone?: string | null }).phone ?? "",
+                  specialties: (person as { specialties?: string[] | null }).specialties ?? [],
+                }}
+                email={person.email}
+                save={updateVideasteProfile.bind(null, person.id)}
+                submitLabel={t.manage.save}
+              />
+            </section>
+            <StaffSettings id={person.id} name={name} role="videaste" active={active} listHref="/admin/videastes" />
+
             <section className="adm-kpis" aria-label="KPI">
               <Kpi hero Icon={Film} label={v.detail.active} value={f.num(data.row.activeProjects)} />
               <Kpi Icon={CircleCheck} label={v.detail.delivered} value={f.num(data.row.delivered)} />
@@ -407,22 +449,6 @@ export function VideasteDetailView({
                 empty={v.detail.noProjects}
               />
             </section>
-            <section className="adm-card" aria-labelledby="adm-vid-profile">
-              <header className="adm-card-head">
-                <h2 id="adm-vid-profile">Informations du vidéaste</h2>
-              </header>
-              <ProfileForm
-                initial={{
-                  firstName: person.first_name ?? "",
-                  lastName: person.last_name ?? "",
-                  phone: (person as { phone?: string | null }).phone ?? "",
-                  specialties: (person as { specialties?: string[] | null }).specialties ?? [],
-                }}
-                email={person.email}
-                save={updateVideasteProfile.bind(null, person.id)}
-              />
-            </section>
-            <StaffSettings id={person.id} name={name} role="videaste" active={active} />
           </>
         )}
       </div>

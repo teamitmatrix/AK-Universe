@@ -37,7 +37,7 @@ import { AdmShell } from "./AdmShell";
 import { FilterBar } from "./CrmClient";
 import { dashTextFor } from "./dashText";
 import { RevenueChart } from "./RevenueChart";
-import { AddStaffButton } from "./StaffManage";
+import { AddStaffButton, StaffOpenLink } from "./StaffManage";
 import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
 import type { loadCommissionRates } from "@/lib/admin/rates";
 import { toolsTextFor } from "./toolsText";
@@ -672,31 +672,49 @@ export function ParametresView({ lang, admin, data, tab }: { lang: Lang; admin: 
                       <th scope="col">{p.equipe.cols.name}</th>
                       <th scope="col">{p.equipe.cols.role}</th>
                       <th scope="col">{p.equipe.cols.status}</th>
+                      <th scope="col">{p.equipe.cols.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.team.map((m) => (
-                      <tr key={m.id}>
-                        <td data-label={p.equipe.cols.name}>
-                          <span className="adm-stack">
-                            {m.role === "admin" ? (
-                              <strong>{m.name}</strong>
+                    {data.team.map((m) => {
+                      const detailHref =
+                        m.role === "commercial"
+                          ? `/admin/commercial-detail?id=${m.id}`
+                          : m.role === "videaste"
+                            ? `/admin/videaste-detail?id=${m.id}`
+                            : null;
+                      return (
+                        <tr key={m.id}>
+                          <td data-label={p.equipe.cols.name}>
+                            <span className="adm-stack">
+                              {detailHref ? (
+                                <Link className="adm-person" href={detailHref} aria-label={`${p.equipe.open} — ${m.name}`}>
+                                  {m.name}
+                                </Link>
+                              ) : (
+                                <strong>{m.name}</strong>
+                              )}
+                              <span className="adm-person-mail">{m.email}</span>
+                            </span>
+                          </td>
+                          <td data-label={p.equipe.cols.role}>
+                            <span className={`adm-badge ${m.role === "admin" ? "is-info" : m.role === "videaste" ? "is-video" : "is-ok"}`}>{p.equipe.roles[m.role]}</span>
+                          </td>
+                          <td data-label={p.equipe.cols.status}>
+                            <span className={`adm-badge ${m.active ? "is-ok" : "is-muted"}`}>{m.active ? dt.team.active : dt.team.inactive}</span>
+                          </td>
+                          <td data-label={p.equipe.cols.actions}>
+                            {detailHref ? (
+                              <span className="adm-row-actions">
+                                <StaffOpenLink href={detailHref} label={p.equipe.edit} />
+                              </span>
                             ) : (
-                              <Link className="adm-person" href={`/admin/${m.role === "commercial" ? "commercial" : "videaste"}-detail?id=${m.id}`} aria-label={`${p.equipe.open} — ${m.name}`}>
-                                {m.name}
-                              </Link>
+                              "—"
                             )}
-                            <span className="adm-person-mail">{m.email}</span>
-                          </span>
-                        </td>
-                        <td data-label={p.equipe.cols.role}>
-                          <span className={`adm-badge ${m.role === "admin" ? "is-info" : m.role === "videaste" ? "is-video" : "is-ok"}`}>{p.equipe.roles[m.role]}</span>
-                        </td>
-                        <td data-label={p.equipe.cols.status}>
-                          <span className={`adm-badge ${m.active ? "is-ok" : "is-muted"}`}>{m.active ? dt.team.active : dt.team.inactive}</span>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

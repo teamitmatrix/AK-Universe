@@ -271,9 +271,10 @@ const TEXT = {
       equipe: {
         title: "Équipe & rôles",
         intro: "Les rôles se donnent à des comptes déjà inscrits. Les administrateurs se nomment dans Supabase (table profiles), jamais depuis le navigateur.",
-        cols: { name: "Membre", role: "Rôle", status: "Statut" },
+        cols: { name: "Membre", role: "Rôle", status: "Statut", actions: "Actions" },
         roles: { admin: "Administrateur", commercial: "Commercial", videaste: "Vidéaste" } as Record<string, string>,
         open: "Ouvrir la fiche",
+        edit: "Modifier",
       },
       notifications: {
         title: "Notifications par e-mail",
@@ -611,9 +612,10 @@ const TEXT = {
       equipe: {
         title: "Team & roles",
         intro: "Roles are given to already registered accounts. Administrators are appointed in Supabase (profiles table), never from the browser.",
-        cols: { name: "Member", role: "Role", status: "Status" },
+        cols: { name: "Member", role: "Role", status: "Status", actions: "Actions" },
         roles: { admin: "Administrator", commercial: "Sales rep", videaste: "Videographer" } as Record<string, string>,
         open: "Open profile",
+        edit: "Edit",
       },
       notifications: {
         title: "E-mail notifications",

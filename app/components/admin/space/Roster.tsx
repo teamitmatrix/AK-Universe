@@ -8,6 +8,7 @@ import { useLang } from "@/components/ui/LangSwitch";
 import type { CommercialRow, VideasteRow } from "@/lib/admin/team";
 import { dashTextFor } from "./dashText";
 import { initialsOf } from "./initials";
+import { StaffOpenLink } from "./StaffManage";
 
 type Dir = "asc" | "desc";
 type Col<R> = {
@@ -29,12 +30,16 @@ function RosterTable<R extends { id: string; name: string; email: string; active
   initialSort,
   href,
   openLabel,
+  actionsLabel,
+  editLabel,
 }: {
   rows: R[];
   cols: Col<R>[];
   initialSort: { key: string; dir: Dir };
   href: (r: R) => string;
   openLabel: (name: string) => string;
+  actionsLabel: string;
+  editLabel: string;
 }) {
   const [lang] = useLang();
   const t = dashTextFor(lang);
@@ -94,6 +99,7 @@ function RosterTable<R extends { id: string; name: string; email: string; active
                     </th>
                   );
                 })}
+                <th scope="col">{actionsLabel}</th>
               </tr>
             </thead>
             <tbody>
@@ -124,6 +130,11 @@ function RosterTable<R extends { id: string; name: string; email: string; active
                       )}
                     </td>
                   ))}
+                  <td data-label={actionsLabel}>
+                    <span className="adm-row-actions">
+                      <StaffOpenLink href={href(r)} label={editLabel} />
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -180,6 +191,8 @@ export function CommerciauxRoster({ rows }: { rows: CommercialRow[] }) {
       initialSort={{ key: "ca", dir: "desc" }}
       href={(r) => `/admin/commercial-detail?id=${r.id}`}
       openLabel={t.team.open}
+      actionsLabel={t.manage.actions}
+      editLabel={t.manage.openEdit}
     />
   );
 }
@@ -243,6 +256,8 @@ export function VideastesRoster({ rows, sortByLoad, hasRevisions }: { rows: Vide
       initialSort={sortByLoad ? { key: "load", dir: "desc" } : { key: "active", dir: "desc" }}
       href={(r) => `/admin/videaste-detail?id=${r.id}`}
       openLabel={t.team.open}
+      actionsLabel={t.manage.actions}
+      editLabel={t.manage.openEdit}
     />
   );
 }

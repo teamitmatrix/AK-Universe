@@ -11,7 +11,11 @@ import { cookies } from "next/headers";
 
 const PENDING = "aku-2fa";
 const TRUSTED = "aku-trusted";
-const PENDING_TTL = 15 * 60;
+
+/** How long a pending 2FA / sign-up verification stays usable (must match UI + Supabase mailer_otp_exp). */
+export const OTP_TTL_SEC = 15 * 60;
+/** Minimum gap before a new OTP may replace the previous one (matches e-mail rate limit). */
+export const OTP_RESEND_GAP_SEC = 60;
 const TRUSTED_TTL = 30 * 24 * 3600;
 
 function secret() {
@@ -48,15 +52,29 @@ const cookieOptions = (maxAge: number) => ({
   maxAge,
 });
 
-type Pending = { uid: string; email: string; remember: boolean; exp: number };
+export type PendingLogin = {
+  uid: string;
+  email: string;
+  remember: boolean;
+  /** Unix seconds when the last OTP for this pending flow was issued. */
+  issuedAt: number;
+  exp: number;
+};
 
-export async function setPendingLogin(uid: string, email: string, remember: boolean) {
-  const exp = Math.floor(Date.now() / 1000) + PENDING_TTL;
-  (await cookies()).set(PENDING, sign({ uid, email, remember, exp }), cookieOptions(PENDING_TTL));
+export async function setPendingLogin(uid: string, email: string, remember: boolean, issuedAt = Math.floor(Date.now() / 1000)) {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + OTP_TTL_SEC;
+  (await cookies()).set(PENDING, sign({ uid, email, remember, issuedAt, exp }), cookieOptions(OTP_TTL_SEC));
 }
 
 export async function getPendingLogin() {
-  return verify<Pending>((await cookies()).get(PENDING)?.value);
+  return verify<PendingLogin>((await cookies()).get(PENDING)?.value);
+}
+
+/** True when a code was issued recently enough that generating another would invalidate it. */
+export function codeStillFresh(pending: PendingLogin | null | undefined) {
+  if (!pending?.issuedAt) return false;
+  return Math.floor(Date.now() / 1000) - pending.issuedAt < OTP_RESEND_GAP_SEC;
 }
 
 export async function clearPendingLogin() {

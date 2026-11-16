@@ -46,7 +46,13 @@ export type TextLang = "fr" | "en";
 
 export const SOURCE_LANG: Lang = "fr";
 
+/** Same key as localStorage in LangSwitch — also written as a cookie so the server can read Admin EN/FR. */
+export const LANG_COOKIE = "aku-language";
+
 export const isLang = (value: unknown): value is Lang => LANGUAGES.some((l) => l.code === value);
+
+/** Admin / back-office copy: English when chosen, otherwise French. */
+export const toAdminLang = (value: unknown): TextLang => (value === "en" ? "en" : "fr");
 
 /** Locale used for dates and numbers in the admin space. */
 export const localeOf = (lang: string) => (lang === "en" ? "en-GB" : "fr-FR");

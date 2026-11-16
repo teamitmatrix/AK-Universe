@@ -140,7 +140,7 @@ export async function AdmShell({
               <input type="search" name="q" defaultValue={query} placeholder={tools.search.placeholder} aria-label={tools.search.label} minLength={2} maxLength={60} />
             </form>
             <CreateMenu options={taskOptions} />
-            <AdminLangSwitch />
+            <AdminLangSwitch initialLang={lang} />
           </div>
         </header>
         {children}

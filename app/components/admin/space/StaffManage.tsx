@@ -1,11 +1,18 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Power, X } from "lucide-react";
+import { Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { addStaffMember, setStaffActive, updateCommercialSettings } from "@/lib/admin/team-actions";
+import {
+  addStaffMember,
+  removeStaffMember,
+  setStaffActive,
+  updateCommercialIdentity,
+  updateCommercialSettings,
+} from "@/lib/admin/team-actions";
 import type { StaffRole } from "@/lib/admin/team";
 import { dashTextFor } from "./dashText";
 
@@ -73,6 +80,130 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
   );
 }
 
+/** Header shortcuts on the staff detail page: jump to edit + remove from team. */
+export function StaffDetailActions({
+  id,
+  name,
+  role,
+  listHref,
+}: {
+  id: string;
+  name: string;
+  role: StaffRole;
+  listHref: string;
+}) {
+  const [lang] = useLang();
+  const m = dashTextFor(lang).manage;
+
+  return (
+    <div className="adm-row-actions">
+      <a href="#adm-staff-edit" className="adm-btn is-ghost sm">
+        <Pencil size={14} aria-hidden="true" />
+        {m.edit}
+      </a>
+      <StaffRemoveButton id={id} name={name} role={role} listHref={listHref} />
+    </div>
+  );
+}
+
+function StaffRemoveButton({
+  id,
+  name,
+  role,
+  listHref,
+}: {
+  id: string;
+  name: string;
+  role: StaffRole;
+  listHref: string;
+}) {
+  const [lang] = useLang();
+  const t = dashTextFor(lang);
+  const m = t.manage;
+  const [pending, start] = useTransition();
+  const [toast, toastNode] = useToast();
+  const router = useRouter();
+
+  const remove = () => {
+    if (!window.confirm(m.deleteConfirm(name))) return;
+    start(async () => {
+      const res = await removeStaffMember(id);
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      toast(m.deleted);
+      router.push(listHref);
+      router.refresh();
+    });
+  };
+
+  return (
+    <>
+      <button type="button" className="adm-btn is-danger sm" onClick={remove} disabled={pending} data-role={role}>
+        <Trash2 size={14} aria-hidden="true" />
+        {pending ? m.deleting : m.delete}
+      </button>
+      {toastNode}
+    </>
+  );
+}
+
+/** Sales-rep name fields on the commercial detail page. */
+export function CommercialIdentityForm({
+  id,
+  firstName,
+  lastName,
+  email,
+}: {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}) {
+  const [lang] = useLang();
+  const t = dashTextFor(lang);
+  const m = t.manage;
+  const [first, setFirst] = useState(firstName);
+  const [last, setLast] = useState(lastName);
+  const [pending, start] = useTransition();
+  const [toast, toastNode] = useToast();
+  const router = useRouter();
+
+  const save = (e: React.FormEvent) => {
+    e.preventDefault();
+    start(async () => {
+      const res = await updateCommercialIdentity(id, { firstName: first, lastName: last });
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      toast(m.saved);
+      router.refresh();
+    });
+  };
+
+  return (
+    <section className="adm-card" id="adm-staff-edit" aria-labelledby="adm-identity-title">
+      <header className="adm-card-head">
+        <h2 id="adm-identity-title">{m.profile}</h2>
+      </header>
+      <form className="adm-form-row" onSubmit={save}>
+        <label className="adm-field">
+          <span>{m.firstName}</span>
+          <input maxLength={80} value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" />
+        </label>
+        <label className="adm-field">
+          <span>{m.lastName}</span>
+          <input maxLength={80} value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" />
+        </label>
+        <label className="adm-field">
+          <span>{m.email}</span>
+          <input value={email} readOnly disabled />
+        </label>
+        <button type="submit" className="adm-btn" disabled={pending}>
+          {pending ? m.saving : m.save}
+        </button>
+      </form>
+      {toastNode}
+    </section>
+  );
+}
+
 /** Detail page panel: sales target + commission rate (commercial) and account activation (both teams). */
 export function StaffSettings({
   id,
@@ -81,6 +212,8 @@ export function StaffSettings({
   active,
   targetCents,
   rate,
+  listHref,
+  anchorEdit,
 }: {
   id: string;
   name: string;
@@ -88,6 +221,9 @@ export function StaffSettings({
   active: boolean;
   targetCents?: number | null;
   rate?: number | null;
+  listHref: string;
+  /** When true, this card is the #adm-staff-edit target (videographers: profile form is separate). */
+  anchorEdit?: boolean;
 }) {
   const [lang] = useLang();
   const t = dashTextFor(lang);
@@ -119,7 +255,7 @@ export function StaffSettings({
   };
 
   return (
-    <section className="adm-card" aria-labelledby="adm-settings-title">
+    <section className="adm-card" id={anchorEdit ? "adm-staff-edit" : undefined} aria-labelledby="adm-settings-title">
       <header className="adm-card-head">
         <h2 id="adm-settings-title">{m.settings}</h2>
       </header>
@@ -138,13 +274,24 @@ export function StaffSettings({
           </button>
         </form>
       )}
-      <div>
+      <div className="adm-row-actions">
         <button type="button" className={`adm-btn ${active ? "is-danger" : "is-ghost"}`} onClick={toggleActive} disabled={pending}>
           <Power size={15} aria-hidden="true" />
           {active ? m.deactivate : m.reactivate}
         </button>
+        <StaffRemoveButton id={id} name={name} role={role} listHref={listHref} />
       </div>
       {toastNode}
     </section>
+  );
+}
+
+/** Compact roster / settings-table links to the staff detail page. */
+export function StaffOpenLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className="adm-btn is-ghost sm">
+      <Pencil size={14} aria-hidden="true" />
+      {label}
+    </Link>
   );
 }

@@ -26,6 +26,7 @@ import { ConversionFunnel } from "./ConversionFunnel";
 import { RevenueChart } from "./RevenueChart";
 import { dashTextFor, type DashText } from "./dashText";
 import { initialsOf } from "./initials";
+import { StaffOpenLink } from "./StaffManage";
 import { Delta, Kpi, LOAD_CLASS, MigrationNote, formatters, type Fmt } from "./ui";
 import { localeOf, type Lang } from "@/config/languages";
 import { PERIODS, type DashboardData } from "@/lib/admin/dashboard";
@@ -96,6 +97,7 @@ function CommerciauxCard({ t, rows, f }: { t: DashText; rows: DashboardData["com
                 <th scope="col" className="num">{t.team.conversion}</th>
                 <th scope="col">{t.team.target}</th>
                 <th scope="col" className="num">{t.team.commission}</th>
+                <th scope="col">{t.manage.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -124,6 +126,9 @@ function CommerciauxCard({ t, rows, f }: { t: DashText; rows: DashboardData["com
                     )}
                   </td>
                   <td data-label={t.team.commission} className="num">{r.commissionMonth === null ? "—" : f.euros(r.commissionMonth)}</td>
+                  <td data-label={t.manage.actions}>
+                    <StaffOpenLink href={`/admin/commercial-detail?id=${r.id}`} label={t.manage.openEdit} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -160,6 +165,7 @@ function VideastesCard({ t, rows, f }: { t: DashText; rows: DashboardData["videa
                 <th scope="col" className="num">{t.team.delivered}</th>
                 <th scope="col" className="num">{t.team.late}</th>
                 <th scope="col">{t.team.load}</th>
+                <th scope="col">{t.manage.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -176,6 +182,9 @@ function VideastesCard({ t, rows, f }: { t: DashText; rows: DashboardData["videa
                   <td data-label={t.team.late} className="num">{f.num(r.late)}</td>
                   <td data-label={t.team.load}>
                     <span className={`adm-badge ${LOAD_CLASS[r.load]}`}>{t.team.loads[r.load]}</span>
+                  </td>
+                  <td data-label={t.manage.actions}>
+                    <StaffOpenLink href={`/admin/videaste-detail?id=${r.id}`} label={t.manage.openEdit} />
                   </td>
                 </tr>
               ))}
