@@ -18,6 +18,10 @@ const INLINE_SWITCH = [
 /** Back-office: Admin ships its own French/English copy; /equipe is staff-only. */
 const NO_SWITCH = ["/admin", "/equipe"];
 const isBackOffice = (path: string) => NO_SWITCH.some((p) => path === p || path.startsWith(`${p}/`));
+/** Hand-written English: Google Translate is not loaded there when English is chosen. */
+const NATIVE_ENGLISH = ["/connexion", "/inscription", "/verification", "/organisation", "/auth/reset-password"];
+const hasNativeEnglish = (path: string) =>
+  NATIVE_ENGLISH.includes(path) || path === "/admin" || path.startsWith("/admin/");
 
 declare global {
   interface Window {
@@ -101,8 +105,9 @@ export function SiteTranslator() {
   useEffect(() => {
     if (lang === SOURCE_LANG) return;
     setTranslateCookie(lang);
+    if (lang === "en" && hasNativeEnglish(pathname)) return;
     loadGoogleTranslate();
-  }, [lang]);
+  }, [lang, pathname]);
 
   const floating = !INLINE_SWITCH.includes(pathname) && !isBackOffice(pathname);
 

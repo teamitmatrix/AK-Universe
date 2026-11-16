@@ -130,6 +130,7 @@ export async function AdmShell({
           <Pencil size={14} className="adm-me-edit" aria-hidden="true" />
         </Link>
         <form action="/auth/signout" method="post" className="adm-logout">
+          <input type="hidden" name="redirectTo" value="/connexion" />
           <button type="submit" title={tools.me.logout}>
             <LogOut size={16} aria-hidden="true" />
             <span>{tools.me.logout}</span>

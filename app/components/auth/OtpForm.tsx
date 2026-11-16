@@ -23,6 +23,7 @@ const TEXT = {
     resend: "Renvoyer un code",
     deliveryNote:
       "Le code peut mettre 1 à 2 minutes à arriver. Patientez, puis réessayez « Renvoyer un code » si besoin.",
+    spamNote: "Code non reçu ? Pensez à vérifier vos spams ou courriers indésirables.",
     incomplete: "Saisissez les 6 chiffres du code.",
     resent: "Un nouveau code a été envoyé.",
     resendFailed: "Impossible d'envoyer un nouveau code pour le moment.",
@@ -43,6 +44,7 @@ const TEXT = {
     expires: "The code expires after 15 minutes.",
     resend: "Resend a code",
     deliveryNote: "The code may take 1–2 minutes to arrive. Wait, then try “Resend a code” again if needed.",
+    spamNote: "Didn't get the code? Check your spam or junk folder.",
     incomplete: "Enter all 6 digits of the code.",
     resent: "A new code has been sent.",
     resendFailed: "Unable to send a new code right now.",
@@ -251,6 +253,7 @@ export function OtpForm() {
         </button>
       </p>
       <p className="otp-note">{t.deliveryNote}</p>
+      <p className="otp-note">{t.spamNote}</p>
       {toastNode}
     </form>
   );
