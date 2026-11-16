@@ -16,7 +16,20 @@ const PROTECTED_ROUTES = [
 /** Signed-in users are sent away from these. */
 const GUEST_ONLY_ROUTES = ["/connexion", "/inscription"];
 
+function isServerAction(request: NextRequest) {
+  return request.method === "POST" && Boolean(request.headers.get("next-action"));
+}
+
 export async function proxy(request: NextRequest) {
+  // Server Actions POST to the current page and expect a pure RSC payload
+  // (`text/x-component`). Refreshing Supabase cookies or redirecting here
+  // corrupts that response → 502 Bad Gateway behind nginx / reverse proxies
+  // and "An unexpected response was received from the server" in the browser.
+  // Auth for actions is enforced inside each action / page instead.
+  if (isServerAction(request)) {
+    return NextResponse.next({ request });
+  }
+
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 

@@ -63,25 +63,30 @@ export async function signUp(input: SignupInput) {
 }
 
 export async function verifySignupCode(email: string, token: string) {
-  const pending = await getPendingLogin();
-  // Pending cookie is the 15-minute clock for this browser; without it the flow must restart.
-  if (!pending) return { success: false as const, code: "otp_expired" };
+  try {
+    const pending = await getPendingLogin();
+    // Pending cookie is the 15-minute clock for this browser; without it the flow must restart.
+    if (!pending) return { success: false as const, code: "otp_expired" };
 
-  const address = email.trim().toLowerCase();
-  if (pending.email !== address) return { success: false as const, code: "otp_invalid" };
+    const address = email.trim().toLowerCase();
+    if (pending.email !== address) return { success: false as const, code: "otp_invalid" };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: address,
-    token: token.trim(),
-    type: "email",
-  });
-  if (error || data.user?.id !== pending.uid) {
-    if (!error) await supabase.auth.signOut();
-    return { success: false as const, code: "otp_invalid" };
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: address,
+      token: token.trim(),
+      type: "email",
+    });
+    if (error || data.user?.id !== pending.uid) {
+      if (!error) await supabase.auth.signOut();
+      return { success: false as const, code: "otp_invalid" };
+    }
+    await clearPendingLogin();
+    return { success: true as const };
+  } catch (cause) {
+    console.error("verifySignupCode failed", cause);
+    return { success: false as const, code: "unknown" };
   }
-  await clearPendingLogin();
-  return { success: true as const };
 }
 
 export async function resendSignupCode(email: string, lang?: string, redirectTo?: string) {
@@ -97,18 +102,23 @@ export async function resendSignupCode(email: string, lang?: string, redirectTo?
     return error ? { success: false as const, code: error.code ?? "unknown" } : { success: true as const };
   }
 
-  // Only the browser that just signed up may ask for a new code (no e-mail bombing of other addresses).
-  const pending = await getPendingLogin();
-  if (!pending) return { success: false as const, code: "otp_expired" };
-  if (codeStillFresh(pending)) return { success: false as const, code: "rate_limited" };
+  try {
+    // Only the browser that just signed up may ask for a new code (no e-mail bombing of other addresses).
+    const pending = await getPendingLogin();
+    if (!pending) return { success: false as const, code: "otp_expired" };
+    if (codeStillFresh(pending)) return { success: false as const, code: "rate_limited" };
 
-  const { data } = await createAdminClient().auth.admin.getUserById(pending.uid);
-  if (!data.user) return { success: false as const, code: "unknown" };
+    const { data } = await createAdminClient().auth.admin.getUserById(pending.uid);
+    if (!data.user) return { success: false as const, code: "unknown" };
 
-  // Re-issue a signup confirmation OTP (no password needed for an existing unconfirmed user).
-  // Using type "signup" keeps the same token family as the original e-mail.
-  const sent = await sendAuthEmail("signup", data.user, () => newSignupCode(pending.email), lang);
+    // Re-issue a signup confirmation OTP (no password needed for an existing unconfirmed user).
+    // Using type "signup" keeps the same token family as the original e-mail.
+    const sent = await sendAuthEmail("signup", data.user, () => newSignupCode(pending.email), lang);
 
-  if (sent === "sent") await setPendingLogin(pending.uid, pending.email, false);
-  return sent === "sent" ? { success: true as const } : { success: false as const, code: sent };
+    if (sent === "sent") await setPendingLogin(pending.uid, pending.email, false);
+    return sent === "sent" ? { success: true as const } : { success: false as const, code: sent };
+  } catch (cause) {
+    console.error("resendSignupCode failed", cause);
+    return { success: false as const, code: "unknown" };
+  }
 }
