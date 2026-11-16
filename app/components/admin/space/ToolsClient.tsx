@@ -13,7 +13,7 @@ import { saveCommissionRates } from "@/lib/admin/rates-actions";
 import { PRODUCT_TYPES } from "@/lib/commercial/commission-rules";
 import { PERSON_NOTIFICATION_IDS, TEAM_NOTIFICATION_IDS, type TeamNotifications } from "@/lib/notification-ids";
 import { createPromotion, setPromotionActive, type NewPromotion } from "@/lib/admin/promotions-actions";
-import { saveCompany, saveNotifications, updateMyProfile } from "@/lib/admin/settings-actions";
+import { changeMyPassword, saveCompany, saveNotifications, updateMyProfile } from "@/lib/admin/settings-actions";
 import { createTask, deleteTask, setTaskDone } from "@/lib/admin/tasks-actions";
 import { toolsTextFor } from "./toolsText";
 
@@ -782,7 +782,7 @@ export function LibraryGrid({
 // Paramètres
 // =========================================================
 
-export function ProfileForm({ firstName, lastName }: { firstName: string; lastName: string }) {
+export function ProfileForm({ firstName, lastName, phone: initialPhone }: { firstName: string; lastName: string; phone: string }) {
   const { t } = useT();
   const p = t.parametres.profil;
   const router = useRouter();
@@ -790,13 +790,14 @@ export function ProfileForm({ firstName, lastName }: { firstName: string; lastNa
   const [pending, start] = useTransition();
   const [first, setFirst] = useState(firstName);
   const [last, setLast] = useState(lastName);
+  const [phone, setPhone] = useState(initialPhone);
   return (
     <form
       className="adm-form-grid"
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const res = await updateMyProfile({ firstName: first, lastName: last });
+          const res = await updateMyProfile({ firstName: first, lastName: last, phone });
           if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
           toast(t.common.saved);
           router.refresh();
@@ -805,16 +806,71 @@ export function ProfileForm({ firstName, lastName }: { firstName: string; lastNa
     >
       <label className="adm-field">
         <span>{p.first}</span>
-        <input value={first} maxLength={80} onChange={(e) => setFirst(e.target.value)} />
+        <input value={first} maxLength={80} autoComplete="given-name" onChange={(e) => setFirst(e.target.value)} />
       </label>
       <label className="adm-field">
         <span>{p.last}</span>
-        <input value={last} maxLength={80} onChange={(e) => setLast(e.target.value)} />
+        <input value={last} maxLength={80} autoComplete="family-name" onChange={(e) => setLast(e.target.value)} />
+      </label>
+      <label className="adm-field">
+        <span>{p.phone}</span>
+        <input type="tel" value={phone} maxLength={40} autoComplete="tel" onChange={(e) => setPhone(e.target.value)} />
       </label>
       <div className="adm-form-actions">
         <button type="submit" className="adm-btn" disabled={pending}>
           <Check size={15} aria-hidden="true" />
           {pending ? t.common.saving : t.common.save}
+        </button>
+      </div>
+      {toastNode}
+    </form>
+  );
+}
+
+export function PasswordForm() {
+  const { t } = useT();
+  const p = t.parametres.profil.password;
+  const [toast, toastNode] = useToast();
+  const [pending, start] = useTransition();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  return (
+    <form
+      className="adm-form-grid"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (next !== confirm) return toast(p.mismatch);
+        start(async () => {
+          const res = await changeMyPassword({ current, next });
+          if (!res.success) {
+            const { error } = res;
+            return toast(error === "wrongCurrent" || error === "weak" || error === "same" ? p[error] : (t.errors[error] ?? t.errors.failed));
+          }
+          setCurrent("");
+          setNext("");
+          setConfirm("");
+          toast(p.done);
+        });
+      }}
+    >
+      <label className="adm-field is-wide">
+        <span>{p.current}</span>
+        <input type="password" required value={current} autoComplete="current-password" onChange={(e) => setCurrent(e.target.value)} />
+      </label>
+      <label className="adm-field">
+        <span>{p.next}</span>
+        <input type="password" required minLength={8} maxLength={72} value={next} autoComplete="new-password" onChange={(e) => setNext(e.target.value)} />
+      </label>
+      <label className="adm-field">
+        <span>{p.confirm}</span>
+        <input type="password" required minLength={8} maxLength={72} value={confirm} autoComplete="new-password" onChange={(e) => setConfirm(e.target.value)} />
+      </label>
+      <p className="adm-muted adm-small is-wide">{p.rules}</p>
+      <div className="adm-form-actions">
+        <button type="submit" className="adm-btn" disabled={pending}>
+          <Check size={15} aria-hidden="true" />
+          {pending ? t.common.saving : p.submit}
         </button>
       </div>
       {toastNode}

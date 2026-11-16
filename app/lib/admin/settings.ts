@@ -33,6 +33,7 @@ export async function loadSettings() {
     profile: {
       firstName: (profile?.first_name as string | null) ?? "",
       lastName: (profile?.last_name as string | null) ?? "",
+      phone: (profile?.phone as string | null) ?? "",
       email: (profile?.email as string | undefined) ?? me?.email ?? "",
       lastSignIn: me?.last_sign_in_at ?? null,
     },

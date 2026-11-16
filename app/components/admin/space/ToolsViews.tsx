@@ -38,7 +38,7 @@ import { FilterBar } from "./CrmClient";
 import { dashTextFor } from "./dashText";
 import { RevenueChart } from "./RevenueChart";
 import { AddStaffButton, StaffOpenLink } from "./StaffManage";
-import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
+import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, PasswordForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
 import type { loadCommissionRates } from "@/lib/admin/rates";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, PageHead, formatters } from "./ui";
@@ -622,7 +622,7 @@ export function ParametresView({ lang, admin, data, tab }: { lang: Lang; admin: 
           {tab === "profil" && (
             <>
               <h2 className="adm-subhead">{p.profil.title}</h2>
-              <ProfileForm firstName={data.profile.firstName} lastName={data.profile.lastName} />
+              <ProfileForm firstName={data.profile.firstName} lastName={data.profile.lastName} phone={data.profile.phone} />
               <dl className="adm-dl">
                 <div>
                   <dt>{p.profil.email}</dt>
@@ -644,6 +644,10 @@ export function ParametresView({ lang, admin, data, tab }: { lang: Lang; admin: 
                   </div>
                 )}
               </dl>
+              <h2 className="adm-subhead">
+                <KeyRound size={16} aria-hidden="true" /> {p.profil.password.title}
+              </h2>
+              <PasswordForm />
             </>
           )}
 

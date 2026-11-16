@@ -36,3 +36,12 @@ export async function homePathFor(uid: string) {
   const { data } = await createAdminClient().from("organization_members").select("organization_id").eq("user_id", uid).limit(1);
   return data?.length ? "/entreprise/dashboard" : "/dashboard";
 }
+
+/** Default landing after sign-in when no redirectTo was requested: staff go to their space, clients to the home page. */
+export async function landingPathFor(uid: string) {
+  const profile = await profileOf(uid);
+  if (profile?.active !== false && ["admin", "commercial", "videaste"].includes(profile?.role ?? "")) {
+    return (await homePathFor(uid)) ?? "/";
+  }
+  return "/";
+}

@@ -13,6 +13,8 @@ import {
   Film,
   FolderOpen,
   LayoutDashboard,
+  LogOut,
+  Pencil,
   Percent,
   Search,
   Settings,
@@ -116,7 +118,7 @@ export async function AdmShell({
             {t.nav.site}
           </Link>
         </nav>
-        <div className="adm-me">
+        <Link href="/admin/parametres" className="adm-me" title={tools.me.edit} aria-label={`${tools.me.edit} — ${admin.name}`}>
           <span className="adm-avatar" aria-hidden="true">
             {initialsOf(admin.name)}
           </span>
@@ -125,7 +127,14 @@ export async function AdmShell({
             <small>{admin.email}</small>
             <em>{t.adminRole}</em>
           </span>
-        </div>
+          <Pencil size={14} className="adm-me-edit" aria-hidden="true" />
+        </Link>
+        <form action="/auth/signout" method="post" className="adm-logout">
+          <button type="submit" title={tools.me.logout}>
+            <LogOut size={16} aria-hidden="true" />
+            <span>{tools.me.logout}</span>
+          </button>
+        </form>
       </aside>
       <div className="adm-main">
         <header className="adm-head">

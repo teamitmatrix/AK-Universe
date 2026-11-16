@@ -145,7 +145,7 @@ export function LoginScreen() {
         );
         return;
       }
-      const next = safeRedirect(params.get("redirectTo"));
+      const next = safeRedirect(params.get("redirectTo"), result.home);
       if (result.step === "code") {
         // Two-factor: the 6-digit code was e-mailed (Resend).
         router.push(`/verification?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
