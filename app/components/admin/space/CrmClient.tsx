@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Calculator, CheckCheck, Search, Wallet } from "lucide-react";
 import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { assignProspect, generateCommissions, recordBalance, setCommissionStatus } from "@/lib/admin/finance-actions";
+import { assignProspect, assignSubscriptionCommercial, bulkMarkCommissionsPaid, generateCommissions, recordBalance, setCommissionStatus } from "@/lib/admin/finance-actions";
 import { dashTextFor } from "./dashText";
 
 type Option = { value: string; label: string };
@@ -74,6 +74,44 @@ export function FilterBar({ fields, search }: { fields: Field[]; search?: { name
         </button>
       )}
     </form>
+  );
+}
+
+/** Assign the sales rep earning recurring commissions on a subscription. */
+export function SubscriptionAssign({ subscriptionId, value, reps }: { subscriptionId: string; value: string | null; reps: Option[] }) {
+  const [lang] = useLang();
+  const t = dashTextFor(lang).crm;
+  const [current, setCurrent] = useState(value ?? "");
+  const [pending, start] = useTransition();
+  const [toast, toastNode] = useToast();
+  const router = useRouter();
+
+  const change = (next: string) => {
+    const previous = current;
+    setCurrent(next);
+    start(async () => {
+      const res = await assignSubscriptionCommercial(subscriptionId, next || null);
+      if (!res.success) {
+        setCurrent(previous);
+        return toast(t.errors[res.error] ?? t.errors.failed);
+      }
+      toast(t.prospects.assigned);
+      router.refresh();
+    });
+  };
+
+  return (
+    <>
+      <select className="adm-select sm" value={current} disabled={pending} aria-label={t.filters.allReps} onChange={(e) => change(e.target.value)}>
+        <option value="">{t.filters.unassigned}</option>
+        {reps.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
+      {toastNode}
+    </>
   );
 }
 
@@ -202,6 +240,161 @@ export function GenerateCommissionsButton({ count }: { count: number }) {
         <Calculator size={16} aria-hidden="true" />
         {t.commissions.generate(count)}
       </button>
+      {toastNode}
+    </>
+  );
+}
+
+type CommissionBoardRow = {
+  id: string;
+  date: string;
+  commercialId: string;
+  commercial: string;
+  reference: string;
+  client: string;
+  saleLabel: string;
+  amountLabel: string;
+  status: string;
+  statusLabel: string;
+  paidLabel: string;
+};
+
+const COMMISSION_CLASS: Record<string, string> = {
+  en_attente: "is-warn",
+  validee: "is-info",
+  a_payer: "is-warn",
+  payee: "is-ok",
+};
+
+/** Commission board with row selection + bulk “mark paid” for rows in status à payer. */
+export function CommissionBoardTable({
+  rows,
+  labels,
+  selectAllLabel,
+  selectRowLabel,
+}: {
+  rows: CommissionBoardRow[];
+  labels: { date: string; commercial: string; sale: string; saleAmount: string; amount: string; status: string; actions: string };
+  selectAllLabel: string;
+  selectRowLabel: string;
+}) {
+  const [lang] = useLang();
+  const t = dashTextFor(lang).crm;
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [pending, start] = useTransition();
+  const [toast, toastNode] = useToast();
+  const router = useRouter();
+  const payableIds = rows.filter((r) => r.status === "a_payer").map((r) => r.id);
+  const selectedPayable = payableIds.filter((id) => selected.has(id));
+  const allPayableSelected = payableIds.length > 0 && payableIds.every((id) => selected.has(id));
+
+  const toggle = (id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+  const toggleAllPayable = (on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of payableIds) {
+        if (on) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const bulkPay = () => {
+    if (!selectedPayable.length || !window.confirm(t.commissions.bulkPayConfirm(selectedPayable.length))) return;
+    start(async () => {
+      const res = await bulkMarkCommissionsPaid(selectedPayable);
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      toast(t.commissions.bulkPaid(res.updated));
+      setSelected(new Set());
+      router.refresh();
+    });
+  };
+
+  return (
+    <>
+      {payableIds.length > 0 && (
+        <div className="adm-toolbar">
+          <label className="adm-check">
+            <input type="checkbox" checked={allPayableSelected} onChange={(e) => toggleAllPayable(e.target.checked)} />
+            <span>{selectAllLabel}</span>
+          </label>
+          <button type="button" className="adm-btn" onClick={bulkPay} disabled={pending || selectedPayable.length === 0}>
+            <CheckCheck size={16} aria-hidden="true" />
+            {t.commissions.bulkPay(selectedPayable.length)}
+          </button>
+        </div>
+      )}
+      <div className="adm-table-wrap">
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th scope="col" className="adm-check-col">
+                <span className="sr-only">{selectRowLabel}</span>
+              </th>
+              <th scope="col">{labels.date}</th>
+              <th scope="col">{labels.commercial}</th>
+              <th scope="col">{labels.sale}</th>
+              <th scope="col" className="num">
+                {labels.saleAmount}
+              </th>
+              <th scope="col" className="num">
+                {labels.amount}
+              </th>
+              <th scope="col">{labels.status}</th>
+              <th scope="col">{labels.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td data-label={selectRowLabel}>
+                  {r.status === "a_payer" ? (
+                    <input type="checkbox" checked={selected.has(r.id)} onChange={(e) => toggle(r.id, e.target.checked)} aria-label={selectRowLabel} />
+                  ) : (
+                    <span className="adm-muted">—</span>
+                  )}
+                </td>
+                <td data-label={labels.date}>{r.date}</td>
+                <td data-label={labels.commercial}>
+                  <a href={`/admin/commercial-detail?id=${r.commercialId}`} className="adm-person">
+                    {r.commercial}
+                  </a>
+                </td>
+                <td data-label={labels.sale}>
+                  <span className="adm-stack">
+                    <strong>{r.reference}</strong>
+                    <span className="adm-person-mail">{r.client}</span>
+                  </span>
+                </td>
+                <td data-label={labels.saleAmount} className="num">
+                  {r.saleLabel}
+                </td>
+                <td data-label={labels.amount} className="num">
+                  <strong>{r.amountLabel}</strong>
+                </td>
+                <td data-label={labels.status}>
+                  <span className={`adm-badge ${COMMISSION_CLASS[r.status] ?? "is-info"}`}>{r.statusLabel}</span>
+                </td>
+                <td data-label={labels.actions}>
+                  {r.status === "payee" ? (
+                    <span className="adm-muted adm-small">{r.paidLabel}</span>
+                  ) : (
+                    <CommissionAction id={r.id} status={r.status} amountLabel={r.amountLabel} commercial={r.commercial} />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {toastNode}
     </>
   );

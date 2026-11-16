@@ -25,7 +25,16 @@ type Payment = {
   created_at: string;
   stripe_object_id: string | null;
 };
-type Subscription = { id: string; user_id: string; plan: string; cycle: string; status: string; monthly_total_cents: number; created_at: string };
+type Subscription = {
+  id: string;
+  user_id: string;
+  plan: string;
+  cycle: string;
+  status: string;
+  monthly_total_cents: number;
+  created_at: string;
+  commercial_id?: string | null;
+};
 type Person = { id: string; email: string; first_name: string | null; last_name: string | null };
 
 const DAY = 86_400_000;
@@ -46,14 +55,35 @@ async function loadContext() {
   const [{ projects, level }, paymentsRes, subsRes, staffRes, commissionsRes] = await Promise.all([
     selectProjects(supabase, { extra: "items" }, 5000),
     supabase.from("payments").select("id, user_id, kind, subscription_id, project_id, amount_cents, status, created_at, stripe_object_id").order("created_at", { ascending: false }).limit(10000),
-    supabase.from("subscriptions").select("id, user_id, plan, cycle, status, monthly_total_cents, created_at").limit(10000),
+    supabase.from("subscriptions").select("id, user_id, plan, cycle, status, monthly_total_cents, created_at, commercial_id").limit(10000),
     supabase.from("profiles").select("*").eq("role", "commercial").order("first_name"),
-    supabase.from("commissions").select("id, commercial_id, project_id, amount_cents, status, created_at, validated_at, paid_at").order("created_at", { ascending: false }).limit(10000),
+    supabase.from("commissions").select("id, commercial_id, project_id, subscription_id, payment_id, amount_cents, status, created_at, validated_at, paid_at").order("created_at", { ascending: false }).limit(10000),
   ]);
-  const payments = ((paymentsRes.data ?? []) as Payment[]).filter((p) => p.status === "paid");
-  const subs = (subsRes.data ?? []) as Subscription[];
+  const payments = ((paymentsRes.data ?? []) as Payment[]).filter((p) => p.status === "paid" || p.status === "complete");
+  // Before migration 014, commercial_id is absent — fall back without it.
+  const subs = (
+    subsRes.error && /commercial_id/.test(subsRes.error.message)
+      ? ((await supabase.from("subscriptions").select("id, user_id, plan, cycle, status, monthly_total_cents, created_at").limit(10000)).data ?? [])
+      : (subsRes.data ?? [])
+  ) as Subscription[];
   const commerciaux = (staffRes.data ?? []) as StaffProfile[];
-  const commissions = commissionsRes.error ? null : ((commissionsRes.data ?? []) as (Commission & { validated_at: string | null; paid_at: string | null })[]);
+  const commissionsFallback =
+    commissionsRes.error && /payment_id/.test(commissionsRes.error.message)
+      ? await supabase
+          .from("commissions")
+          .select("id, commercial_id, project_id, subscription_id, amount_cents, status, created_at, validated_at, paid_at")
+          .order("created_at", { ascending: false })
+          .limit(10000)
+      : null;
+  const commissionsSource = commissionsFallback ?? commissionsRes;
+  const commissions = commissionsSource.error
+    ? null
+    : ((commissionsSource.data ?? []) as (Commission & {
+        validated_at: string | null;
+        paid_at: string | null;
+        subscription_id?: string | null;
+        payment_id?: string | null;
+      })[]);
 
   // Names of subscription clients (accounts), fetched only for the accounts concerned.
   const userIds = [...new Set([...subs.map((s) => s.user_id), ...payments.map((p) => p.user_id).filter((x): x is string => !!x)])];
@@ -82,6 +112,7 @@ async function loadContext() {
     commercialName: new Map(commerciaux.map((c) => [c.id, displayName(c)])),
     commissions,
     commissionByProject: new Map((commissions ?? []).filter((c) => c.project_id).map((c) => [c.project_id!, c])),
+    commissionByPayment: new Map((commissions ?? []).filter((c) => c.payment_id).map((c) => [c.payment_id!, c])),
     people,
     collectedByProject,
     firstPaymentByProject,
@@ -330,6 +361,7 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
     id: string;
     projectId: string | null;
     documentId: string | null;
+    subscriptionId: string | null;
     customerId: string | null;
     date: string;
     reference: string;
@@ -351,6 +383,7 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
       id: `p:${p.id}`,
       projectId: p.id,
       documentId: null,
+      subscriptionId: null,
       customerId: null,
       // The sale happens when the deposit is paid; older rows fall back to the request date.
       date: ctx.firstPaymentByProject.get(p.id) ?? p.created_at,
@@ -369,22 +402,25 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
   for (const pay of ctx.payments) {
     if (pay.kind !== "subscription") continue;
     const sub = pay.subscription_id ? ctx.subsById.get(pay.subscription_id) : undefined;
+    const repId = sub?.commercial_id ?? null;
+    const commission = ctx.commissionByPayment.get(pay.id);
     sales.push({
       id: `s:${pay.id}`,
       projectId: null,
       documentId: null,
+      subscriptionId: sub?.id ?? pay.subscription_id,
       customerId: null,
       date: pay.created_at,
       reference: sub ? `${sub.plan} · ${sub.cycle}` : "—",
       type: "abonnement",
-      commercialId: null,
-      commercial: null,
+      commercialId: repId,
+      commercial: repId ? (ctx.commercialName.get(repId) ?? "—") : null,
       client: personName(ctx, pay.user_id),
       product: sub ? `Agents IA — ${sub.plan} (${sub.cycle})` : "Agents IA",
       amountCents: pay.amount_cents,
       collectedCents: pay.amount_cents,
       remainingCents: 0,
-      commissionCents: null,
+      commissionCents: commission?.amount_cents ?? null,
     });
   }
   for (const doc of (invoiceRes.error ? [] : (invoiceRes.data ?? [])) as {
@@ -403,6 +439,7 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
       id: `f:${doc.id}`,
       projectId: null,
       documentId: doc.id,
+      subscriptionId: null,
       customerId: doc.customer_id,
       date: `${doc.issue_date}T12:00:00`,
       reference: doc.number ?? "—",
@@ -631,56 +668,79 @@ export async function loadCustomerRecord(id: string) {
 
 // ---------- Commissions ----------
 
-export type CommissionFilter = { status: "" | "en_attente" | "validee" | "a_payer" | "payee"; commercial: string };
+export const COMMISSION_PERIODS = ["", "mois", "mois-precedent", "30j", "12m"] as const;
+export type CommissionPeriod = (typeof COMMISSION_PERIODS)[number];
+export type CommissionFilter = {
+  status: "" | "en_attente" | "validee" | "a_payer" | "payee";
+  commercial: string;
+  period: CommissionPeriod;
+};
 
-export async function loadCommissionBoard(filter: CommissionFilter) {
+export async function loadCommissionBoard(filter: CommissionFilter, now = new Date()) {
   const ctx = await loadContext();
   if (!ctx.commissions || ctx.level === "none") return { migrated: false as const };
   const projectById = new Map(ctx.projects.map((p) => [p.id, p]));
   // Commissions of invoices issued in the sales space (migration 012): read separately so the board keeps working before it.
   const supabase = await createClient();
-  const { data: docLinks } = await supabase.from("commissions").select("id, document_id").not("document_id", "is", null).limit(10000);
-  const docIds = [...new Set((docLinks ?? []).map((l) => l.document_id as string))];
+  const { data: docLinks } = await supabase.from("commissions").select("id, document_id, subscription_id, payment_id").limit(10000);
+  const docIds = [...new Set((docLinks ?? []).map((l) => l.document_id as string).filter(Boolean))];
   const { data: docs } = docIds.length ? await supabase.from("sales_documents").select("id, number, client_name, total_ht_cents").in("id", docIds) : { data: [] };
   const docById = new Map((docs ?? []).map((d) => [d.id as string, d]));
-  const docOf = new Map((docLinks ?? []).map((l) => [l.id as string, docById.get(l.document_id as string)]));
+  const docOf = new Map((docLinks ?? []).filter((l) => l.document_id).map((l) => [l.id as string, docById.get(l.document_id as string)]));
+  const subOf = new Map((docLinks ?? []).filter((l) => l.subscription_id).map((l) => [l.id as string, l.subscription_id as string]));
   const all = ctx.commissions.map((c) => {
     const project = c.project_id ? projectById.get(c.project_id) : undefined;
     const doc = c.id ? docOf.get(c.id) : undefined;
+    const subId = c.id ? subOf.get(c.id) : (c as { subscription_id?: string | null }).subscription_id ?? undefined;
+    const sub = subId ? ctx.subsById.get(subId) : undefined;
     return {
       id: c.id!,
       date: c.created_at,
       commercialId: c.commercial_id,
       commercial: ctx.commercialName.get(c.commercial_id) ?? "—",
-      reference: project?.reference ?? (doc?.number as string | undefined) ?? "—",
-      client: project ? projectClient(project) : ((doc?.client_name as string | undefined) ?? "—"),
-      saleCents: project?.total_cents ?? (doc ? Number(doc.total_ht_cents) : null),
+      reference:
+        project?.reference ??
+        (doc?.number as string | undefined) ??
+        (sub ? `${sub.plan} · ${sub.cycle}` : "—"),
+      client: project ? projectClient(project) : ((doc?.client_name as string | undefined) ?? (sub ? personName(ctx, sub.user_id) : "—")),
+      saleCents: project?.total_cents ?? (doc ? Number(doc.total_ht_cents) : sub ? sub.monthly_total_cents : null),
       amountCents: c.amount_cents,
       status: c.status,
       validatedAt: c.validated_at,
       paidAt: c.paid_at,
     };
   });
-  const by = (status: string) => all.filter((c) => c.status === status);
+  const [from, to] = filter.period ? periodBounds(filter.period, now) : [null, null];
+  const inPeriod = (iso: string) => {
+    const t = new Date(iso).getTime();
+    if (from && t < from.getTime()) return false;
+    if (to && t >= to.getTime()) return false;
+    return true;
+  };
 
   // Paid sales with a rep but no commission yet: what "Calculer les commissions" would create.
   const rateOf = new Map(ctx.commerciaux.map((c) => [c.id, c.commission_rate ?? null]));
   const missing = ctx.projects.filter((p) => PAID.has(p.status) && p.commercial_id && !ctx.commissionByProject.has(p.id));
 
+  const rows = all
+    .filter((c) => !filter.status || c.status === filter.status)
+    .filter((c) => matchRep(filter.commercial, c.commercialId))
+    .filter((c) => !filter.period || inPeriod(c.date));
+
   return {
     migrated: true as const,
     reps: repOptions(ctx),
     kpis: {
-      totalCents: sum(all, (c) => c.amountCents),
-      pending: { count: by("en_attente").length, cents: sum(by("en_attente"), (c) => c.amountCents) },
-      validated: { count: by("validee").length, cents: sum(by("validee"), (c) => c.amountCents) },
-      toPay: { count: by("a_payer").length, cents: sum(by("a_payer"), (c) => c.amountCents) },
-      paid: { count: by("payee").length, cents: sum(by("payee"), (c) => c.amountCents) },
+      totalCents: sum(rows, (c) => c.amountCents),
+      pending: { count: rows.filter((c) => c.status === "en_attente").length, cents: sum(rows.filter((c) => c.status === "en_attente"), (c) => c.amountCents) },
+      validated: { count: rows.filter((c) => c.status === "validee").length, cents: sum(rows.filter((c) => c.status === "validee"), (c) => c.amountCents) },
+      toPay: { count: rows.filter((c) => c.status === "a_payer").length, cents: sum(rows.filter((c) => c.status === "a_payer"), (c) => c.amountCents) },
+      paid: { count: rows.filter((c) => c.status === "payee").length, cents: sum(rows.filter((c) => c.status === "payee"), (c) => c.amountCents) },
     },
     missing: {
       ready: missing.filter((p) => rateOf.get(p.commercial_id!) != null).length,
       noRate: missing.filter((p) => rateOf.get(p.commercial_id!) == null).length,
     },
-    rows: all.filter((c) => !filter.status || c.status === filter.status).filter((c) => matchRep(filter.commercial, c.commercialId)),
+    rows,
   };
 }

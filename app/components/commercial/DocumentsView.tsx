@@ -16,7 +16,7 @@ import {
   type DocStatus,
   type ProductType,
 } from "@/lib/commercial/commission-rules";
-import { deleteSalesDocument, invoiceFromQuote, saveSalesDocument, setSalesDocumentStatus, type DocInput, type LineInput } from "@/lib/commercial/sales-doc-actions";
+import { collectSalesDocument, deleteSalesDocument, invoiceFromQuote, saveSalesDocument, setSalesDocumentStatus, type DocInput, type LineInput } from "@/lib/commercial/sales-doc-actions";
 import type { SalesDoc } from "@/lib/commercial/sales-docs";
 
 /*
@@ -39,7 +39,7 @@ const STATUS_FILTERS: { id: "" | DocStatus; label: string }[] = [
 const STATUS_CLASS: Record<DocStatus, string> = { brouillon: "is-muted", en_attente: "is-info", validee: "is-ok", payee: "is-ok", annulee: "is-danger" };
 const ACTION_LABEL: Record<DocKind, Partial<Record<DocStatus, string>>> = {
   devis: { en_attente: "Marquer envoyé", validee: "Marquer accepté", annulee: "Marquer refusé", brouillon: "Repasser en brouillon" },
-  facture: { en_attente: "Émettre", payee: "Marquer payée", brouillon: "Repasser en brouillon" },
+  facture: { en_attente: "Émettre", payee: "Encaisser", brouillon: "Repasser en brouillon" },
 };
 const ERRORS: Record<string, string> = {
   forbidden: "Accès refusé.",
@@ -84,7 +84,19 @@ export function DocumentsView({ docs, catalogue, rates, clients, initialNew, ini
     });
 
   const changeStatus = (d: SalesDoc, to: DocStatus) => {
-    if (to === "payee" && !window.confirm(`Confirmer que la facture ${d.number} (${euros(d.totalTtcCents)}) est encaissée ? La commission sera enregistrée « en attente » de validation par l'administrateur.`)) return;
+    if (to === "payee") {
+      const remaining = Math.max(0, d.totalHtCents - d.amountPaidCents) / 100;
+      const raw = window.prompt(
+        `Montant HT encaissé pour ${d.number} (reste ${euros(Math.max(0, d.totalHtCents - d.amountPaidCents))} / total HT ${euros(d.totalHtCents)}).\nLa commission est calculée sur le montant réellement encaissé.`,
+        remaining > 0 ? remaining.toFixed(2).replace(".", ",") : (d.totalHtCents / 100).toFixed(2).replace(".", ","),
+      );
+      if (raw === null) return;
+      run(async () => {
+        const res = await collectSalesDocument(d.id, raw);
+        return res.success ? { success: true as const } : res;
+      }, "Encaissement enregistré.");
+      return;
+    }
     run(() => setSalesDocumentStatus(d.id, to), "Statut mis à jour.");
   };
 
@@ -152,7 +164,12 @@ export function DocumentsView({ docs, catalogue, rates, clients, initialNew, ini
                         {euros(d.totalTtcCents)}
                       </td>
                       <td data-label="Commission" className="num">
-                        {euros(d.commissionCents)}
+                        <span className="adm-stack">
+                          <strong>{euros(d.commissionCents)}</strong>
+                          {d.kind === "facture" && d.amountPaidCents > 0 && d.amountPaidCents < d.totalHtCents && (
+                            <span className="adm-person-mail">Encaissé HT {euros(d.amountPaidCents)}</span>
+                          )}
+                        </span>
                       </td>
                       <td data-label="Statut">
                         <span className={`adm-badge ${STATUS_CLASS[d.status]}`}>{DOC_STATUS_LABELS[d.kind][d.status]}</span>
@@ -265,6 +282,7 @@ function DocumentModal({
       productType: l.product_type,
       unitEuros: String(l.unit_cents / 100),
       qty: String(l.qty),
+      fixedCommissionEuros: l.fixed_commission_cents != null ? String(l.fixed_commission_cents / 100) : "",
     })),
   );
   const [pick, setPick] = useState("");
@@ -288,15 +306,21 @@ function DocumentModal({
   const addCatalogue = () => {
     const item = byId.get(pick);
     if (!item) return;
-    setLines((ls) => [...ls, { key: ++lineKey, catalogueId: item.id, label: item.label, productType: item.productType, unitEuros: String(item.unitCents / 100), qty: "1" }]);
+    setLines((ls) => [...ls, { key: ++lineKey, catalogueId: item.id, label: item.label, productType: item.productType, unitEuros: String(item.unitCents / 100), qty: "1", fixedCommissionEuros: "" }]);
     setPick("");
   };
-  const addCustom = () => setLines((ls) => [...ls, { key: ++lineKey, catalogueId: null, label: "", productType: "prestations", unitEuros: "", qty: "1" }]);
+  const addCustom = () => setLines((ls) => [...ls, { key: ++lineKey, catalogueId: null, label: "", productType: "prestations", unitEuros: "", qty: "1", fixedCommissionEuros: "" }]);
 
   // Preview only — the database recomputes the same figures from commission_rates when saving.
   const htCents = lines.reduce((s, l) => s + Math.round(num(l.qty) * num(l.unitEuros) * 100), 0);
   const vatCents = Math.round((htCents * VAT_RATE) / 100);
-  const commissionCents = Math.round(lines.reduce((s, l) => s + num(l.qty) * num(l.unitEuros) * 100 * ((rates[l.productType as ProductType] ?? 10) / 100), 0));
+  const commissionCents = Math.round(
+    lines.reduce((s, l) => {
+      const fixedRaw = String(l.fixedCommissionEuros ?? "").trim();
+      if (fixedRaw !== "") return s + Math.round(num(fixedRaw) * 100);
+      return s + num(l.qty) * num(l.unitEuros) * 100 * ((rates[l.productType as ProductType] ?? 10) / 100);
+    }, 0),
+  );
 
   const chooseClient = (name: string) => {
     const c = clients.find((x) => x.name === name);
@@ -458,8 +482,17 @@ function DocumentModal({
                       />
                       <span>€</span>
                     </label>
-                    <span className="com-rate" title="Taux de commission calculé automatiquement selon le type de produit (non modifiable)">
-                      <Lock size={12} aria-hidden="true" /> {rates[type] ?? 10} %
+                    <label className="com-fixed" title="Commission fixe (€) — laissez vide pour appliquer le taux du type de produit">
+                      <input
+                        aria-label="Commission fixe (€)"
+                        inputMode="decimal"
+                        placeholder="Fixe €"
+                        value={l.fixedCommissionEuros ?? ""}
+                        onChange={(e) => updateLine(l.key, { fixedCommissionEuros: e.target.value })}
+                      />
+                    </label>
+                    <span className="com-rate" title={String(l.fixedCommissionEuros ?? "").trim() ? "Commission fixe saisie pour cette ligne" : "Taux de commission selon le type de produit"}>
+                      <Lock size={12} aria-hidden="true" /> {String(l.fixedCommissionEuros ?? "").trim() ? "Fixe" : `${rates[type] ?? 10} %`}
                     </span>
                     <button type="button" className="adm-icon-btn sm com-danger" aria-label={`Retirer la ligne ${l.label || ""}`} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
                       <Trash2 size={14} />
@@ -486,7 +519,7 @@ function DocumentModal({
           </div>
         </div>
         <p className="com-commission-note">
-          <Lock size={13} aria-hidden="true" /> Commission estimée : <strong>{euros(commissionCents)}</strong> — taux verrouillé par type de produit, versée sur le montant réellement encaissé.
+          <Lock size={13} aria-hidden="true" /> Commission estimée : <strong>{euros(commissionCents)}</strong> — taux par type de produit (ou commission fixe sur la ligne), versée sur le montant HT réellement encaissé.
         </p>
 
         <label className="adm-field">

@@ -8,7 +8,18 @@ import type { CommercialMe } from "./session";
  * Totals, VAT and commission come from the database (recomputed by a trigger from the lines and commission_rates).
  */
 
-export type DocLine = { catalogue_id: string | null; label: string; detail: string; product_type: ProductType; qty: number; unit_cents: number; rate: number; total_cents: number };
+export type DocLine = {
+  catalogue_id: string | null;
+  label: string;
+  detail: string;
+  product_type: ProductType;
+  qty: number;
+  unit_cents: number;
+  rate: number;
+  /** Flat fee for the line (cents); when set, replaces the percentage commission for that line. */
+  fixed_commission_cents: number | null;
+  total_cents: number;
+};
 export type SalesDoc = {
   id: string;
   number: string;
@@ -25,16 +36,30 @@ export type SalesDoc = {
   totalHtCents: number;
   totalTtcCents: number;
   commissionCents: number;
+  /** HT already collected (partial or full). Migration 014. */
+  amountPaidCents: number;
   notes: string | null;
   quoteId: string | null;
   paidAt: string | null;
   createdAt: string;
 };
 
-const COLUMNS =
+const COLUMNS_BASE =
   "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, notes, quote_id, paid_at, created_at";
+const COLUMNS = `${COLUMNS_BASE}, amount_paid_cents`;
 
 type Row = Record<string, unknown>;
+const toLine = (l: Record<string, unknown>): DocLine => ({
+  catalogue_id: (l.catalogue_id as string | null) ?? null,
+  label: String(l.label ?? ""),
+  detail: String(l.detail ?? ""),
+  product_type: l.product_type as ProductType,
+  qty: Number(l.qty ?? 0),
+  unit_cents: Number(l.unit_cents ?? 0),
+  rate: Number(l.rate ?? 0),
+  fixed_commission_cents: l.fixed_commission_cents == null || l.fixed_commission_cents === "" ? null : Number(l.fixed_commission_cents),
+  total_cents: Number(l.total_cents ?? 0),
+});
 export const toDoc = (r: Row): SalesDoc => ({
   id: r.id as string,
   number: (r.number as string) ?? "—",
@@ -46,11 +71,12 @@ export const toDoc = (r: Row): SalesDoc => ({
   clientAddress: (r.client_address as string | null) ?? null,
   issueDate: r.issue_date as string,
   dueDate: (r.due_date as string | null) ?? null,
-  lines: (r.lines as DocLine[]) ?? [],
+  lines: Array.isArray(r.lines) ? (r.lines as Record<string, unknown>[]).map(toLine) : [],
   vatRate: Number(r.vat_rate ?? 20),
   totalHtCents: Number(r.total_ht_cents ?? 0),
   totalTtcCents: Number(r.total_ttc_cents ?? 0),
   commissionCents: Number(r.commission_cents ?? 0),
+  amountPaidCents: Number(r.amount_paid_cents ?? 0),
   notes: (r.notes as string | null) ?? null,
   quoteId: (r.quote_id as string | null) ?? null,
   paidAt: (r.paid_at as string | null) ?? null,
@@ -68,7 +94,14 @@ export async function loadRates(): Promise<Record<ProductType, number>> {
 
 export async function loadSalesDocs(me: CommercialMe) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("sales_documents").select(COLUMNS).eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(1000);
+  const primary = await supabase.from("sales_documents").select(COLUMNS).eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(1000);
+  // Before migration 014 the amount_paid_cents column does not exist yet.
+  const fallback =
+    primary.error && /amount_paid_cents/.test(primary.error.message)
+      ? await supabase.from("sales_documents").select(COLUMNS_BASE).eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(1000)
+      : null;
+  const data = fallback?.data ?? primary.data;
+  const error = fallback ? fallback.error : primary.error;
   if (error) return { ready: false as const };
   const docs = (data ?? []).map((r) => toDoc(r as Row));
   const quotes = docs.filter((d) => d.kind === "devis");
@@ -89,8 +122,11 @@ export async function loadSalesDocs(me: CommercialMe) {
 /** One of the rep's documents, or null (not theirs / does not exist). */
 export async function loadSalesDoc(me: CommercialMe, id: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).eq("salesperson_id", me.id).maybeSingle();
-  return data ? toDoc(data as Row) : null;
+  let { data, error } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).eq("salesperson_id", me.id).maybeSingle();
+  if (error && /amount_paid_cents/.test(error.message)) {
+    ({ data, error } = await supabase.from("sales_documents").select(COLUMNS_BASE).eq("id", id).eq("salesperson_id", me.id).maybeSingle());
+  }
+  return !error && data ? toDoc(data as Row) : null;
 }
 
 /**
@@ -99,8 +135,11 @@ export async function loadSalesDoc(me: CommercialMe, id: string) {
  */
 export async function loadSalesDocById(id: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).maybeSingle();
-  return data ? toDoc(data as Row) : null;
+  let { data, error } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).maybeSingle();
+  if (error && /amount_paid_cents/.test(error.message)) {
+    ({ data, error } = await supabase.from("sales_documents").select(COLUMNS_BASE).eq("id", id).maybeSingle());
+  }
+  return !error && data ? toDoc(data as Row) : null;
 }
 
 /** The rep's customers (converted prospects), offered to pre-fill the client block. */

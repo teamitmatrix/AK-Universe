@@ -23,7 +23,15 @@ const revalidate = () => {
   for (const path of ["/commercial/devis-factures", "/commercial/mes-ventes", "/commercial/mes-commissions", "/commercial/mes-clients", "/commercial/dashboard"]) revalidatePath(path);
 };
 
-export type LineInput = { catalogueId: string | null; label: string; productType: string; unitEuros: string; qty: string };
+export type LineInput = {
+  catalogueId: string | null;
+  label: string;
+  productType: string;
+  unitEuros: string;
+  qty: string;
+  /** Optional flat commission in euros for the line (empty = use the product-type %). */
+  fixedCommissionEuros?: string;
+};
 export type DocInput = {
   kind: DocKind;
   clientName: string;
@@ -65,15 +73,30 @@ async function parse(input: DocInput) {
   for (const l of input.lines) {
     const qty = Number(String(l.qty ?? "").replace(",", "."));
     if (!Number.isFinite(qty) || qty <= 0 || qty > 10000) return null;
+    const fixedRaw = String(l.fixedCommissionEuros ?? "").trim().replace(/\s/g, "").replace(",", ".");
+    let fixed_commission_cents: number | null = null;
+    if (fixedRaw !== "") {
+      const fixed = Number(fixedRaw);
+      if (!Number.isFinite(fixed) || fixed < 0 || fixed > 1_000_000) return null;
+      fixed_commission_cents = Math.round(fixed * 100);
+    }
     if (l.catalogueId) {
       const item = catalogue.get(l.catalogueId);
       if (!item) return null;
-      lines.push({ catalogue_id: item.id, label: item.label, detail: item.detail.slice(0, 300), product_type: item.productType, qty, unit_cents: item.unitCents });
+      lines.push({
+        catalogue_id: item.id,
+        label: item.label,
+        detail: item.detail.slice(0, 300),
+        product_type: item.productType,
+        qty,
+        unit_cents: item.unitCents,
+        fixed_commission_cents,
+      });
     } else {
       const label = text(l.label, 200);
       const price = Number(String(l.unitEuros ?? "").replace(/\s/g, "").replace(",", "."));
       if (!label || !isProductType(l.productType) || !Number.isFinite(price) || price < 0 || price > 1_000_000) return null;
-      lines.push({ catalogue_id: null, label, detail: "", product_type: l.productType, qty, unit_cents: Math.round(price * 100) });
+      lines.push({ catalogue_id: null, label, detail: "", product_type: l.productType, qty, unit_cents: Math.round(price * 100), fixed_commission_cents });
     }
   }
   return {
@@ -146,15 +169,18 @@ export async function setSalesDocumentStatus(id: string, to: DocStatus): Promise
   if (!me) return fail("forbidden");
   if (!isUuid(id)) return fail("invalid");
   const supabase = await createClient();
-  const { data: current } = await supabase.from("sales_documents").select("status, kind").eq("id", id).eq("salesperson_id", me.id).maybeSingle();
+  const { data: current } = await supabase.from("sales_documents").select("status, kind, total_ht_cents").eq("id", id).eq("salesperson_id", me.id).maybeSingle();
   if (!current) return fail("notFound");
   const allowed = DOC_TRANSITIONS[current.kind as DocKind]?.[current.status as DocStatus] ?? [];
   if (!allowed.includes(to)) return fail("transition");
+  // Full collection shortcut: marking "payee" without a partial amount means the whole HT was collected.
+  const update: Record<string, unknown> = { status: to };
+  if (to === "payee") update.amount_paid_cents = Number(current.total_ht_cents ?? 0);
   // `.eq("status", current.status)`: a stale screen cannot skip a step.
-  const { data, error } = await supabase.from("sales_documents").update({ status: to }).eq("id", id).eq("salesperson_id", me.id).eq("status", current.status).select("id, number, client_name, total_ht_cents");
+  const { data, error } = await supabase.from("sales_documents").update(update).eq("id", id).eq("salesperson_id", me.id).eq("status", current.status).select("id, number, client_name, total_ht_cents");
   if (error) {
     console.error("setSalesDocumentStatus failed:", error.message);
-    return fail(/document_locked/.test(error.message) ? "locked" : "failed");
+    return fail(/document_locked/.test(error.message) ? "locked" : /amount_paid/.test(error.message) ? "failed" : "failed");
   }
   if (!data?.length) return fail("transition");
   if (to === "en_attente" && current.kind === "devis") {
@@ -163,6 +189,52 @@ export async function setSalesDocumentStatus(id: string, to: DocStatus): Promise
   }
   revalidate();
   return { success: true };
+}
+
+/**
+ * Records HT collected on an invoice (partial or full). Commission is recomputed by the DB trigger on
+ * amount_paid_cents (handoff: commission = amount actually collected × rate). Full collection flips status to payee.
+ */
+export async function collectSalesDocument(id: string, amountHtEuros: string): Promise<{ success: true; paid: boolean } | Fail> {
+  const me = await getCommercial();
+  if (!me) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const amount = Number(String(amountHtEuros ?? "").trim().replace(/\s/g, "").replace(",", "."));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) return fail("invalid");
+  const addCents = Math.round(amount * 100);
+
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("sales_documents")
+    .select("status, kind, total_ht_cents, amount_paid_cents")
+    .eq("id", id)
+    .eq("salesperson_id", me.id)
+    .maybeSingle();
+  if (!current || current.kind !== "facture") return fail("notFound");
+  if (current.status !== "en_attente" && current.status !== "payee") return fail("transition");
+
+  const total = Number(current.total_ht_cents ?? 0);
+  const already = Number(current.amount_paid_cents ?? 0);
+  const nextPaid = Math.min(total, already + addCents);
+  if (nextPaid <= already && current.status === "payee") return fail("invalid");
+
+  const update: Record<string, unknown> = { amount_paid_cents: nextPaid };
+  if (nextPaid >= total && total > 0) update.status = "payee";
+
+  const { data, error } = await supabase
+    .from("sales_documents")
+    .update(update)
+    .eq("id", id)
+    .eq("salesperson_id", me.id)
+    .eq("status", current.status)
+    .select("id");
+  if (error) {
+    console.error("collectSalesDocument failed:", error.message);
+    return fail(/amount_paid|column/.test(error.message) ? "failed" : "failed");
+  }
+  if (!data?.length) return fail("transition");
+  revalidate();
+  return { success: true, paid: nextPaid >= total && total > 0 };
 }
 
 /** Accepted (or sent) quote → new draft invoice with the same lines; the quote becomes "accepté". */

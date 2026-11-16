@@ -23,7 +23,7 @@ import { dashTextFor, type DashText } from "./dashText";
 import { initialsOf } from "./initials";
 import { ProjectTable } from "./ProjectTable";
 import { CommerciauxRoster, VideastesRoster } from "./Roster";
-import { AddStaffButton, StaffSettings } from "./StaffManage";
+import { AddStaffButton, CommercialProfileForm, StaffSettings } from "./StaffManage";
 import { ProfileForm } from "@/components/videaste/ProfileForm";
 import { updateVideasteProfile } from "@/lib/admin/videaste-actions";
 import { NewTaskButton, type TaskOptions } from "./ToolsClient";
@@ -340,6 +340,13 @@ function CommercialDetailBody({
         <ProjectTable t={t} f={f} projects={data.projects} statuses={statuses} today={today} empty={t.videastes.detail.noProjects} />
       </section>
 
+      <CommercialProfileForm
+        id={person.id}
+        firstName={person.first_name ?? ""}
+        lastName={person.last_name ?? ""}
+        phone={(person as { phone?: string | null }).phone ?? ""}
+        email={person.email}
+      />
       <StaffSettings id={person.id} name={name} role="commercial" active={active} targetCents={person.monthly_target_cents} rate={person.commission_rate} />
     </>
   );

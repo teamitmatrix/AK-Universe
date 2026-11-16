@@ -9,7 +9,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 /*
  * Stripe → Supabase sync. Configure in the Stripe dashboard:
  *   endpoint  https://<domain>/api/stripe/webhook
- *   events    checkout.session.completed, customer.subscription.updated, customer.subscription.deleted
+ *   events    checkout.session.completed, customer.subscription.updated,
+ *             customer.subscription.deleted, invoice.paid
  */
 
 const SUBSCRIPTION_STATUS: Partial<Record<Stripe.Subscription.Status, string>> = {
@@ -67,16 +68,22 @@ export async function POST(request: Request) {
             current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
           })
           .eq("id", meta.subscription_id);
-        await db.from("payments").insert({
-          kind: "subscription",
-          user_id: meta.user_id ?? null,
-          subscription_id: meta.subscription_id,
-          amount_cents: session.amount_total ?? 0,
-          currency: session.currency ?? "eur",
-          status: session.payment_status,
-          stripe_event_id: event.id,
-          stripe_object_id: session.id,
-        });
+        const { data: payment } = await db
+          .from("payments")
+          .insert({
+            kind: "subscription",
+            user_id: meta.user_id ?? null,
+            subscription_id: meta.subscription_id,
+            amount_cents: session.amount_total ?? 0,
+            currency: session.currency ?? "eur",
+            status: session.payment_status,
+            stripe_event_id: event.id,
+            stripe_object_id: session.id,
+          })
+          .select("id")
+          .single();
+        // Recurring commission (abonnements rate) when a sales rep is linked to the subscription / customer.
+        if (payment?.id) await db.rpc("ensure_subscription_commission", { p_payment_id: payment.id });
       }
 
       if (meta.kind === "deposit" && meta.project_id && session.payment_status === "paid") {
@@ -130,6 +137,43 @@ export async function POST(request: Request) {
           current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
         })
         .eq("stripe_subscription_id", sub.id);
+      break;
+    }
+
+    case "invoice.paid": {
+      // Renewals (and sometimes the first invoice): record a subscription payment + commission.
+      const invoice = event.data.object as Stripe.Invoice & {
+        subscription?: string | { id: string } | null;
+        parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null;
+      };
+      if (invoice.billing_reason === "subscription_create") break; // first payment already handled by checkout.session.completed
+      const subRef =
+        invoice.subscription ??
+        invoice.parent?.subscription_details?.subscription ??
+        null;
+      const stripeSubId = typeof subRef === "string" ? subRef : subRef?.id;
+      if (!stripeSubId || !invoice.amount_paid) break;
+      const { data: sub } = await db.from("subscriptions").select("id, user_id").eq("stripe_subscription_id", stripeSubId).maybeSingle();
+      if (!sub) break;
+      const { data: payment, error: payErr } = await db
+        .from("payments")
+        .insert({
+          kind: "subscription",
+          user_id: sub.user_id,
+          subscription_id: sub.id,
+          amount_cents: invoice.amount_paid,
+          currency: invoice.currency ?? "eur",
+          status: "paid",
+          stripe_event_id: event.id,
+          stripe_object_id: invoice.id,
+        })
+        .select("id")
+        .single();
+      if (payErr || !payment?.id) {
+        // Unique stripe_event_id → already processed; ignore.
+        break;
+      }
+      await db.rpc("ensure_subscription_commission", { p_payment_id: payment.id });
       break;
     }
   }

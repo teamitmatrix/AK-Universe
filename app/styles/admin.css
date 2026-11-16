@@ -2162,3 +2162,6 @@ td > .adm-badge:first-child {
 .adm-check input {
   accent-color: var(--adm-accent);
 }
+.adm-check-col {
+  width: 2.5rem;
+}

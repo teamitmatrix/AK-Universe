@@ -4,6 +4,7 @@ import {
   Building2,
   CircleCheck,
   Clock,
+  Download,
   Euro,
   FileText,
   Hourglass,
@@ -29,7 +30,7 @@ import type {
 } from "@/lib/admin/crm";
 import { LEDGER_PERIODS, UNASSIGNED } from "@/lib/admin/crm";
 import { AdmShell } from "./AdmShell";
-import { CommissionAction, FilterBar, GenerateCommissionsButton, RecordBalanceButton } from "./CrmClient";
+import { CommissionBoardTable, FilterBar, GenerateCommissionsButton, RecordBalanceButton, SubscriptionAssign } from "./CrmClient";
 import { dashTextFor, type DashText } from "./dashText";
 import { Kpi, MigrationNote, PageHead, formatters } from "./ui";
 
@@ -71,7 +72,6 @@ function CardHead({ Icon, title, count }: { Icon: typeof Users; title: string; c
 
 const STAGE_CLASS: Record<string, string> = { nouveau: "is-info", contacte: "is-info", qualifie: "is-info", devis_envoye: "is-warn", negociation: "is-warn", gagne: "is-ok", perdu: "is-muted" };
 const DOC_CLASS: Record<string, string> = { brouillon: "is-muted", en_attente: "is-warn", validee: "is-ok", payee: "is-ok", annulee: "is-muted" };
-const COMMISSION_CLASS: Record<string, string> = { en_attente: "is-warn", validee: "is-info", a_payer: "is-info", payee: "is-ok" };
 
 // ---------- Clients ----------
 
@@ -368,7 +368,13 @@ export function VentesView({ lang, admin, data, filter }: { lang: Lang; admin: A
                       </td>
                       <td data-label={v.cols.product}>{r.product}</td>
                       <td data-label={v.cols.commercial}>
-                        {r.commercialId ? (
+                        {r.type === "abonnement" && r.subscriptionId ? (
+                          <SubscriptionAssign
+                            subscriptionId={r.subscriptionId}
+                            value={r.commercialId}
+                            reps={data.reps.filter((rep) => rep.active).map((rep) => ({ value: rep.id, label: rep.name }))}
+                          />
+                        ) : r.commercialId ? (
                           <Link href={`/admin/commercial-detail?id=${r.commercialId}`} className="adm-person">
                             {r.commercial}
                           </Link>
@@ -544,11 +550,25 @@ export function CommissionsView({
   const t = dashTextFor(lang);
   const c = t.crm.commissions;
   const f = formatters(localeOf(lang));
+  const exportQs = new URLSearchParams();
+  if (filter.status) exportQs.set("statut", filter.status);
+  if (filter.commercial) exportQs.set("commercial", filter.commercial);
+  if (filter.period) exportQs.set("mois", filter.period);
+  const exportHref = `/admin/commissions/export${exportQs.size ? `?${exportQs}` : ""}`;
+
   return (
     <AdmShell t={t} active="commissions" admin={admin}>
       <div className="adm-content">
         <PageHead title={c.title} subtitle={c.subtitle}>
-          {data.migrated && <GenerateCommissionsButton count={data.missing.ready} />}
+          {data.migrated && (
+            <>
+              <a className="adm-btn is-ghost" href={exportHref} download>
+                <Download size={16} aria-hidden="true" />
+                {c.export}
+              </a>
+              <GenerateCommissionsButton count={data.missing.ready} />
+            </>
+          )}
         </PageHead>
         {!data.migrated ? (
           <MigrationNote t={t} />
@@ -579,6 +599,7 @@ export function CommissionsView({
               <CardHead Icon={Percent} title={c.list} count={t.crm.results(data.rows.length)} />
               <FilterBar
                 fields={[
+                  { name: "mois", label: c.periods[""], value: filter.period, options: options(c.periods) },
                   { name: "statut", label: c.statuses[""], value: filter.status, options: options(c.statuses) },
                   repField(t, data.reps, filter.commercial),
                 ]}
@@ -586,53 +607,24 @@ export function CommissionsView({
               {data.rows.length === 0 ? (
                 <p className="adm-empty">{c.empty}</p>
               ) : (
-                <div className="adm-table-wrap">
-                  <table className="adm-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">{c.cols.date}</th>
-                        <th scope="col">{c.cols.commercial}</th>
-                        <th scope="col">{c.cols.sale}</th>
-                        <th scope="col" className="num">{c.cols.saleAmount}</th>
-                        <th scope="col" className="num">{c.cols.amount}</th>
-                        <th scope="col">{c.cols.status}</th>
-                        <th scope="col">{c.cols.actions}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.rows.map((r) => (
-                        <tr key={r.id}>
-                          <td data-label={c.cols.date}>{f.date(r.date)}</td>
-                          <td data-label={c.cols.commercial}>
-                            <Link href={`/admin/commercial-detail?id=${r.commercialId}`} className="adm-person">
-                              {r.commercial}
-                            </Link>
-                          </td>
-                          <td data-label={c.cols.sale}>
-                            <span className="adm-stack">
-                              <strong>{r.reference}</strong>
-                              <span className="adm-person-mail">{r.client}</span>
-                            </span>
-                          </td>
-                          <td data-label={c.cols.saleAmount} className="num">{r.saleCents === null ? "—" : f.euros(r.saleCents)}</td>
-                          <td data-label={c.cols.amount} className="num">
-                            <strong>{f.euros(r.amountCents)}</strong>
-                          </td>
-                          <td data-label={c.cols.status}>
-                            <span className={`adm-badge ${COMMISSION_CLASS[r.status] ?? "is-info"}`}>{c.statuses[r.status] ?? r.status}</span>
-                          </td>
-                          <td data-label={c.cols.actions}>
-                            {r.status === "payee" ? (
-                              <span className="adm-muted adm-small">{r.paidAt ? c.paidOn(f.date(r.paidAt)) : c.statuses.payee}</span>
-                            ) : (
-                              <CommissionAction id={r.id} status={r.status} amountLabel={f.euros(r.amountCents)} commercial={r.commercial} />
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <CommissionBoardTable
+                  rows={data.rows.map((r) => ({
+                    id: r.id,
+                    date: f.date(r.date),
+                    commercialId: r.commercialId,
+                    commercial: r.commercial,
+                    reference: r.reference,
+                    client: r.client,
+                    saleLabel: r.saleCents === null ? "—" : f.euros(r.saleCents),
+                    amountLabel: f.euros(r.amountCents),
+                    status: r.status,
+                    statusLabel: c.statuses[r.status] ?? r.status,
+                    paidLabel: r.paidAt ? c.paidOn(f.date(r.paidAt)) : c.statuses.payee,
+                  }))}
+                  labels={c.cols}
+                  selectAllLabel={c.selectAll}
+                  selectRowLabel={c.selectRow}
+                />
               )}
             </section>
           </>
