@@ -1,7 +1,8 @@
 import "server-only";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
+import { DIGITAL_GROUPS, DIGITAL_OFFERS, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { TODO } from "@/config/company";
 import { getCompany, type Company } from "@/lib/company";
 import { AGENT_TIERS, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
@@ -238,7 +239,7 @@ function faqDocs(cfg: VideoConfig): Doc[] {
   );
 }
 
-function digitalDocs(): Doc[] {
+function digitalDocs(websites: DigitalWebsite[]): Doc[] {
   const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
   return [
     {
@@ -246,7 +247,7 @@ function digitalDocs(): Doc[] {
       title: "Digital — Sites internet & e-commerce",
       url: "/digital#sites",
       content: `Des sites professionnels, rapides et pensés pour convertir vos visiteurs en clients.\n${list(
-        DIGITAL_WEBSITES.map((site) => {
+        websites.map((site) => {
           const running =
             site.runningFrom === null
               ? "pas de frais de fonctionnement affichés"
@@ -338,14 +339,20 @@ export function splitPassages(text: string): { title: string; content: string }[
 }
 
 export async function buildCorpus(): Promise<Doc[]> {
-  const [cfg, settings, agentsPricing, company] = await Promise.all([getVideoConfig(), getChatbotSettings(), getAgentsPricing(), getCompany()]);
+  const [cfg, settings, agentsPricing, company, websites] = await Promise.all([
+    getVideoConfig(),
+    getChatbotSettings(),
+    getAgentsPricing(),
+    getCompany(),
+    getDigitalWebsites(),
+  ]);
   return [
     OVERVIEW,
     ...cfg.services.map((s) => serviceDoc(cfg, s)),
     ...videoDocs(cfg),
     ...marketingDocs(cfg),
     ...agentDocs(agentsPricing),
-    ...digitalDocs(),
+    ...digitalDocs(websites),
     ...faqDocs(cfg),
     ...[companyDoc(company)].filter((d): d is Doc => d !== null),
     ...splitPassages(settings.knowledge).map((p) => ({ source: "admin", ...p })),

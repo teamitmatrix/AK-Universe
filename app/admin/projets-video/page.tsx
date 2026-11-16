@@ -6,7 +6,7 @@ import { oneOf } from "@/lib/admin/crm";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadVideoProjects, UNASSIGNED, type ProjectFilter } from "@/lib/admin/projects";
 import { STAGES } from "@/lib/videaste/stages";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Projets vidéo — Admin AK Universe" },
@@ -25,6 +25,6 @@ export default async function ProjetsVideoPage({ searchParams }: { searchParams:
     // ?statut=retard is the older dashboard link: same meaning as "overdue only".
     late: sp.retard === "1" || sp.statut === "retard",
   };
-  const [lang, data] = await Promise.all([getLang(), loadVideoProjects(filter)]);
+  const [lang, data] = await Promise.all([getAdminLang(), loadVideoProjects(filter)]);
   return <ProjectsView lang={lang} admin={admin} data={data} filter={filter} />;
 }

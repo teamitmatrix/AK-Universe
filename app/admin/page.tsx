@@ -7,7 +7,7 @@ import { loadAssignableStaff } from "@/lib/admin/team";
 import { AdmShell } from "@/components/admin/space/AdmShell";
 import { dashTextFor } from "@/components/admin/space/dashText";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 import { getChatbotSettings, MAX_KNOWLEDGE_CHARS } from "@/lib/chatbot/knowledge";
 import { createClient } from "@/lib/supabase/server";
 import { getVideoConfig } from "@/lib/video-config";
@@ -21,7 +21,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   // The proxy already requires a session; only admins may see this page (checked on the server).
   const admin = await getAdminIdentity();
   if (!admin) notFound();
-  const t = dashTextFor(await getLang());
+  const t = dashTextFor(await getAdminLang());
   // Same admin-space frame (sidebar + header) as every other admin screen; the tab is the sidebar item.
   const frame = (active: "prixVideo" | "demandes" | "chatbot", children: React.ReactNode) => (
     <AdmShell t={t} active={active} admin={admin}>

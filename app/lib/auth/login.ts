@@ -1,40 +1,17 @@
 "use server";
 
-import { emailConfigured } from "@/lib/email";
-import { createAdminClient, createClient, createPublicClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { newEmailCode, sendAuthEmail } from "./emails";
-import { clearPendingLogin, getPendingLogin, isTrustedDevice, setPendingLogin, trustThisDevice } from "./two-factor";
+import { clearPendingLogin, getPendingLogin, trustThisDevice } from "./two-factor";
 
 /**
- * Step 1 — password. With e-mail configured (Resend), a correct password does not sign in yet:
- * a 6-digit code is e-mailed (two-factor), unless this browser was trusted with "Se souvenir de moi".
+ * Password sign-in. The e-mail code step is paused on this branch; restore it from main
+ * when sign-in should ask for the code again. `remember` and `lang` stay in the signature for that.
  */
-export async function login(email: string, password: string, remember = false, lang?: string) {
+export async function login(email: string, password: string, _remember = false, _lang?: string) {
   const supabase = await createClient();
-
-  // Without Resend the site keeps working with a plain password sign-in.
-  if (!emailConfigured()) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error ? { success: false as const, code: error.code ?? "unknown" } : { success: true as const, step: "done" as const };
-  }
-
-  // Check the password on a throw-away client so no session cookie is written yet.
-  const { data, error } = await createPublicClient().auth.signInWithPassword({ email, password });
-  if (error || !data.session) return { success: false as const, code: error?.code ?? "unknown" };
-  const user = data.user;
-
-  if (remember && (await isTrustedDevice(user.id))) {
-    await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
-    return { success: true as const, step: "done" as const };
-  }
-
-  await createAdminClient().auth.admin.signOut(data.session.access_token, "local");
-  const sent = await sendAuthEmail("login", user, () => newEmailCode(user.email!), lang);
-  if (sent === "failed") return { success: false as const, code: "email_failed" };
-
-  await setPendingLogin(user.id, user.email!, remember);
-  // "rate_limited": a code was sent less than a minute ago and is still valid.
-  return { success: true as const, step: "code" as const, email: user.email! };
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  return error ? { success: false as const, code: error.code ?? "unknown" } : { success: true as const, step: "done" as const };
 }
 
 /** Step 2 — the e-mailed code. Only works after step 1 in the same browser. */

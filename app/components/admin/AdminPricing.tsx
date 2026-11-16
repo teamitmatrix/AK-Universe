@@ -82,6 +82,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
             max={100}
             step={1}
             id="deposit"
+            name="deposit"
             value={cfg.depositPercent}
             onChange={(e) => update((d) => void (d.depositPercent = Math.min(100, num(e.target.value))))}
           />
@@ -94,6 +95,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                 type="number"
                 min={0}
                 max={90}
+                id={`discount-${q}`}
+                name={`discount-${q}`}
                 value={pct}
                 onChange={(e) => update((d) => void (d.qtyDiscounts[q] = Math.min(90, num(e.target.value))))}
               />
@@ -120,6 +123,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                   type="number"
                   min={0}
                   step={10}
+                  id={`option-${id}`}
+                  name={`option-${id}`}
                   value={o.price}
                   onChange={(e) => update((d) => void (d.options[id].price = num(e.target.value)))}
                 />{" "}
@@ -153,6 +158,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                   type="number"
                   min={0}
                   step={10}
+                  id={`service-${s.slug}`}
+                  name={`service-${s.slug}`}
                   value={s.price}
                   onChange={(e) => update((d) => void (d.services[si].price = num(e.target.value)))}
                 />{" "}
@@ -169,6 +176,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                           type="number"
                           min={0}
                           step={10}
+                          id={`duration-${s.slug}-${di}`}
+                          name={`duration-${s.slug}-${di}`}
                           value={dur.extra}
                           onChange={(e) => update((d) => void (d.services[si].durations![di].extra = num(e.target.value)))}
                         />{" "}

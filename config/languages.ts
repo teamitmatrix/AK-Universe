@@ -38,6 +38,9 @@ export const LANG_COOKIE = "aku-lang";
 
 export const isLang = (value: unknown): value is Lang => LANGUAGES.some((l) => l.code === value);
 
+/** Admin screens have French and English copy. Any other choice uses English, without Google Translate. */
+export const toAdminLang = (site: string): Lang => (site === "fr" ? "fr" : "en");
+
 /** Locale used for dates and numbers ("fr-FR", "en-GB"). */
 export const localeOf = (lang: Lang) => LANGUAGES.find((l) => l.code === lang)?.locale ?? "fr-FR";
 

@@ -8,11 +8,13 @@ import { getStripe } from "@/lib/stripe";
  * Our two extra rules live in the promotion code metadata and are enforced on the server at checkout
  * (lib/billing/actions.ts → validatePromotion):
  *   metadata.starts_at  unix seconds — not usable before (scheduled promotion)
- *   metadata.target     "tous" | "mensuel" | "annuel" — which subscription cycle accepts the code
+ *   metadata.target     "tous" | "mensuel" | "annuel" | "video"
+ *                       subscription cycle, or a video deposit ("video")
  *   metadata.name       admin label
+ * Checkout (lib/billing/promotion.ts) refuses the code unless the cart, the dates and the cap match.
  */
 
-export const PROMO_TARGETS = ["tous", "mensuel", "annuel"] as const;
+export const PROMO_TARGETS = ["tous", "mensuel", "annuel", "video"] as const;
 export type PromoTarget = (typeof PROMO_TARGETS)[number];
 export type PromoStatus = "active" | "scheduled" | "expired" | "exhausted" | "disabled";
 

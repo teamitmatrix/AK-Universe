@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { FIXED_TRANSLATIONS, isLang, isSiteLang, LANG_COOKIE, SOURCE_LANG, type Lang, type SiteLang } from "@/config/languages";
+import { FIXED_TRANSLATIONS, isLang, isSiteLang, LANG_COOKIE, SOURCE_LANG, toAdminLang, type Lang, type SiteLang } from "@/config/languages";
 import { CLIENT_CATALOGS, SERVER_CATALOGS } from "./catalogs";
 import { createT } from "./translate";
 
@@ -20,6 +20,9 @@ export const getLang = cache(async (): Promise<Lang> => {
   const value = await getSiteLang();
   return isLang(value) ? value : SOURCE_LANG;
 });
+
+/** Language of the admin space: its own French/English copy, never the machine translation of the public site. */
+export const getAdminLang = cache(async (): Promise<Lang> => toAdminLang(await getSiteLang()));
 
 /** Translator for server components, metadata, server actions and route handlers. */
 export const getT = cache(async () => {

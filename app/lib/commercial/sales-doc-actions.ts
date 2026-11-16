@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/admin/team";
 import { loadSalesCatalogue } from "./catalogue";
 import { DOC_TRANSITIONS, VAT_RATE, isProductType, type DocKind, type DocStatus } from "./commission-rules";
+import { notifyQuoteSent } from "@/lib/notify-mail";
 import { getCommercial } from "./session";
 
 /*
@@ -108,10 +109,13 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   const customer_id = await customerFor(me, row.client_email);
 
   if (id === null) {
-    const { data, error } = await supabase.from("sales_documents").insert({ ...row, customer_id, salesperson_id: me.id }).select("id").single();
+    const { data, error } = await supabase.from("sales_documents").insert({ ...row, customer_id, salesperson_id: me.id }).select("id, number, client_name, total_ht_cents, kind, status").single();
     if (error || !data) {
       console.error("saveSalesDocument insert failed:", error?.message);
       return fail("failed");
+    }
+    if (data.kind === "devis" && data.status === "en_attente") {
+      await notifyQuoteSent({ number: data.number as string | null, clientName: data.client_name as string, totalHtCents: Number(data.total_ht_cents ?? 0) });
     }
     revalidate();
     return { success: true, id: data.id };
@@ -123,12 +127,16 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   if (current.status !== "brouillon" && current.status !== "en_attente") return fail("locked");
   const { kind: _kind, ...changes } = row;
   void _kind;
-  const { data, error } = await supabase.from("sales_documents").update({ ...changes, customer_id }).eq("id", id).eq("salesperson_id", me.id).select("id");
+  const { data, error } = await supabase.from("sales_documents").update({ ...changes, customer_id }).eq("id", id).eq("salesperson_id", me.id).select("id, number, client_name, total_ht_cents, kind, status");
   if (error) {
     console.error("saveSalesDocument update failed:", error.message);
     return fail(/document_locked/.test(error.message) ? "locked" : "failed");
   }
   if (!data?.length) return fail("notFound");
+  const saved = data[0]!;
+  if (saved.kind === "devis" && saved.status === "en_attente" && current.status !== "en_attente") {
+    await notifyQuoteSent({ number: saved.number as string | null, clientName: saved.client_name as string, totalHtCents: Number(saved.total_ht_cents ?? 0) });
+  }
   revalidate();
   return { success: true, id };
 }
@@ -143,12 +151,16 @@ export async function setSalesDocumentStatus(id: string, to: DocStatus): Promise
   const allowed = DOC_TRANSITIONS[current.kind as DocKind]?.[current.status as DocStatus] ?? [];
   if (!allowed.includes(to)) return fail("transition");
   // `.eq("status", current.status)`: a stale screen cannot skip a step.
-  const { data, error } = await supabase.from("sales_documents").update({ status: to }).eq("id", id).eq("salesperson_id", me.id).eq("status", current.status).select("id");
+  const { data, error } = await supabase.from("sales_documents").update({ status: to }).eq("id", id).eq("salesperson_id", me.id).eq("status", current.status).select("id, number, client_name, total_ht_cents");
   if (error) {
     console.error("setSalesDocumentStatus failed:", error.message);
     return fail(/document_locked/.test(error.message) ? "locked" : "failed");
   }
   if (!data?.length) return fail("transition");
+  if (to === "en_attente" && current.kind === "devis") {
+    const doc = data[0]!;
+    await notifyQuoteSent({ number: doc.number as string | null, clientName: doc.client_name as string, totalHtCents: Number(doc.total_ht_cents ?? 0) });
+  }
   revalidate();
   return { success: true };
 }

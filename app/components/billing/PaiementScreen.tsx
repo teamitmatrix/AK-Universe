@@ -55,6 +55,7 @@ const TEXT = {
       not_configured: "Le paiement en ligne n'est pas encore configuré. Aucun montant n'a été débité.",
       prepare_failed: "Impossible de préparer le paiement. Veuillez réessayer.",
       method_unavailable: "Ce moyen de paiement n'est pas disponible. Choisissez la carte bancaire.",
+      promo_invalid: "Ce code promotionnel n'est pas valide pour ce paiement.",
     },
     success: {
       heading: ["Merci, votre abonnement est ", "confirmé"],
@@ -106,6 +107,7 @@ const TEXT = {
       not_configured: "Online payment is not configured yet. You have not been charged.",
       prepare_failed: "Unable to prepare the payment. Please try again.",
       method_unavailable: "This payment method is not available. Please choose a credit card.",
+      promo_invalid: "This promo code is not valid for this payment.",
     },
     success: {
       heading: ["Thank you, your subscription is ", "confirmed"],
@@ -157,6 +159,7 @@ const TEXT = {
       not_configured: "Die Online-Zahlung ist noch nicht eingerichtet. Es wurde nichts abgebucht.",
       prepare_failed: "Die Zahlung konnte nicht vorbereitet werden. Bitte versuchen Sie es erneut.",
       method_unavailable: "Diese Zahlungsmethode ist nicht verfügbar. Bitte wählen Sie eine Kreditkarte.",
+      promo_invalid: "Dieser Promo-Code ist für diese Zahlung nicht gültig.",
     },
     success: {
       heading: ["Vielen Dank, Ihr Abonnement ist ", "bestätigt"],

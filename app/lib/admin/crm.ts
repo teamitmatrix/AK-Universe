@@ -1,17 +1,17 @@
 import "server-only";
+import { type DocKind, type DocStatus } from "@/lib/commercial/commission-rules";
+import { OPEN_STAGES, isStage, type Stage } from "@/lib/commercial/stages";
 import { createClient } from "@/lib/supabase/server";
-import { OPEN_QUOTE, PAID, displayName, selectProjects, type Commission, type SchemaLevel, type StaffProfile, type TeamProject } from "./team";
+import { PAID, displayName, isUuid, selectProjects, type Commission, type SchemaLevel, type StaffProfile, type TeamProject } from "./team";
 
 /**
- * Company-wide CRM and finance screens (clients, prospects, sales ledger, quotes & invoices, commissions),
- * all derived from the existing tables — video_projects, payments, subscriptions, profiles, commissions —
- * with no parallel store. Every query runs with the admin's session, so RLS (is_admin()) applies.
+ * Company-wide CRM and finance screens. Every query runs with the admin's session, so RLS (is_admin()) applies.
  *
- * Vocabulary, as the site actually works:
- *   prospect = a video request (quote or booking) not paid yet (status nouveau / acompte_en_attente)
- *   sale     = a video project whose deposit is paid, or a paid Agents IA subscription payment
- *   client   = anyone with at least one sale
- *   invoice  = a payment recorded in `payments` (Stripe deposit / subscription, or a balance recorded by an admin)
+ * Prospects, clients and quotes/invoices are the commercial space's own tables (migrations 011 and 012):
+ *   prospects       the pipeline every rep works (7 stages)
+ *   customers       the customer record created when a prospect is won
+ *   sales_documents quotes and invoices a rep writes
+ * The sales ledger and the commission board stay on video_projects, payments and commissions.
  */
 
 type Payment = {
@@ -106,70 +106,110 @@ export const repParam = (value: unknown) =>
   value === UNASSIGNED || (typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value)) ? (value as string) : "";
 const matchRep = (filter: string, id: string | null | undefined) => !filter || (filter === UNASSIGNED ? !id : id === filter);
 
-// ---------- Clients ----------
+type RepDirectory = { reps: { id: string; name: string; active: boolean }[]; nameOf: Map<string, string> };
+
+/** Every commercial, for filters and the "assigned rep" column. */
+async function loadRepDirectory(): Promise<RepDirectory> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("id, email, first_name, last_name, active").eq("role", "commercial").order("first_name");
+  const rows = (data ?? []) as Pick<StaffProfile, "id" | "email" | "first_name" | "last_name" | "active">[];
+  return {
+    reps: rows.map((c) => ({ id: c.id, name: displayName(c), active: c.active !== false })),
+    nameOf: new Map(rows.map((c) => [c.id, displayName(c)])),
+  };
+}
+
+const LIVE_DOC = new Set(["brouillon", "en_attente", "validee", "payee"]);
+
+// ---------- Clients (customers, migration 011) ----------
 
 export type ClientFilter = { status: "" | "actif" | "ancien"; commercial: string; q: string };
 
+type CustomerDoc = {
+  id: string;
+  customer_id: string | null;
+  salesperson_id: string | null;
+  client_email: string | null;
+  kind: string;
+  status: string;
+  total_ht_cents: number;
+  issue_date: string;
+  number: string | null;
+};
+
 export async function loadClients(filter: ClientFilter) {
-  const ctx = await loadContext();
-  type Row = {
-    key: string;
+  const supabase = await createClient();
+  const [custRes, docRes, directory] = await Promise.all([
+    supabase
+      .from("customers")
+      .select("id, salesperson_id, name, company, email, phone, profile_id, source_prospect_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000),
+    supabase.from("sales_documents").select("id, customer_id, salesperson_id, client_email, kind, status, total_ht_cents, issue_date, number").limit(5000),
+    loadRepDirectory(),
+  ]);
+  if (custRes.error) return { ready: false as const };
+  const docs = (docRes.error ? [] : (docRes.data ?? [])) as CustomerDoc[];
+  const byCustomer = new Map<string, CustomerDoc[]>();
+  const byEmail = new Map<string, CustomerDoc[]>();
+  for (const d of docs) {
+    if (d.customer_id) {
+      const list = byCustomer.get(d.customer_id) ?? [];
+      list.push(d);
+      byCustomer.set(d.customer_id, list);
+    } else if (d.client_email && d.salesperson_id) {
+      const key = `${d.salesperson_id}:${d.client_email.toLowerCase()}`;
+      const list = byEmail.get(key) ?? [];
+      list.push(d);
+      byEmail.set(key, list);
+    }
+  }
+
+  const all = ((custRes.data ?? []) as {
+    id: string;
+    salesperson_id: string | null;
     name: string;
-    contact: string;
-    email: string;
-    commercialId: string | null;
-    sales: number;
-    signedCents: number;
-    collectedCents: number;
-    last: string;
-    active: boolean;
-    kinds: Set<"video" | "abonnement">;
-  };
-  const map = new Map<string, Row>();
-  const row = (key: string, init: () => Omit<Row, "sales" | "signedCents" | "collectedCents" | "last" | "active" | "kinds">) => {
-    let r = map.get(key);
-    if (!r) map.set(key, (r = { ...init(), sales: 0, signedCents: 0, collectedCents: 0, last: "", active: false, kinds: new Set() }));
-    return r;
-  };
+    company: string | null;
+    email: string | null;
+    phone: string | null;
+    source_prospect_id: string | null;
+    created_at: string;
+  }[]).map((c) => {
+    const linked = byCustomer.get(c.id) ?? [];
+    const loose = c.email && c.salesperson_id ? (byEmail.get(`${c.salesperson_id}:${c.email.toLowerCase()}`) ?? []) : [];
+    const seen = new Set(linked.map((d) => d.id));
+    const own = [...linked, ...loose.filter((d) => !seen.has(d.id))];
+    const live = own.filter((d) => LIVE_DOC.has(d.status));
+    const invoices = own.filter((d) => d.kind === "facture" && (d.status === "en_attente" || d.status === "payee"));
+    const paid = invoices.filter((d) => d.status === "payee");
+    const last = live.reduce((best, d) => (d.issue_date > best ? d.issue_date : best), "");
+    return {
+      id: c.id,
+      name: c.company || c.name,
+      contact: c.company ? c.name : "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      commercialId: c.salesperson_id,
+      commercial: c.salesperson_id ? (directory.nameOf.get(c.salesperson_id) ?? "—") : null,
+      prospectId: c.source_prospect_id,
+      sales: invoices.length,
+      signedCents: sum(invoices, (d) => d.total_ht_cents),
+      collectedCents: sum(paid, (d) => d.total_ht_cents),
+      last: last || c.created_at,
+      active: live.length > 0 || own.length === 0,
+    };
+  });
 
-  // Oldest first, so the latest project decides the assigned rep.
-  for (const p of [...ctx.projects].reverse()) {
-    if (!PAID.has(p.status)) continue;
-    const key = p.user_id ? `u:${p.user_id}` : `e:${norm(p.email) || p.id}`;
-    const r = row(key, () => ({ key, name: projectClient(p), contact: projectContact(p), email: p.email ?? "", commercialId: null }));
-    r.sales += 1;
-    r.signedCents += p.total_cents;
-    r.collectedCents += ctx.collectedByProject.get(p.id) ?? 0;
-    if (p.created_at > r.last) r.last = p.created_at;
-    if (p.status === "acompte_paye" || p.status === "en_cours") r.active = true;
-    if (p.commercial_id) r.commercialId = p.commercial_id;
-    r.kinds.add("video");
-  }
-  for (const pay of ctx.payments) {
-    if (pay.kind !== "subscription" || !pay.user_id) continue;
-    const person = ctx.people.get(pay.user_id);
-    const key = `u:${pay.user_id}`;
-    const r = row(key, () => ({ key, name: person ? displayName(person) : "—", contact: person ? displayName(person) : "—", email: person?.email ?? "", commercialId: null }));
-    r.sales += 1;
-    r.signedCents += pay.amount_cents;
-    r.collectedCents += pay.amount_cents;
-    if (pay.created_at > r.last) r.last = pay.created_at;
-    const sub = pay.subscription_id ? ctx.subsById.get(pay.subscription_id) : undefined;
-    if (sub?.status === "active") r.active = true;
-    r.kinds.add("abonnement");
-  }
-
-  const all = [...map.values()].sort((a, b) => b.last.localeCompare(a.last));
   const q = norm(filter.q.trim());
   const rows = all
     .filter((r) => !filter.status || (filter.status === "actif") === r.active)
     .filter((r) => matchRep(filter.commercial, r.commercialId))
-    .filter((r) => !q || norm(r.name).includes(q) || norm(r.email).includes(q) || norm(r.contact).includes(q))
-    .map((r) => ({ ...r, kinds: [...r.kinds], commercial: r.commercialId ? (ctx.commercialName.get(r.commercialId) ?? "—") : null }));
+    .filter((r) => !q || [r.name, r.contact, r.email, r.phone].some((v) => norm(v).includes(q)))
+    .sort((a, b) => b.last.localeCompare(a.last));
 
   return {
-    assignment: ctx.level !== "none",
-    reps: repOptions(ctx),
+    ready: true as const,
+    reps: directory.reps,
     kpis: {
       total: all.length,
       active: all.filter((r) => r.active).length,
@@ -181,45 +221,80 @@ export async function loadClients(filter: ClientFilter) {
   };
 }
 
-// ---------- Prospects ----------
+// ---------- Prospects (prospects, migration 011) ----------
 
-export type ProspectFilter = { stage: "" | "nouveau" | "acompte_en_attente"; commercial: string; q: string };
+export type ProspectFilter = { stage: "" | Stage; commercial: string; q: string };
+
+type ProspectRow = {
+  id: string;
+  salesperson_id: string;
+  name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  need: string | null;
+  budget_cents: number | null;
+  stage: string;
+  next_followup_at: string | null;
+  lost_reason: string | null;
+  created_at: string;
+  project: { reference: string } | { reference: string }[] | null;
+};
 
 export async function loadProspects(filter: ProspectFilter, now = new Date()) {
-  const ctx = await loadContext();
-  const open = ctx.projects.filter((p) => OPEN_QUOTE.has(p.status));
-  const yearAgo = new Date(now.getTime() - 365 * DAY).toISOString();
-  const lastYear = ctx.projects.filter((p) => p.created_at >= yearAgo && p.status !== "annule");
-  const q = norm(filter.q.trim());
-
-  const rows = open
-    .filter((p) => !filter.stage || p.status === filter.stage)
-    .filter((p) => matchRep(filter.commercial, p.commercial_id))
-    .filter((p) => !q || [p.company, p.first_name, p.last_name, p.email, p.reference].some((v) => norm(v).includes(q)))
-    .map((p) => ({
+  const supabase = await createClient();
+  const [prosRes, directory] = await Promise.all([
+    supabase
+      .from("prospects")
+      .select("id, salesperson_id, name, company, email, phone, need, budget_cents, stage, next_followup_at, lost_reason, created_at, project:video_projects(reference)")
+      .order("updated_at", { ascending: false })
+      .limit(2000),
+    loadRepDirectory(),
+  ]);
+  if (prosRes.error) return { ready: false as const };
+  const nowMs = now.getTime();
+  const all = ((prosRes.data ?? []) as unknown as ProspectRow[]).map((p) => {
+    const stage = isStage(p.stage) ? p.stage : "nouveau";
+    const open = (OPEN_STAGES as readonly string[]).includes(stage);
+    const project = Array.isArray(p.project) ? p.project[0] : p.project;
+    return {
       id: p.id,
-      reference: p.reference,
-      contact: projectContact(p),
+      name: p.name,
       company: p.company ?? "",
       email: p.email ?? "",
-      need: needOf(p),
-      budgetCents: p.total_cents,
-      stage: p.status,
-      kind: p.kind,
+      phone: p.phone ?? "",
+      need: p.need ?? "",
+      budgetCents: p.budget_cents,
+      stage,
+      followupAt: p.next_followup_at,
+      late: open && !!p.next_followup_at && new Date(p.next_followup_at).getTime() < nowMs,
+      lostReason: p.lost_reason ?? "",
       createdAt: p.created_at,
-      ageDays: Math.floor((now.getTime() - new Date(p.created_at).getTime()) / DAY),
-      commercialId: p.commercial_id ?? null,
-    }));
+      projectReference: project?.reference ?? null,
+      commercialId: p.salesperson_id,
+      commercial: directory.nameOf.get(p.salesperson_id) ?? "—",
+      open,
+    };
+  });
+  const open = all.filter((p) => p.open);
+  const won = all.filter((p) => p.stage === "gagne").length;
+  const lost = all.filter((p) => p.stage === "perdu").length;
+  const q = norm(filter.q.trim());
+  const rows = all
+    .filter((p) => !filter.stage || p.stage === filter.stage)
+    .filter((p) => matchRep(filter.commercial, p.commercialId))
+    .filter((p) => !q || [p.name, p.company, p.email, p.phone, p.need, p.projectReference].some((v) => norm(v).includes(q)));
 
   return {
-    assignment: ctx.level !== "none",
-    reps: repOptions(ctx),
+    ready: true as const,
+    reps: directory.reps,
     kpis: {
-      total: open.length,
-      unassigned: ctx.level === "none" ? null : open.filter((p) => !p.commercial_id).length,
-      pipelineCents: sum(open, (p) => p.total_cents),
-      conversion: rate(lastYear.filter((p) => PAID.has(p.status)).length, lastYear.length),
-      reps: new Set(open.map((p) => p.commercial_id).filter(Boolean)).size,
+      total: all.length,
+      open: open.length,
+      late: open.filter((p) => p.late).length,
+      pipelineCents: sum(open, (p) => p.budgetCents ?? 0),
+      conversion: rate(won, won + lost),
+      reps: new Set(all.map((p) => p.commercialId)).size,
     },
     rows,
   };
@@ -229,7 +304,7 @@ export async function loadProspects(filter: ProspectFilter, now = new Date()) {
 
 export const LEDGER_PERIODS = ["mois", "mois-precedent", "30j", "12m", "tout"] as const;
 export type LedgerPeriod = (typeof LEDGER_PERIODS)[number];
-export type LedgerFilter = { period: LedgerPeriod; commercial: string; state: "" | "solde" | "a-encaisser"; type: "" | "video" | "abonnement" };
+export type LedgerFilter = { period: LedgerPeriod; commercial: string; state: "" | "solde" | "a-encaisser"; type: "" | "video" | "abonnement" | "facture" };
 
 function periodBounds(period: LedgerPeriod, now: Date): [Date | null, Date | null] {
   if (period === "mois") return [startOfMonth(now), null];
@@ -240,13 +315,25 @@ function periodBounds(period: LedgerPeriod, now: Date): [Date | null, Date | nul
 }
 
 export async function loadLedger(filter: LedgerFilter, now = new Date()) {
-  const ctx = await loadContext();
+  const supabase = await createClient();
+  const [ctx, invoiceRes] = await Promise.all([
+    loadContext(),
+    // Issued or paid invoices written in the commercial space (migration 012). Drafts and cancelled ones are not sales.
+    supabase
+      .from("sales_documents")
+      .select("id, number, status, salesperson_id, customer_id, client_name, issue_date, total_ht_cents, commission_cents")
+      .eq("kind", "facture")
+      .in("status", ["en_attente", "payee"])
+      .limit(5000),
+  ]);
   type Sale = {
     id: string;
     projectId: string | null;
+    documentId: string | null;
+    customerId: string | null;
     date: string;
     reference: string;
-    type: "video" | "abonnement";
+    type: "video" | "abonnement" | "facture";
     commercial: string | null;
     commercialId: string | null;
     client: string;
@@ -263,6 +350,8 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
     sales.push({
       id: `p:${p.id}`,
       projectId: p.id,
+      documentId: null,
+      customerId: null,
       // The sale happens when the deposit is paid; older rows fall back to the request date.
       date: ctx.firstPaymentByProject.get(p.id) ?? p.created_at,
       reference: p.reference,
@@ -283,6 +372,8 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
     sales.push({
       id: `s:${pay.id}`,
       projectId: null,
+      documentId: null,
+      customerId: null,
       date: pay.created_at,
       reference: sub ? `${sub.plan} · ${sub.cycle}` : "—",
       type: "abonnement",
@@ -294,6 +385,36 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
       collectedCents: pay.amount_cents,
       remainingCents: 0,
       commissionCents: null,
+    });
+  }
+  for (const doc of (invoiceRes.error ? [] : (invoiceRes.data ?? [])) as {
+    id: string;
+    number: string | null;
+    status: string;
+    salesperson_id: string | null;
+    customer_id: string | null;
+    client_name: string;
+    issue_date: string;
+    total_ht_cents: number;
+    commission_cents: number;
+  }[]) {
+    const paid = doc.status === "payee";
+    sales.push({
+      id: `f:${doc.id}`,
+      projectId: null,
+      documentId: doc.id,
+      customerId: doc.customer_id,
+      date: `${doc.issue_date}T12:00:00`,
+      reference: doc.number ?? "—",
+      type: "facture",
+      commercialId: doc.salesperson_id,
+      commercial: doc.salesperson_id ? (ctx.commercialName.get(doc.salesperson_id) ?? "—") : null,
+      client: doc.client_name,
+      product: "Facture",
+      amountCents: doc.total_ht_cents,
+      collectedCents: paid ? doc.total_ht_cents : 0,
+      remainingCents: paid ? 0 : doc.total_ht_cents,
+      commissionCents: doc.commission_cents,
     });
   }
 
@@ -319,76 +440,192 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
   };
 }
 
-// ---------- Quotes & invoices ----------
+// ---------- Quotes & invoices (sales_documents, migration 012) ----------
 
-export type QuoteFilter = { group: "" | "en-attente" | "acceptes" | "refuses"; type: "" | "devis" | "acompte"; commercial: string };
-const groupOf = (status: string) => (PAID.has(status) ? "acceptes" : status === "annule" ? "refuses" : "en-attente");
+export type QuoteFilter = { status: "" | DocStatus; type: "" | DocKind; commercial: string };
+
+const DOC_COLUMNS =
+  "id, number, kind, status, salesperson_id, customer_id, client_name, client_email, issue_date, total_ht_cents, total_ttc_cents, commission_cents";
 
 export async function loadQuotes(filter: QuoteFilter) {
-  const ctx = await loadContext();
-  const all = ctx.projects;
-  const accepted = all.filter((p) => PAID.has(p.status));
-  const refused = all.filter((p) => p.status === "annule");
+  const supabase = await createClient();
+  const [docRes, directory] = await Promise.all([
+    supabase.from("sales_documents").select(DOC_COLUMNS).order("issue_date", { ascending: false }).limit(2000),
+    loadRepDirectory(),
+  ]);
+  if (docRes.error) return { ready: false as const };
+  const all = ((docRes.data ?? []) as {
+    id: string;
+    number: string | null;
+    kind: DocKind;
+    status: DocStatus;
+    salesperson_id: string | null;
+    customer_id: string | null;
+    client_name: string;
+    client_email: string | null;
+    issue_date: string;
+    total_ht_cents: number;
+    total_ttc_cents: number;
+    commission_cents: number;
+  }[]).map((d) => ({
+    id: d.id,
+    number: d.number ?? "—",
+    kind: d.kind,
+    status: d.status,
+    customerId: d.customer_id,
+    client: d.client_name,
+    email: d.client_email ?? "",
+    commercialId: d.salesperson_id,
+    commercial: d.salesperson_id ? (directory.nameOf.get(d.salesperson_id) ?? "—") : null,
+    date: d.issue_date,
+    amountCents: d.total_ht_cents,
+    ttcCents: d.total_ttc_cents,
+    commissionCents: d.commission_cents,
+  }));
 
-  const byRep = new Map<string, { id: string | null; name: string; sent: number; accepted: number; refused: number }>();
-  for (const p of all) {
-    const id = p.commercial_id ?? null;
+  const quotes = all.filter((d) => d.kind === "devis");
+  const invoices = all.filter((d) => d.kind === "facture");
+  const decided = quotes.filter((d) => d.status === "validee" || d.status === "annulee");
+  const byRep = new Map<string, { id: string | null; name: string; quotes: number; invoices: number; accepted: number; paid: number }>();
+  for (const d of all) {
+    const id = d.commercialId;
     const key = id ?? UNASSIGNED;
     let r = byRep.get(key);
-    if (!r) byRep.set(key, (r = { id, name: id ? (ctx.commercialName.get(id) ?? "—") : "", sent: 0, accepted: 0, refused: 0 }));
-    r.sent += 1;
-    if (PAID.has(p.status)) r.accepted += 1;
-    if (p.status === "annule") r.refused += 1;
+    if (!r) byRep.set(key, (r = { id, name: d.commercial ?? "", quotes: 0, invoices: 0, accepted: 0, paid: 0 }));
+    if (d.kind === "devis") r.quotes += 1;
+    else r.invoices += 1;
+    if (d.kind === "devis" && d.status === "validee") r.accepted += 1;
+    if (d.kind === "facture" && d.status === "payee") r.paid += 1;
   }
 
-  const quotes = all
-    .filter((p) => !filter.group || groupOf(p.status) === filter.group)
-    .filter((p) => !filter.type || p.kind === filter.type)
-    .filter((p) => matchRep(filter.commercial, p.commercial_id))
-    .slice(0, 500)
-    .map((p) => ({
-      id: p.id,
-      reference: p.reference,
-      kind: p.kind,
-      client: projectClient(p),
-      commercial: p.commercial_id ? (ctx.commercialName.get(p.commercial_id) ?? "—") : null,
-      date: p.created_at,
-      amountCents: p.total_cents,
-      status: p.status,
-      group: groupOf(p.status),
-    }));
-
-  const projectById = new Map(all.map((p) => [p.id, p]));
-  const invoices = ctx.payments.slice(0, 300).map((pay) => {
-    const project = pay.project_id ? projectById.get(pay.project_id) : undefined;
-    const sub = pay.subscription_id ? ctx.subsById.get(pay.subscription_id) : undefined;
-    return {
-      id: pay.id,
-      kind: pay.kind,
-      date: pay.created_at,
-      reference: project?.reference ?? (sub ? `${sub.plan} · ${sub.cycle}` : "—"),
-      client: project ? projectClient(project) : personName(ctx, pay.user_id),
-      amountCents: pay.amount_cents,
-      stripeId: pay.stripe_object_id,
-    };
-  });
+  const rows = all
+    .filter((d) => !filter.status || d.status === filter.status)
+    .filter((d) => !filter.type || d.kind === filter.type)
+    .filter((d) => matchRep(filter.commercial, d.commercialId))
+    .slice(0, 500);
 
   return {
-    assignment: ctx.level !== "none",
-    reps: repOptions(ctx),
+    ready: true as const,
+    reps: directory.reps,
     kpis: {
-      sent: all.length,
-      accepted: accepted.length,
-      refused: refused.length,
-      pending: all.length - accepted.length - refused.length,
-      acceptance: rate(accepted.length, all.length),
-      invoicedCents: sum(ctx.payments, (p) => p.amount_cents),
+      quotes: quotes.length,
+      invoices: invoices.length,
+      openQuotes: quotes.filter((d) => d.status === "brouillon" || d.status === "en_attente").length,
+      potentialCents: sum(
+        quotes.filter((d) => d.status === "brouillon" || d.status === "en_attente"),
+        (d) => d.ttcCents,
+      ),
+      toCollectCents: sum(
+        invoices.filter((d) => d.status === "en_attente"),
+        (d) => d.ttcCents,
+      ),
+      invoicedCents: sum(
+        invoices.filter((d) => d.status === "en_attente" || d.status === "payee"),
+        (d) => d.ttcCents,
+      ),
+      acceptance: rate(decided.filter((d) => d.status === "validee").length, decided.length),
     },
-    byRep: [...byRep.values()]
-      .map((r) => ({ ...r, rate: rate(r.accepted, r.sent) }))
-      .sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : b.sent - a.sent)),
-    quotes,
-    invoices,
+    byRep: [...byRep.values()].sort((a, b) => (a.id === null ? 1 : b.id === null ? -1 : b.quotes + b.invoices - (a.quotes + a.invoices))),
+    rows,
+  };
+}
+
+// ---------- One record (detail pages) ----------
+
+export async function loadProspectRecord(id: string) {
+  if (!isUuid(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("prospects")
+    .select(
+      "id, salesperson_id, name, company, email, phone, source, need, budget_cents, stage, next_action, next_followup_at, notes, lost_reason, customer_id, project_id, converted_at, created_at, updated_at, project:video_projects(reference)",
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as unknown as ProspectRow & {
+    source: string | null;
+    next_action: string | null;
+    notes: string | null;
+    customer_id: string | null;
+    project_id: string | null;
+    converted_at: string | null;
+    updated_at: string;
+  };
+  const directory = await loadRepDirectory();
+  const { data: events } = await supabase.from("prospect_events").select("id, kind, from_stage, to_stage, actor_id, created_at").eq("prospect_id", id).order("created_at").limit(200);
+  const actorIds = [...new Set((events ?? []).map((e) => e.actor_id).filter((x): x is string => !!x))];
+  const actors = new Map<string, string>();
+  if (actorIds.length) {
+    const { data: people } = await supabase.from("profiles").select("id, email, first_name, last_name").in("id", actorIds);
+    for (const p of people ?? []) actors.set(p.id, displayName(p));
+  }
+  const project = Array.isArray(row.project) ? row.project[0] : row.project;
+  return {
+    id: row.id,
+    name: row.name,
+    company: row.company ?? "",
+    email: row.email ?? "",
+    phone: row.phone ?? "",
+    source: row.source ?? "",
+    need: row.need ?? "",
+    budgetCents: row.budget_cents,
+    stage: isStage(row.stage) ? row.stage : "nouveau",
+    nextAction: row.next_action ?? "",
+    followupAt: row.next_followup_at,
+    notes: row.notes ?? "",
+    lostReason: row.lost_reason ?? "",
+    customerId: row.customer_id,
+    projectReference: project?.reference ?? null,
+    convertedAt: row.converted_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    commercialId: row.salesperson_id,
+    commercial: directory.nameOf.get(row.salesperson_id) ?? "—",
+    history: (events ?? []).map((e) => ({
+      id: e.id as number,
+      kind: e.kind as "created" | "stage" | "converted" | "reassigned",
+      fromStage: (e.from_stage as string | null) ?? null,
+      toStage: (e.to_stage as string | null) ?? null,
+      actor: e.actor_id ? (actors.get(e.actor_id as string) ?? null) : null,
+      at: e.created_at as string,
+    })),
+  };
+}
+
+export async function loadCustomerRecord(id: string) {
+  if (!isUuid(id)) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("customers").select("id, salesperson_id, name, company, email, phone, profile_id, source_prospect_id, created_at").eq("id", id).maybeSingle();
+  if (error || !data) return null;
+  const directory = await loadRepDirectory();
+  const email = (data.email as string | null) ?? "";
+  const linked = supabase.from("sales_documents").select("id, number, kind, status, issue_date, total_ht_cents, customer_id, salesperson_id, client_email").eq("customer_id", data.id).order("issue_date", { ascending: false }).limit(100);
+  const loose =
+    email && data.salesperson_id
+      ? supabase
+          .from("sales_documents")
+          .select("id, number, kind, status, issue_date, total_ht_cents, customer_id, salesperson_id, client_email")
+          .is("customer_id", null)
+          .eq("salesperson_id", data.salesperson_id)
+          .ilike("client_email", email.replace(/[\\%_]/g, "\\$&"))
+          .order("issue_date", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as CustomerDoc[] });
+  const [linkedRes, looseRes] = await Promise.all([linked, loose]);
+  const own = [...((linkedRes.data ?? []) as CustomerDoc[]), ...((looseRes.data ?? []) as CustomerDoc[])].sort((a, b) => b.issue_date.localeCompare(a.issue_date));
+  return {
+    id: data.id as string,
+    name: (data.company as string | null) || (data.name as string),
+    contact: data.company ? (data.name as string) : "",
+    email: (data.email as string | null) ?? "",
+    phone: (data.phone as string | null) ?? "",
+    commercialId: (data.salesperson_id as string | null) ?? null,
+    commercial: data.salesperson_id ? (directory.nameOf.get(data.salesperson_id as string) ?? "—") : null,
+    prospectId: (data.source_prospect_id as string | null) ?? null,
+    hasAccount: Boolean(data.profile_id),
+    createdAt: data.created_at as string,
+    documents: own.map((d) => ({ id: d.id, number: d.number ?? "—", kind: d.kind, status: d.status, date: d.issue_date, amountCents: d.total_ht_cents })),
   };
 }
 

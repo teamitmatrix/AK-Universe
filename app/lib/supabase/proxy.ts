@@ -4,6 +4,7 @@ import { getSupabaseEnv } from "./env";
 
 /** Refreshes the Supabase session cookie and returns the current user. */
 export async function updateSession(request: NextRequest) {
+  request.headers.set("x-pathname", `${request.nextUrl.pathname}${request.nextUrl.search}`);
   let response = NextResponse.next({ request });
   const { url, key } = getSupabaseEnv();
 

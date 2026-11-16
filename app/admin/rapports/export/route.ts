@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const cell = (v: string) => `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
   const header = ["Date", "Référence", "Type", "Client", "Produit", "Commercial", "Montant HT (€)", "Encaissé (€)", "Reste (€)", "Commission (€)"];
   const lines = rows.map((r) =>
-    [r.date.slice(0, 10), r.reference, r.type === "video" ? "Vidéo" : "Abonnement", r.client, r.product, r.commercial ?? "", euros(r.amountCents), euros(r.collectedCents), euros(r.remainingCents), euros(r.commissionCents)]
+    [r.date.slice(0, 10), r.reference, r.type === "video" ? "Vidéo" : r.type === "facture" ? "Facture" : "Abonnement", r.client, r.product, r.commercial ?? "", euros(r.amountCents), euros(r.collectedCents), euros(r.remainingCents), euros(r.commissionCents)]
       .map(cell)
       .join(";"),
   );

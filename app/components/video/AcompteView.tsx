@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { checkPromoCode } from "@/lib/billing/actions";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { useT } from "@/i18n/client";
@@ -27,6 +28,8 @@ export function AcompteView() {
   const { config, toast } = useVideo();
   const cart = useCart(config);
   const [method, setMethod] = useState("carte");
+  const [promo, setPromo] = useState("");
+  const [promoNote, setPromoNote] = useState("");
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState("");
   const [alert, setAlert] = useState(false);
@@ -97,7 +100,7 @@ export function AcompteView() {
                   if (!event.currentTarget.reportValidity()) return;
                   setSending(true);
                   const payment = method === "virement" ? "virement" : undefined;
-                  submitProject(t, config, "acompte", cart.items, client, payment)
+                  submitProject(t, config, "acompte", cart.items, client, payment, payment ? undefined : promo)
                     .then((data) => {
                       if (payment === "virement") {
                         router.push("/confirmation");
@@ -131,6 +134,41 @@ export function AcompteView() {
                     <small>{t("Réservation confirmée à réception")}</small>
                   </label>
                 </div>
+                {method !== "virement" && (
+                  <div className="d-field">
+                    <span>{t("Code promotionnel")}</span>
+                    <span className="d-row">
+                      <input
+                        value={promo}
+                        autoComplete="off"
+                        placeholder={t("Code promo")}
+                        onChange={(event) => {
+                          setPromo(event.target.value);
+                          setPromoNote("");
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => {
+                          const code = promo.trim();
+                          if (!code) {
+                            setPromoNote(t("Saisissez un code."));
+                            return;
+                          }
+                          void checkPromoCode(code, "video")
+                            .then((result) =>
+                              setPromoNote(result.valid ? t("Code appliqué : la remise sera calculée par Stripe.") : t("Ce code promotionnel n'est pas valide.")),
+                            )
+                            .catch(() => setPromoNote(t("Ce code promotionnel n'est pas valide.")));
+                        }}
+                      >
+                        {t("Appliquer")}
+                      </button>
+                    </span>
+                    {promoNote ? <small className="muted-note">{promoNote}</small> : null}
+                  </div>
+                )}
                 <div className="stripe-slot" id="stripe-element">
                   <Icon name="lock" />
                   <p role={alert ? "alert" : undefined}>{notice || t("Le formulaire de paiement sécurisé Stripe s'affichera ici.")}</p>

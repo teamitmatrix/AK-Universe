@@ -1,4 +1,6 @@
 import "server-only";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,7 +10,13 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function getAdminIdentity() {
   const user = await getCurrentUser();
-  if (!user) return null;
+  // A cookie the proxy still accepts can already be rejected by Auth (revoked session).
+  // Clearing it has to happen in a route handler: a page cannot write cookies.
+  if (!user) {
+    const path = (await headers()).get("x-pathname") || "/admin/dashboard";
+    const next = path.startsWith("/") && !path.startsWith("//") ? path : "/admin/dashboard";
+    redirect(`/auth/session?redirectTo=${encodeURIComponent(next)}`);
+  }
   const supabase = await createClient();
   // select("*"): the `active` column only exists once migration 005 is applied.
   const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();

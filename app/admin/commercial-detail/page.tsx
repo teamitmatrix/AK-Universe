@@ -4,7 +4,7 @@ import { CommercialDetailView } from "@/components/admin/space/TeamViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadCommercialDetail } from "@/lib/admin/team";
 import { loadTaskOptions } from "@/lib/admin/agenda";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Commercial — Admin AK Universe" },
@@ -16,7 +16,7 @@ export default async function CommercialDetailPage({ searchParams }: { searchPar
   const admin = await getAdminIdentity();
   if (!admin) notFound();
   const { id } = await searchParams;
-  const [lang, data, taskOptions] = await Promise.all([getLang(), loadCommercialDetail(String(id ?? "")), loadTaskOptions()]);
+  const [lang, data, taskOptions] = await Promise.all([getAdminLang(), loadCommercialDetail(String(id ?? "")), loadTaskOptions()]);
   if (!data) notFound();
   return <CommercialDetailView lang={lang} admin={admin} data={data} taskOptions={taskOptions} />;
 }

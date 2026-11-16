@@ -12,6 +12,7 @@ import {
   Info,
   KeyRound,
   ListChecks,
+  Percent,
   Receipt,
   Settings,
   ShieldCheck,
@@ -37,7 +38,8 @@ import { FilterBar } from "./CrmClient";
 import { dashTextFor } from "./dashText";
 import { RevenueChart } from "./RevenueChart";
 import { AddStaffButton } from "./StaffManage";
-import { CatalogueEditor, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
+import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
+import type { loadCommissionRates } from "@/lib/admin/rates";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, PageHead, formatters } from "./ui";
 
@@ -65,7 +67,17 @@ function Note({ children, tone = "warn" }: { children: React.ReactNode; tone?: "
 
 // ---------- Catalogue ----------
 
-export function CatalogueView({ lang, admin, data }: { lang: Lang; admin: Admin; data: Awaited<ReturnType<typeof loadCatalogue>> }) {
+export function CatalogueView({
+  lang,
+  admin,
+  data,
+  rates,
+}: {
+  lang: Lang;
+  admin: Admin;
+  data: Awaited<ReturnType<typeof loadCatalogue>>;
+  rates: Awaited<ReturnType<typeof loadCommissionRates>>;
+}) {
   const t = toolsTextFor(lang);
   const c = t.catalogue;
   return (
@@ -80,6 +92,11 @@ export function CatalogueView({ lang, admin, data }: { lang: Lang; admin: Admin;
             {c.durationsNote} <Link href="/admin">→</Link> {c.onQuoteNote}
           </Note>
           <CatalogueEditor rows={data.rows} />
+        </section>
+        <section className="adm-card" aria-labelledby="adm-rates">
+          <CardHead Icon={Percent} title={c.rates.title} />
+          <Note tone="info">{rates.ready ? c.rates.note : c.rates.missing}</Note>
+          <CommissionRatesForm initial={rates.rates} ready={rates.ready} />
         </section>
       </div>
     </AdmShell>
@@ -191,8 +208,8 @@ export function DocumentsView({ lang, admin, data }: { lang: Lang; admin: Admin;
   const d = t.documents;
   const locale = localeOf(lang);
   const f = formatters(locale);
-  const statuses = dashTextFor(lang).crm.quotes.groups;
-  const groupOf = (s: string) => (["acompte_paye", "en_cours", "termine"].includes(s) ? "acceptes" : s === "annule" ? "refuses" : "en-attente");
+  const quotes = dashTextFor(lang).crm.quotes;
+  const DOC_CLASS: Record<string, string> = { brouillon: "is-muted", en_attente: "is-warn", validee: "is-ok", payee: "is-ok", annulee: "is-muted" };
   const categoryOptions = Object.entries(d.categories)
     .filter(([k]) => k)
     .map(([value, label]) => ({ value, label }));
@@ -222,37 +239,26 @@ export function DocumentsView({ lang, admin, data }: { lang: Lang; admin: Admin;
                 {d.seeAll}
               </Link>
             </CardHead>
-            {data.quotes.length === 0 && data.invoices.length === 0 ? (
+            {!data.docsReady ? (
+              <Note>{quotes.notReady}</Note>
+            ) : data.pieces.length === 0 ? (
               <p className="adm-empty">{d.noQuotes}</p>
             ) : (
               <ul className="adm-list">
-                {data.quotes.map((q) => (
+                {data.pieces.map((q) => (
                   <li key={q.id}>
-                    <FileText size={16} aria-hidden="true" />
+                    {q.kind === "facture" ? <Receipt size={16} aria-hidden="true" /> : <FileText size={16} aria-hidden="true" />}
                     <span className="adm-stack">
-                      <strong>
-                        {q.reference} — {q.client}
-                      </strong>
+                      <Link className="adm-person" href={`/admin/document?id=${q.id}`}>
+                        <strong>
+                          {q.number} — {q.client}
+                        </strong>
+                      </Link>
                       <span className="adm-person-mail">
-                        {d.quoteKinds[q.kind] ?? q.kind} · {f.date(q.created_at)} · {f.euros(q.total_cents)}
+                        {quotes.types[q.kind] ?? q.kind} · {f.date(q.date)} · {f.euros(q.amountCents)}
                       </span>
                     </span>
-                    <span className={`adm-badge ${groupOf(q.status) === "acceptes" ? "is-ok" : groupOf(q.status) === "refuses" ? "is-muted" : "is-warn"}`}>{statuses[groupOf(q.status)]}</span>
-                  </li>
-                ))}
-                {data.invoices.map((i) => (
-                  <li key={i.id}>
-                    <Receipt size={16} aria-hidden="true" />
-                    <span className="adm-stack">
-                      <strong>
-                        {d.invoiceKinds[i.kind] ?? i.kind} · {f.euros(i.amount_cents)}
-                      </strong>
-                      <span className="adm-person-mail">
-                        {f.date(i.created_at)}
-                        {i.stripe_object_id ? ` · ${i.stripe_object_id.slice(0, 18)}…` : ""}
-                      </span>
-                    </span>
-                    <span className="adm-badge is-ok">{d.paid}</span>
+                    <span className={`adm-badge ${DOC_CLASS[q.status] ?? "is-info"}`}>{quotes.statuses[q.status] ?? q.status}</span>
                   </li>
                 ))}
               </ul>
@@ -263,20 +269,26 @@ export function DocumentsView({ lang, admin, data }: { lang: Lang; admin: Admin;
             <CardHead Icon={Film} title={d.files}>
               {data.storageReady && <UploadButton mode="project" projects={data.projectChoices} />}
             </CardHead>
-            {data.projectFiles.length === 0 ? (
+            {data.assets.length === 0 ? (
               <p className="adm-empty">{d.noFiles}</p>
             ) : (
               <ul className="adm-list">
-                {data.projectFiles.slice(0, 30).map((pf) => (
-                  <li key={pf.path}>
+                {data.assets.slice(0, 30).map((pf) => (
+                  <li key={pf.key}>
                     <Film size={16} aria-hidden="true" />
                     <span className="adm-stack">
                       <strong title={pf.name}>{pf.name}</strong>
                       <span className="adm-person-mail">
-                        {pf.reference} — {pf.client}
+                        {pf.reference} — {pf.client} · {d.fileSources[pf.source]}
                       </span>
                     </span>
-                    <FileActions path={pf.path} name={pf.name} />
+                    {pf.path ? (
+                      <FileActions path={pf.path} name={pf.name} />
+                    ) : pf.url ? (
+                      <a className="adm-link" href={pf.url} target="_blank" rel="noopener noreferrer nofollow">
+                        {d.open}
+                      </a>
+                    ) : null}
                   </li>
                 ))}
               </ul>

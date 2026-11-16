@@ -277,12 +277,13 @@ export async function submitProject(
   kind: "devis" | "acompte",
   items: CartItem[],
   client: ClientInfo,
-  payment?: string
+  payment?: string,
+  promotionCode?: string
 ) {
   const res = await fetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, payment, client, items }),
+    body: JSON.stringify({ kind, payment, client, items, promotionCode: promotionCode?.trim() || undefined }),
   });
   const data = (await res.json().catch(() => ({}))) as {
     error?: string;

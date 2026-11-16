@@ -72,17 +72,29 @@ export function SiteTranslator() {
   const [lang] = useSiteLang();
   const pathname = usePathname();
 
+  const adminSpace = pathname === "/admin" || pathname.startsWith("/admin/");
+
   useEffect(() => {
+    // The admin space has its own French/English copy. Google Translate's frames are in Quirks Mode and reload /admin.
+    if (adminSpace) {
+      document.querySelectorAll("iframe").forEach((frame) => {
+        const mark = `${frame.className} ${frame.name}`;
+        if (mark.includes("skiptranslate") || mark.includes("VIpgJd") || frame.name === "votingFrame") frame.remove();
+      });
+      document.querySelectorAll(".goog-te-combo, .goog-te-banner-frame, #goog-gt-tt").forEach((node) => node.remove());
+      document.body.style.top = "";
+      return;
+    }
     if (!needsGoogle(lang)) return;
     setTranslateCookie(lang);
     loadGoogleTranslate();
-  }, [lang]);
+  }, [lang, adminSpace]);
 
   const floating = !INLINE_SWITCH.includes(pathname) && !hasHeaderSwitch(pathname);
 
   return (
     <>
-      <div id="google_translate_element" hidden />
+      {!adminSpace && <div id="google_translate_element" hidden />}
       {floating && (
         <div className="lang-float">
           <LangSwitch up compact />

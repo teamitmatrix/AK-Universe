@@ -1,6 +1,8 @@
 import "server-only";
+import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS, PLAN } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, loadDefaultConfig } from "@/lib/video-config";
 
 /**
@@ -8,15 +10,16 @@ import { getVideoConfig, loadDefaultConfig } from "@/lib/video-config";
  * The prices themselves live where the site already reads them:
  *   video services, options, deposit, quantity discounts, marketing packages → site_settings "video_pricing"
  *   Agents IA tiers, subscription, extra user, annual discount, options      → site_settings "agents_pricing"
+ *   website setup and monthly running fees                                   → site_settings "digital_pricing"
  * Field keys are stable ids understood by saveCatalogue() (catalogue-actions.ts).
  */
 
-export type CatalogueCategory = "agents" | "abonnement" | "marketing" | "videos" | "options" | "regles";
+export type CatalogueCategory = "agents" | "abonnement" | "marketing" | "videos" | "options" | "digital" | "regles";
 export type CatalogueField = { key: string; label: "price" | "setup" | "percent" | "monthly"; value: number; default: number; unit: "eur" | "eurMonth" | "pct" };
 export type CatalogueRow = { id: string; category: CatalogueCategory; name: string; detail: string; fields: CatalogueField[]; href?: string };
 
 export async function loadCatalogue() {
-  const [cfg, agents] = await Promise.all([getVideoConfig(), getAgentsPricing()]);
+  const [cfg, agents, websites] = await Promise.all([getVideoConfig(), getAgentsPricing(), getDigitalWebsites()]);
   const def = loadDefaultConfig();
   const rows: CatalogueRow[] = [];
 
@@ -89,6 +92,25 @@ export async function loadCatalogue() {
       name: o.label,
       detail: o.per === "video" ? "Par vidéo" : "Par projet",
       fields: [{ key: `v:opt:${id}`, label: "price", value: o.price, default: def.options[id]?.price ?? o.price, unit: "eur" }],
+    });
+  }
+
+  // Website setup and monthly running fees (/digital).
+  const liveSite = new Map(websites.map((s) => [s.id, s]));
+  for (const site of DIGITAL_WEBSITES) {
+    const cur = liveSite.get(site.id) ?? site;
+    rows.push({
+      id: `site:${site.id}`,
+      category: "digital",
+      name: site.name,
+      detail: site.runningFrom === null ? "Mise en place" : "Mise en place et frais de fonctionnement mensuels",
+      href: "/digital#sites",
+      fields: [
+        { key: `d:site:${site.id}:price`, label: "setup", value: cur.price, default: site.price, unit: "eur" },
+        ...(site.runningFrom !== null
+          ? [{ key: `d:site:${site.id}:running`, label: "monthly" as const, value: cur.runningFrom ?? site.runningFrom, default: site.runningFrom, unit: "eurMonth" as const }]
+          : []),
+      ],
     });
   }
 

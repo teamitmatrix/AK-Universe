@@ -1,4 +1,5 @@
 import "server-only";
+import { sendOpsDigests } from "@/lib/notify-mail";
 import { createClient } from "@/lib/supabase/server";
 import {
   PAID,
@@ -242,6 +243,16 @@ export async function loadDashboard(period: Period, now = new Date()) {
           videasteId: p.videaste_id ?? null,
         }))
     : null;
+
+  const lateProjects = projects.filter((p) => p.status === "acompte_en_attente" && new Date(p.created_at) < lateCutoff);
+  await sendOpsDigests({
+    lateCount: urgent.latePayments,
+    lateRefs: lateProjects.slice(0, 8).map((p) => p.reference),
+    abandonedDeposits: abandonedCarts.deposits.count,
+    abandonedDepositCents: abandonedCarts.deposits.valueCents,
+    abandonedSubs: abandonedCarts.subscriptions.count,
+    abandonedSubCents: abandonedCarts.subscriptions.monthlyCents,
+  });
 
   return { period, kpis, revenueSeries, site, funnel, abandonedCarts, urgent, commercialRows, videasteRows, migrated, deadlines };
 }

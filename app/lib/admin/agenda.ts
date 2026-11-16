@@ -4,6 +4,7 @@ import { displayName, isActiveProject, type StaffProfile } from "./team";
 
 /**
  * Unified agenda = existing data, merged and tagged by source — no separate event store:
+ *   agenda_events               commercial calls/meetings and videographer shoots (owner = salesperson_id)
  *   tasks                       (one shared table; source = the assignee's team)
  *   video_projects.deadline     (delivery deadlines, video team)
  *   video_projects.contact.date (shooting date requested by the client, video team)
@@ -18,7 +19,7 @@ export type AgendaItem = {
   allDay: boolean;
   title: string;
   subtitle: string;
-  kind: TaskType | "deadline" | "shoot";
+  kind: TaskType | "deadline" | "shoot" | "rappel" | "visite" | "revue";
   source: AgendaSource;
   overdue: boolean;
   done: boolean;
@@ -33,9 +34,10 @@ const dateOnly = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 
 export async function loadAgenda(filter: AgendaFilter, now = new Date()) {
   const supabase = await createClient();
-  const [tasksRes, staffRes, projectsRes] = await Promise.all([
+  const [tasksRes, staffRes, eventsRes, projectsRes] = await Promise.all([
     supabase.from("tasks").select("*").order("due_at").limit(2000),
     supabase.from("profiles").select("*").in("role", ["commercial", "videaste", "admin"]),
+    supabase.from("agenda_events").select("id, salesperson_id, title, client_name, type, starts_at, location, notes, status").neq("status", "annule").order("starts_at").limit(2000),
     supabase
       .from("video_projects")
       .select("id, reference, status, deadline, videaste_id, commercial_id, shoot:contact->>date, company:contact->>entreprise, first_name:contact->>prenom, last_name:contact->>nom")
@@ -64,6 +66,24 @@ export async function loadAgenda(filter: AgendaFilter, now = new Date()) {
   };
   const items: AgendaItem[] = [];
   const nowMs = now.getTime();
+  const eventKinds = new Set<AgendaItem["kind"]>(["appel", "rdv", "relance", "reunion", "tournage", "montage", "livraison", "tache", "deadline", "shoot", "rappel", "visite", "revue"]);
+  const eventKind = (type: string): AgendaItem["kind"] => (eventKinds.has(type as AgendaItem["kind"]) ? (type as AgendaItem["kind"]) : "tache");
+
+  for (const e of (eventsRes.error ? [] : (eventsRes.data ?? [])) as { id: string; salesperson_id: string; title: string; client_name: string | null; type: string; starts_at: string; location: string | null; notes: string | null; status: string }[]) {
+    const owner = people.get(e.salesperson_id);
+    const past = new Date(e.starts_at).getTime() < nowMs;
+    items.push({
+      id: `e:${e.id}`,
+      at: e.starts_at,
+      allDay: false,
+      title: e.title,
+      subtitle: [nameOf(e.salesperson_id), e.client_name, e.location].filter(Boolean).join(" · "),
+      kind: eventKind(e.type),
+      source: owner?.role === "videaste" ? "video" : "commercial",
+      overdue: e.status === "prevu" && past,
+      done: e.status === "fait",
+    });
+  }
 
   for (const t of tasks) {
     const assignee = people.get(t.assigned_to);

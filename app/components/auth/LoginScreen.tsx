@@ -179,7 +179,7 @@ export function LoginScreen() {
       const next = safeRedirect(params.get("redirectTo"), "/espace");
       if (result.step === "code") {
         // Two-factor: the 6-digit code was e-mailed (Resend).
-        router.push(`/verification?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
+        router.push(`/verification?step=login&redirectTo=${encodeURIComponent(next)}`);
         return;
       }
       router.replace(next);

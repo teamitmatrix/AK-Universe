@@ -4,7 +4,7 @@ import { DashboardView } from "@/components/admin/space/DashboardView";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { isPeriod, loadDashboard } from "@/lib/admin/dashboard";
 import { loadPromotions } from "@/lib/admin/promotions";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Dashboard — Admin AK Universe" },
@@ -18,7 +18,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
 
   const requested = (await searchParams).periode;
   const period = isPeriod(requested) ? requested : "30j";
-  const [lang, data, promos] = await Promise.all([getLang(), loadDashboard(period), loadPromotions().catch(() => null)]);
+  const [lang, data, promos] = await Promise.all([getAdminLang(), loadDashboard(period), loadPromotions().catch(() => null)]);
   const promotions = promos && promos.configured && !("error" in promos) ? promos.rows.filter((r) => r.status === "active") : null;
   return <DashboardView lang={lang} admin={admin} data={data} promotions={promotions} />;
 }

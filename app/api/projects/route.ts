@@ -4,6 +4,7 @@ import { getLang, getSiteLang, getT } from "@/i18n/server";
 import { ensureProfile } from "@/lib/auth/session";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
+import { findAllowedPromotion } from "@/lib/billing/promotion";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
@@ -27,6 +28,7 @@ const CONTACT_FIELDS = {
 type Body = {
   kind?: string;
   payment?: string;
+  promotionCode?: string;
   lang?: string;
   client?: Record<string, unknown>;
   items?: ProjectItemInput[];
@@ -84,6 +86,13 @@ export async function POST(request: Request) {
       { error: t("Le paiement en ligne n'est pas encore configuré. Aucun paiement n'a été effectué.") },
       { status: 503 }
     );
+  }
+  const promotionCode = typeof body.promotionCode === "string" ? body.promotionCode.trim() : "";
+  let promotionCodeId: string | undefined;
+  if (byCard && promotionCode) {
+    const promo = await findAllowedPromotion(stripe!, promotionCode, { kind: "video" });
+    if (!promo) return NextResponse.json({ error: t("Ce code promotionnel n'est pas valide.") }, { status: 400 });
+    promotionCodeId = promo.id;
   }
 
   const admin = createAdminClient();
@@ -154,6 +163,7 @@ export async function POST(request: Request) {
           },
         },
       ],
+      discounts: promotionCodeId ? [{ promotion_code: promotionCodeId }] : undefined,
       metadata: { kind: "deposit", project_id: project.id, reference, lang },
       payment_intent_data: { metadata: { kind: "deposit", project_id: project.id, reference } },
       success_url: `${site}/confirmation?paid=1`,

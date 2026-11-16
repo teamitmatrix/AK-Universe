@@ -3,8 +3,10 @@
 import { audit } from "./audit";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS } from "@/config/pricing";
 import { AGENTS_PRICING_KEY, getAgentsPricingOverrides, type AgentsPricingOverrides } from "@/lib/agents-pricing";
+import { DIGITAL_PRICING_KEY, getDigitalPricingOverrides, type DigitalPricingOverrides } from "@/lib/digital-pricing";
 import { isAdmin } from "@/lib/auth/session";
 import { ensureIndex } from "@/lib/chatbot/rag";
 import { createClient } from "@/lib/supabase/server";
@@ -38,8 +40,10 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
   const agents: AgentsPricingOverrides = { ...((await getAgentsPricingOverrides()) ?? {}) };
   agents.options = { ...(agents.options ?? {}) };
   agents.tiers = { ...(agents.tiers ?? {}) };
+  const digital: DigitalPricingOverrides = { websites: { ...((await getDigitalPricingOverrides())?.websites ?? {}) } };
   let videoTouched = false;
   let agentsTouched = false;
+  let digitalTouched = false;
 
   for (const [key, raw] of entries) {
     const n = Number(raw);
@@ -66,6 +70,15 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
       else if (kind === "tier" && AGENT_TIERS.some((t) => t.name === id && t.price !== null) && (part === "price" || part === "setup"))
         agents.tiers[id!] = { ...agents.tiers[id!], [part === "price" ? "price" : "setupFrom"]: v };
       else return { success: false, error: "invalid" };
+    } else if (scope === "d") {
+      digitalTouched = true;
+      const site = DIGITAL_WEBSITES.find((s) => s.id === id);
+      if (kind !== "site" || !site || !part) return { success: false, error: "invalid" };
+      const current = { ...(digital.websites?.[site.id] ?? {}) };
+      if (part === "price") current.price = v;
+      else if (part === "running" && site.runningFrom !== null) current.runningFrom = v;
+      else return { success: false, error: "invalid" };
+      digital.websites = { ...digital.websites, [site.id]: current };
     } else return { success: false, error: "invalid" };
   }
 
@@ -87,8 +100,20 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
     }
     after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
   }
+  if (digitalTouched) {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({ key: DIGITAL_PRICING_KEY, value: digital, updated_at: new Date().toISOString(), updated_by: auth.user?.id });
+    if (error) {
+      console.error("saveCatalogue (digital) failed:", error.message);
+      return { success: false, error: "failed" };
+    }
+    after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
+  }
 
-  for (const path of ["/admin/catalogue", "/abonnement", "/paiement", "/agents-ia", "/marketing/forfaits", "/services"]) revalidatePath(path);
+  for (const path of ["/admin/catalogue", "/abonnement", "/paiement", "/agents-ia", "/marketing/forfaits", "/services", "/digital"]) revalidatePath(path);
   await audit("catalogue.save", `${entries.length} prix`, { changes: Object.fromEntries(entries) });
   return { success: true };
 }

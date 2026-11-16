@@ -1,4 +1,6 @@
 import "server-only";
+import { PERSON_NOTIFICATION_IDS, getTeamNotifications, type NotificationId } from "@/lib/notifications";
+import { sendPersonNotice, sendTeamNotice } from "@/lib/notify-mail";
 import { createAdminClient } from "@/lib/supabase/server";
 
 /*
@@ -35,16 +37,61 @@ type NewNotification = { userId: string; type: NotificationType; data?: Notifica
 
 const missingTable = (message: string) => /notifications/.test(message) && /(does not exist|schema cache|relation)/i.test(message);
 
+const personIds = new Set<string>(PERSON_NOTIFICATION_IDS);
+
+const noticeCopy = (type: NotificationType, data: NotificationData): { subject: string; lines: string[] } | null => {
+  const who = [data.reference, data.client].filter(Boolean).join(" — ");
+  const amount = data.amountCents != null ? `${(data.amountCents / 100).toLocaleString("fr-FR")} €` : "";
+  switch (type) {
+    case "lead_assigned":
+      return { subject: `Lead assigné ${data.reference ?? ""}`.trim(), lines: [who] };
+    case "quote_accepted":
+      return { subject: `Devis accepté ${data.reference ?? ""}`.trim(), lines: [who, amount && `Acompte ${amount}`] };
+    case "invoice_paid":
+      return { subject: `Facture encaissée ${data.reference ?? ""}`.trim(), lines: [who, amount] };
+    case "commission_validated":
+      return { subject: "Commission validée", lines: [amount, who] };
+    case "commission_paid":
+      return { subject: "Commission payée", lines: [amount, who] };
+    case "task_assigned":
+      return { subject: `Tâche attribuée${data.title ? ` — ${data.title}` : ""}`, lines: [data.title ?? "", data.dueAt ? `Échéance ${data.dueAt}` : ""] };
+    case "reminder_due":
+      return { subject: `Rappel${data.title ? ` — ${data.title}` : ""}`, lines: [data.title ?? "", data.dueAt ? `Échéance ${data.dueAt}` : ""] };
+    default:
+      return null;
+  }
+};
+
 export async function notify(rows: NewNotification[]) {
   if (!rows.length) return;
   try {
-    const { error } = await createAdminClient()
+    const admin = createAdminClient();
+    const { data, error } = await admin
       .from("notifications")
       .upsert(
         rows.map((r) => ({ user_id: r.userId, type: r.type, data: r.data ?? {}, link: r.link ?? null, ref: r.ref.slice(0, 120) })),
         { onConflict: "user_id,type,ref", ignoreDuplicates: true },
-      );
-    if (error && !missingTable(error.message)) console.warn("notify failed:", error.message);
+      )
+      .select("user_id, type, data");
+    if (error) {
+      if (!missingTable(error.message)) console.warn("notify failed:", error.message);
+      return;
+    }
+    const fresh = (data ?? []).filter((row) => personIds.has(row.type as string));
+    if (!fresh.length) return;
+    const prefs = await getTeamNotifications();
+    const ids = [...new Set(fresh.map((row) => row.user_id as string))];
+    const { data: people } = await admin.from("profiles").select("id, email").in("id", ids);
+    const emailOf = new Map((people ?? []).map((p) => [p.id as string, (p.email as string) ?? ""]));
+    await Promise.all(
+      fresh.map((row) => {
+        const type = row.type as NotificationId;
+        if (!prefs[type]) return Promise.resolve(false);
+        const copy = noticeCopy(type as NotificationType, (row.data ?? {}) as NotificationData);
+        const to = emailOf.get(row.user_id as string) ?? "";
+        return copy ? sendPersonNotice(to, copy.subject, copy.lines) : Promise.resolve(false);
+      }),
+    );
   } catch (cause) {
     console.warn("notify failed:", cause);
   }
@@ -69,6 +116,7 @@ export async function notifyLeadAssigned(projectId: string, commercialId: string
     const p = await projectInfo(projectId);
     if (!p || p.commercial_id !== commercialId) return;
     await notify([{ userId: commercialId, type: "lead_assigned", data: { reference: p.reference, client: clientOf(p) }, link: "/commercial/dashboard", ref: projectId }]);
+    await sendTeamNotice("lead", `Lead assigné ${p.reference}`, [clientOf(p), `Référence ${p.reference}`]);
   } catch (cause) {
     console.warn("notifyLeadAssigned failed:", cause);
   }
@@ -100,6 +148,8 @@ export async function notifyCommission(commissionId: string, status: "validee" |
         ref: commissionId,
       },
     ]);
+    const amount = `${(Number(c.amount_cents) / 100).toLocaleString("fr-FR")} €`;
+    await sendTeamNotice("commission", status === "validee" ? "Commission validée" : "Commission payée", [amount, p?.reference ?? "", p ? clientOf(p) : ""]);
   } catch (cause) {
     console.warn("notifyCommission failed:", cause);
   }

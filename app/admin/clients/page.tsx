@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ClientsView } from "@/components/admin/space/CrmViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadClients, oneOf, repParam, type ClientFilter } from "@/lib/admin/crm";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Clients — Admin AK Universe" },
@@ -22,6 +22,6 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     commercial: repParam(sp.commercial),
     q: String(sp.q ?? "").slice(0, 100),
   };
-  const [lang, data] = await Promise.all([getLang(), loadClients(filter)]);
+  const [lang, data] = await Promise.all([getAdminLang(), loadClients(filter)]);
   return <ClientsView lang={lang} admin={admin} data={data} filter={filter} />;
 }

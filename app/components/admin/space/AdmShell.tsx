@@ -23,7 +23,7 @@ import {
   Video,
 } from "lucide-react";
 import { LangSwitch } from "@/components/ui/LangSwitch";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 import { loadTaskOptions } from "@/lib/admin/agenda";
 import { CreateMenu } from "./ToolsClient";
 import { toolsTextFor } from "./toolsText";
@@ -91,11 +91,11 @@ export async function AdmShell({
   /** Current global-search text (search page only). */
   query?: string;
 }) {
-  const [lang, taskOptions] = await Promise.all([getLang(), loadTaskOptions().catch(() => null)]);
+  const [lang, taskOptions] = await Promise.all([getAdminLang(), loadTaskOptions().catch(() => null)]);
   const tools = toolsTextFor(lang);
   const label = (id: NavId) => (id in tools.nav ? tools.nav[id as keyof typeof tools.nav] : t.nav[id as keyof typeof t.nav]);
   return (
-    <div className="adm">
+    <div className="adm" translate="no">
       <aside className="adm-side">
         <Link href="/admin/dashboard" className="adm-brand">
           <Image src="/assets/img/logo.svg" alt="" width={28} height={28} />

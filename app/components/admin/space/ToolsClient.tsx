@@ -9,6 +9,9 @@ import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { saveCatalogue } from "@/lib/admin/catalogue-actions";
+import { saveCommissionRates } from "@/lib/admin/rates-actions";
+import { PRODUCT_TYPES } from "@/lib/commercial/commission-rules";
+import { PERSON_NOTIFICATION_IDS, TEAM_NOTIFICATION_IDS, type TeamNotifications } from "@/lib/notification-ids";
 import { createPromotion, setPromotionActive, type NewPromotion } from "@/lib/admin/promotions-actions";
 import { saveCompany, saveNotifications, updateMyProfile } from "@/lib/admin/settings-actions";
 import { createTask, deleteTask, setTaskDone } from "@/lib/admin/tasks-actions";
@@ -148,7 +151,7 @@ export function TaskModal({
               <p className="adm-muted">{m.intro}</p>
               <label className="adm-field">
                 <span>{m.assignee}</span>
-                <select className="adm-select" required value={form.assignedTo} onChange={set("assignedTo")}>
+                <select id="task-assignee" name="assignedTo" className="adm-select" required value={form.assignedTo} onChange={set("assignedTo")}>
                   <option value="">{m.choose}</option>
                   {commerciaux.length > 0 && (
                     <optgroup label={m.commercial}>
@@ -172,12 +175,12 @@ export function TaskModal({
               </label>
               <label className="adm-field">
                 <span>{m.taskTitle}</span>
-                <input required maxLength={160} value={form.title} onChange={set("title")} />
+                <input id="task-title" name="title" required maxLength={160} value={form.title} onChange={set("title")} />
               </label>
               <div className="adm-form-grid">
                 <label className="adm-field">
                   <span>{m.type}</span>
-                  <select className="adm-select" value={form.type} onChange={set("type")}>
+                  <select id="task-type" name="type" className="adm-select" value={form.type} onChange={set("type")}>
                     {TASK_TYPES.map((k) => (
                       <option key={k} value={k}>
                         {t.agenda.kinds[k]}
@@ -187,12 +190,12 @@ export function TaskModal({
                 </label>
                 <label className="adm-field">
                   <span>{m.due}</span>
-                  <input type="datetime-local" required value={form.dueAt} onChange={set("dueAt")} />
+                  <input id="task-due" name="dueAt" type="datetime-local" required value={form.dueAt} onChange={set("dueAt")} />
                 </label>
               </div>
               <label className="adm-field">
                 <span>{m.project}</span>
-                <select className="adm-select" value={form.projectId} onChange={set("projectId")}>
+                <select id="task-project" name="projectId" className="adm-select" value={form.projectId} onChange={set("projectId")}>
                   <option value="">{m.none}</option>
                   {options.projects.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -203,7 +206,7 @@ export function TaskModal({
               </label>
               <label className="adm-field">
                 <span>{m.notes}</span>
-                <textarea rows={3} maxLength={2000} value={form.notes} onChange={set("notes")} />
+                <textarea id="task-notes" name="notes" rows={3} maxLength={2000} value={form.notes} onChange={set("notes")} />
               </label>
             </>
           )}
@@ -865,13 +868,13 @@ export function CompanyForm({ values, defaults }: { values: Record<string, strin
   );
 }
 
-export function NotificationsForm({ initial }: { initial: { newRequest: boolean; depositPaid: boolean } }) {
+export function NotificationsForm({ initial }: { initial: TeamNotifications }) {
   const { t } = useT();
   const n = t.parametres.notifications;
   const [toast, toastNode] = useToast();
   const [pending, start] = useTransition();
   const [prefs, setPrefs] = useState(initial);
-  const toggle = (id: keyof typeof prefs) => {
+  const toggle = (id: keyof TeamNotifications) => {
     const next = { ...prefs, [id]: !prefs[id] };
     setPrefs(next);
     start(async () => {
@@ -883,30 +886,79 @@ export function NotificationsForm({ initial }: { initial: { newRequest: boolean;
       toast(n.saved);
     });
   };
+  const rows = (ids: readonly (keyof TeamNotifications)[]) =>
+    ids.map((id) => (
+      <li key={id}>
+        <span>
+          <strong>{n.items[id]![0]}</strong>
+          <small>{n.items[id]![1]}</small>
+        </span>
+        <label className="adm-switch">
+          <input type="checkbox" checked={prefs[id]} onChange={() => toggle(id)} disabled={pending} aria-label={n.items[id]![0]} />
+          <span aria-hidden="true" />
+        </label>
+      </li>
+    ));
   return (
     <>
-    <ul className="adm-toggles">
-      {(Object.keys(prefs) as (keyof typeof prefs)[]).map((id) => (
-        <li key={id}>
+      <h3 className="adm-subhead">{n.groups.team}</h3>
+      <ul className="adm-toggles">
+        {rows(TEAM_NOTIFICATION_IDS)}
+        <li>
           <span>
-            <strong>{n.items[id]![0]}</strong>
-            <small>{n.items[id]![1]}</small>
+            <strong>{n.contact[0]}</strong>
+            <small>{n.contact[1]}</small>
           </span>
-          <label className="adm-switch">
-            <input type="checkbox" checked={prefs[id]} onChange={() => toggle(id)} disabled={pending} aria-label={n.items[id]![0]} />
-            <span aria-hidden="true" />
-          </label>
+          <span className="adm-badge is-ok">{n.locked}</span>
         </li>
-      ))}
-      <li>
-        <span>
-          <strong>{n.contact[0]}</strong>
-          <small>{n.contact[1]}</small>
-        </span>
-        <span className="adm-badge is-ok">{n.locked}</span>
-      </li>
-    </ul>
-    {toastNode}
+      </ul>
+      <h3 className="adm-subhead">{n.groups.person}</h3>
+      <ul className="adm-toggles">{rows(PERSON_NOTIFICATION_IDS)}</ul>
+      {toastNode}
     </>
+  );
+}
+
+export function CommissionRatesForm({ initial, ready }: { initial: Record<string, number>; ready: boolean }) {
+  const { t } = useT();
+  const r = t.catalogue.rates;
+  const [toast, toastNode] = useToast();
+  const [pending, start] = useTransition();
+  const [values, setValues] = useState(initial);
+  const save = (event: React.FormEvent) => {
+    event.preventDefault();
+    start(async () => {
+      const res = await saveCommissionRates(values);
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      toast(r.saved);
+    });
+  };
+  return (
+    <form onSubmit={save}>
+      <div className="adm-form-row">
+        {PRODUCT_TYPES.map((id) => (
+          <label key={id} className="adm-field">
+            <span>{r.names[id]}</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              required
+              disabled={!ready || pending}
+              value={values[id] ?? ""}
+              onChange={(ev) => setValues({ ...values, [id]: Number(ev.target.value) })}
+            />
+          </label>
+        ))}
+      </div>
+      <div className="adm-form-actions">
+        <button type="submit" className="adm-btn" disabled={!ready || pending}>
+          <Check size={15} aria-hidden="true" />
+          {pending ? t.common.saving : r.save}
+        </button>
+      </div>
+      {toastNode}
+    </form>
   );
 }

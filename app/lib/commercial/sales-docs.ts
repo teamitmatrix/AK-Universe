@@ -93,6 +93,16 @@ export async function loadSalesDoc(me: CommercialMe, id: string) {
   return data ? toDoc(data as Row) : null;
 }
 
+/**
+ * One quote or invoice by id, for the admin preview. No salesperson filter: RLS returns the row to an admin
+ * and only the owner's row to a commercial.
+ */
+export async function loadSalesDocById(id: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).maybeSingle();
+  return data ? toDoc(data as Row) : null;
+}
+
 /** The rep's customers (converted prospects), offered to pre-fill the client block. */
 export async function loadClientChoices(me: CommercialMe) {
   const supabase = await createClient();

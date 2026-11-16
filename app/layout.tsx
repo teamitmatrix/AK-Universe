@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree } from "next/font/google";
+import Script from "next/script";
 import { ChatWidget } from "@/components/ui/ChatWidget";
 import { CookieNotice } from "@/components/ui/CookieNotice";
 import { SiteTranslator } from "@/components/ui/SiteTranslator";
@@ -46,12 +47,9 @@ export default async function RootLayout({
           Google Translate rewrites text nodes, which React does not expect: without this guard React throws
           "removeChild / insertBefore: node is not a child" on the next update (facebook/react#11538).
         */}
-        <script
-          id="dom-translation-guard"
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var proto=Node.prototype;if(proto.__akGuarded)return;proto.__akGuarded=true;var removeChild=proto.removeChild;proto.removeChild=function(child){if(!child||child.parentNode!==this)return child;return removeChild.call(this,child);};var insertBefore=proto.insertBefore;proto.insertBefore=function(node,ref){if(ref&&ref.parentNode!==this)ref=null;return insertBefore.call(this,node,ref);};var replaceChild=proto.replaceChild;proto.replaceChild=function(node,child){if(!child||child.parentNode!==this)return child;return replaceChild.call(this,node,child);};})();`,
-          }}
-        />
+        <Script id="dom-translation-guard" strategy="beforeInteractive">
+          {`(function(){var proto=Node.prototype;if(proto.__akGuarded)return;proto.__akGuarded=true;var removeChild=proto.removeChild;proto.removeChild=function(child){if(!child||child.parentNode!==this)return child;return removeChild.call(this,child);};var insertBefore=proto.insertBefore;proto.insertBefore=function(node,ref){if(ref&&ref.parentNode!==this)ref=null;return insertBefore.call(this,node,ref);};var replaceChild=proto.replaceChild;proto.replaceChild=function(node,child){if(!child||child.parentNode!==this)return child;return replaceChild.call(this,node,child);};})();`}
+        </Script>
         <I18nProvider lang={lang} siteLang={siteLang} catalog={clientCatalog(lang)}>
           {children}
           <SiteTranslator />

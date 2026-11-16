@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CommissionsView } from "@/components/admin/space/CrmViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadCommissionBoard, oneOf, repParam, type CommissionFilter } from "@/lib/admin/crm";
-import { getLang } from "@/i18n/server";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Commissions — Admin AK Universe" },
@@ -20,6 +20,6 @@ export default async function CommissionsPage({ searchParams }: { searchParams: 
     status: oneOf(sp.statut, ["en_attente", "validee", "a_payer", "payee"] as const),
     commercial: repParam(sp.commercial),
   };
-  const [lang, data] = await Promise.all([getLang(), loadCommissionBoard(filter)]);
+  const [lang, data] = await Promise.all([getAdminLang(), loadCommissionBoard(filter)]);
   return <CommissionsView lang={lang} admin={admin} data={data} filter={filter} />;
 }

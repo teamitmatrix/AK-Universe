@@ -139,7 +139,7 @@ export function SignupForm() {
         return;
       }
       if (result.needsVerification) {
-        router.push(`/verification?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
+        router.push("/verification");
       } else {
         router.push("/organisation");
         router.refresh();

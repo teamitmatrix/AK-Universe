@@ -68,10 +68,9 @@ const TEXT = {
   },
 };
 
-export function OtpForm() {
+export function OtpForm({ email }: { email: string }) {
   const router = useRouter();
   const params = useSearchParams();
-  const email = params.get("email") ?? "";
   // "login": two-factor step after the password (connexion.html); otherwise the sign-up confirmation.
   const loginStep = params.get("step") === "login";
   const [lang] = useLang();

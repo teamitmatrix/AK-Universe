@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useTransition, type ReactNode } from "react";
-import { FIXED_TRANSLATIONS, isLang, isSiteLang, LANG_COOKIE, SOURCE_LANG, type Lang, type SiteLang } from "@/config/languages";
+import { FIXED_TRANSLATIONS, isLang, isSiteLang, LANG_COOKIE, SOURCE_LANG, toAdminLang, type Lang, type SiteLang } from "@/config/languages";
 import { createT, type Catalog, type T } from "./translate";
 
 type I18nValue = { t: T; siteLang: SiteLang; change: (lang: SiteLang) => void; pending: boolean };
@@ -81,10 +81,12 @@ function useI18n() {
 /** Translator for client components. */
 export const useT = () => useI18n().t;
 
-/** Language the texts are rendered in (French while fixed translations are off). */
+/** Language the texts are rendered in (French while fixed translations are off). Admin screens use their own copy. */
 export function useLang() {
-  const { t, change } = useI18n();
-  return [t.lang, change] as const;
+  const { t, siteLang, change } = useI18n();
+  const pathname = usePathname();
+  const lang: Lang = pathname?.startsWith("/admin") ? toAdminLang(siteLang) : t.lang;
+  return [lang, change] as const;
 }
 
 /** Language chosen in the switch, and a function to change it. */

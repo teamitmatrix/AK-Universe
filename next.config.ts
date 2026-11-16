@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   allowedDevOrigins: ["192.168.100.46"],
+  // Dev logs print every Server Function argument. Leave this off so
+  // sign-in email, password, and codes never appear in the terminal.
+  logging: {
+    serverFunctions: false,
+  },
 
   // The video catalogue is read from disk by app/lib/video-config.ts.
   outputFileTracingIncludes: {

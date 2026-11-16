@@ -4,7 +4,8 @@ import { Subnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
-import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV, DIGITAL_WEBSITES } from "@/config/digital";
+import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV } from "@/config/digital";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 import { localized } from "@/i18n/data";
@@ -21,11 +22,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const [user, t, data] = await Promise.all([
-    getCurrentUser(),
-    getT(),
-    localized({ groups: DIGITAL_GROUPS, offers: DIGITAL_OFFERS, websites: DIGITAL_WEBSITES }),
-  ]);
+  const [user, t, websites] = await Promise.all([getCurrentUser(), getT(), getDigitalWebsites()]);
+  const data = await localized({ groups: DIGITAL_GROUPS, offers: DIGITAL_OFFERS, websites });
   const euros = (n: number) => `${n.toLocaleString(t.locale)} €`;
   const sites = data.groups.find((group) => group.id === "sites");
   const seo = data.groups.find((group) => group.id === "seo");

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ProspectsView } from "@/components/admin/space/CrmViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadProspects, oneOf, repParam, type ProspectFilter } from "@/lib/admin/crm";
-import { getLang } from "@/i18n/server";
+import { STAGES } from "@/lib/commercial/stages";
+import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
   title: { absolute: "Prospects — Admin AK Universe" },
@@ -17,10 +18,10 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
   if (!admin) notFound();
   const sp = await searchParams;
   const filter: ProspectFilter = {
-    stage: oneOf(sp.etape, ["nouveau", "acompte_en_attente"] as const),
+    stage: oneOf(sp.etape, STAGES),
     commercial: repParam(sp.commercial),
     q: String(sp.q ?? "").slice(0, 100),
   };
-  const [lang, data] = await Promise.all([getLang(), loadProspects(filter)]);
+  const [lang, data] = await Promise.all([getAdminLang(), loadProspects(filter)]);
   return <ProspectsView lang={lang} admin={admin} data={data} filter={filter} />;
 }
