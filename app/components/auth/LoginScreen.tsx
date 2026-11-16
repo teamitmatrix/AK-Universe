@@ -46,6 +46,8 @@ const TEXT = {
     invalid: "Adresse e-mail ou mot de passe incorrect.",
     unconfirmed: "Veuillez d'abord confirmer votre adresse e-mail.",
     failed: "Connexion impossible. Veuillez réessayer.",
+    rateLimited: "Trop de codes de connexion demandés. Réessayez dans quelques minutes.",
+    emailFailed: "Impossible d'envoyer le code de connexion. Réessayez plus tard.",
     oauthFailed: "La connexion avec ce fournisseur a échoué. Veuillez réessayer.",
     resetNeedsEmail: "Saisissez votre adresse e-mail pour réinitialiser votre mot de passe.",
     resetSent: "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé.",
@@ -82,6 +84,8 @@ const TEXT = {
     invalid: "Incorrect email address or password.",
     unconfirmed: "Please confirm your email address first.",
     failed: "Unable to sign in. Please try again.",
+    rateLimited: "Too many sign-in codes requested. Please try again in a few minutes.",
+    emailFailed: "Unable to send the sign-in code. Please try again later.",
     oauthFailed: "Signing in with this provider failed. Please try again.",
     resetNeedsEmail: "Enter your email address to reset your password.",
     resetSent: "If an account exists for this address, a reset email has just been sent.",
@@ -91,7 +95,7 @@ const TEXT = {
 };
 
 type MessageKey =
-  | "invalid" | "unconfirmed" | "failed" | "oauthFailed"
+  | "invalid" | "unconfirmed" | "failed" | "rateLimited" | "emailFailed" | "oauthFailed"
   | "resetNeedsEmail" | "resetSent" | "resetFailed";
 
 const BENEFIT_ICONS = ["bolt", "chart", "gear", "calendar"];
@@ -135,6 +139,8 @@ export function LoginScreen() {
         setError(
           result.code === "email_not_confirmed" ? "unconfirmed"
           : result.code === "invalid_credentials" ? "invalid"
+          : result.code === "rate_limited" ? "rateLimited"
+          : result.code === "email_failed" ? "emailFailed"
           : "failed"
         );
         return;

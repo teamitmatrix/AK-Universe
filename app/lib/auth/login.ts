@@ -48,7 +48,8 @@ export async function login(email: string, password: string, remember = false, l
 
     const sent = await sendAuthEmail("login", user, () => newEmailCode(user.email!), lang);
     if (sent === "failed") return { success: false as const, code: "email_failed" };
-    // rate_limited: no new code was generated, so an earlier OTP (if any) remains valid.
+    // rate_limited: no new code was generated, so only an earlier OTP still pending in this browser can be entered.
+    if (sent === "rate_limited" && existing?.uid !== user.id) return { success: false as const, code: "rate_limited" };
     if (sent === "sent") await setPendingLogin(user.id, user.email!, remember);
     else await setPendingLogin(user.id, user.email!, remember, existing?.issuedAt);
     return { success: true as const, step: "code" as const, email: user.email! };
