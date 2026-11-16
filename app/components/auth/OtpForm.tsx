@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { safeRedirect } from "@/lib/auth/redirect";
+import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
 import { textLang, useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -89,10 +90,22 @@ export function OtpForm() {
   // Message key (not a string) so it follows the language switch.
   const [error, setError] = useState<ErrorKey>("");
   const [cooldown, setCooldown] = useState(0);
+  const [expiryVersion, setExpiryVersion] = useState(0);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const submitting = useRef(false);
+  const expiredLocally = useRef(false);
 
-  useEffect(() => inputs.current[0]?.focus(), []);
+  useEffect(() => {
+    inputs.current[0]?.focus();
+  }, []);
+
+  useEffect(() => {
+    expiredLocally.current = false;
+    const timer = window.setTimeout(() => {
+      expiredLocally.current = true;
+    }, 15 * 60_000);
+    return () => window.clearTimeout(timer);
+  }, [email, loginStep, expiryVersion]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -133,18 +146,24 @@ export function OtpForm() {
     submitting.current = true;
     setLoading(true);
     try {
-      const result = await postOtp({
-        action: "verify",
-        step: loginStep ? "login" : "signup",
-        code,
-        email,
+      // Verify directly with Supabase in the browser. This is the same flow that worked
+      // on the translations branch and avoids nginx/Next Server Action 502 responses.
+      const { data, error: verifyError } = await createClient().auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: code,
+        type: "email",
       });
-      if (!result.success) {
-        setError(result.code === "otp_expired" ? "expired" : result.code === "otp_invalid" ? "incorrect" : "failed");
+      if (verifyError || !data.user) {
+        setError(expiredLocally.current ? "expired" : "incorrect");
         setDigits(Array(LENGTH).fill(""));
         focus(0);
         return;
       }
+
+      // Best effort only: clears the pending OTP cookie and remembers this browser when requested.
+      // The Supabase session is already established, so a failure here must never block sign-in.
+      void postOtp({ action: "finalize", userId: data.user.id }).catch(() => undefined);
+
       router.replace(safeRedirect(params.get("redirectTo"), loginStep ? "/" : "/organisation"));
       router.refresh();
     } catch {
@@ -171,6 +190,7 @@ export function OtpForm() {
       if (result.success) {
         toast(t.resent);
         setDigits(Array(LENGTH).fill(""));
+        setExpiryVersion((version) => version + 1);
         focus(0);
         return;
       }

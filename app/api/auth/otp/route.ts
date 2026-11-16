@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  finalizeOtp,
   resendLoginOtp,
   resendSignupOtp,
   verifyLoginOtp,
@@ -9,11 +10,12 @@ import {
 export const runtime = "nodejs";
 
 type Body = {
-  action?: "verify" | "resend";
+  action?: "verify" | "resend" | "finalize";
   step?: "login" | "signup";
   code?: string;
   email?: string;
   lang?: string;
+  userId?: string;
 };
 
 /**
@@ -30,9 +32,14 @@ export async function POST(request: Request) {
   }
 
   const step = body.step === "login" ? "login" : "signup";
-  const action = body.action === "resend" ? "resend" : "verify";
+  const action = body.action === "resend" ? "resend" : body.action === "finalize" ? "finalize" : "verify";
 
   try {
+    if (action === "finalize") {
+      const result = await finalizeOtp(String(body.userId ?? ""));
+      return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    }
+
     if (action === "verify") {
       const code = String(body.code ?? "").trim();
       if (!/^\d{6}$/.test(code)) {

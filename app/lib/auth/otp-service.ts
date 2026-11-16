@@ -82,3 +82,12 @@ export async function resendSignupOtp(lang?: string): Promise<OtpResult> {
   if (sent === "sent") await setPendingLogin(pending.uid, pending.email, false);
   return sent === "sent" ? { success: true } : { success: false, code: sent };
 }
+
+/** Complete browser-side OTP verification without making sign-in depend on this cleanup call. */
+export async function finalizeOtp(userId: string): Promise<OtpResult> {
+  const pending = await getPendingLogin();
+  if (!pending || pending.uid !== userId) return { success: false, code: "otp_invalid" };
+  if (pending.remember) await trustThisDevice(pending.uid);
+  await clearPendingLogin();
+  return { success: true };
+}
