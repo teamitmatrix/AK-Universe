@@ -1,5 +1,6 @@
 "use server";
 
+import { audit } from "./audit";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { PROJECT_STATUS } from "@/config/projects";
@@ -21,7 +22,7 @@ const reindexChatbot = () =>
 /** Keeps only known keys and valid numbers, so the stored JSON can never break the catalogue. */
 function sanitize(input: PricingOverrides): PricingOverrides {
   const defaults = loadDefaultConfig();
-  const out: Required<PricingOverrides> = { depositPercent: defaults.depositPercent, qtyDiscounts: {}, options: {}, services: {} };
+  const out: Required<PricingOverrides> = { depositPercent: defaults.depositPercent, qtyDiscounts: {}, options: {}, services: {}, plans: {} };
 
   const deposit = num(input.depositPercent);
   if (deposit !== undefined) out.depositPercent = Math.min(100, deposit);
@@ -40,6 +41,11 @@ function sanitize(input: PricingOverrides): PricingOverrides {
       price: num(so.price),
       durations: s.durations ? s.durations.map((d, i) => num(so.durations?.[i]) ?? d.extra) : undefined,
     };
+  }
+  for (const plan of defaults.marketing?.plans ?? []) {
+    const po = input.plans?.[plan.key];
+    if (!po || plan.price === null) continue;
+    out.plans[plan.key] = { price: num(po.price), setupPrice: plan.setupPrice != null ? num(po.setupPrice) : undefined };
   }
   return out;
 }
@@ -62,6 +68,7 @@ export async function savePricing(input: PricingOverrides) {
 
   reindexChatbot();
   revalidatePath("/admin");
+  await audit("pricing.save", "video_pricing");
   return { success: true as const, config: applyOverrides(loadDefaultConfig(), value) };
 }
 
@@ -72,6 +79,7 @@ export async function resetPricing() {
   if (error) return { success: false as const, error: "resetFailed" as const };
   reindexChatbot();
   revalidatePath("/admin");
+  await audit("pricing.reset", "video_pricing");
   return { success: true as const, config: loadDefaultConfig() };
 }
 
@@ -111,5 +119,6 @@ export async function saveChatbot(input: ChatbotSettings) {
   }
   reindexChatbot();
   revalidatePath("/admin");
+  await audit("chatbot.save", "chatbot", { enabled: input.enabled === true });
   return { success: true as const };
 }

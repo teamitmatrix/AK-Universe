@@ -47,3 +47,6 @@ export type TextLang = "fr" | "en";
 export const SOURCE_LANG: Lang = "fr";
 
 export const isLang = (value: unknown): value is Lang => LANGUAGES.some((l) => l.code === value);
+
+/** Locale used for dates and numbers in the admin space. */
+export const localeOf = (lang: string) => (lang === "en" ? "en-GB" : "fr-FR");

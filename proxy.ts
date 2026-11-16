@@ -9,6 +9,8 @@ const PROTECTED_ROUTES = [
   "/paiement",
   "/acompte",
   "/admin",
+  "/equipe",
+  "/espace",
 ];
 
 /** Signed-in users are sent away from these. */
@@ -18,13 +20,15 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  if (!user && PROTECTED_ROUTES.includes(pathname)) {
+  const isProtected = PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  if (!user && isProtected) {
     const url = new URL("/connexion", request.url);
     url.searchParams.set("redirectTo", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
   if (user && GUEST_ONLY_ROUTES.includes(pathname)) {
+    // Keep main's guest redirect for clients; staff land via /espace after they open it.
     return NextResponse.redirect(new URL("/", request.url));
   }
 

@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
         destination: "/services/video-recrutement-marque-employeur",
         permanent: true,
       },
+      // Admin-space legacy entry points (handoff).
+      { source: "/admin-commerciaux.html", destination: "/admin/commerciaux", permanent: true },
+      { source: "/admin-commerciaux", destination: "/admin/commerciaux", permanent: true },
+      { source: "/admin-videastes.html", destination: "/admin/videastes", permanent: true },
+      { source: "/admin-videastes", destination: "/admin/videastes", permanent: true },
       // Every former .html page now lives at the same path without the suffix.
       { source: "/:path*.html", destination: "/:path*", permanent: true },
     ];

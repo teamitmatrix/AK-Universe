@@ -1,10 +1,11 @@
-import type { TextLang } from "@/config/languages";
+import type { Lang } from "@/config/languages";
 
 /** Admin texts in French and English (switch at the top of /admin). Catalogue names stay as on the site. */
 export const ADMIN_TEXT = {
   fr: {
     tabs: { prix: "Prix des services vidéo", demandes: "Demandes vidéo", chatbot: "Chatbot" },
     viewSite: "Voir le site",
+    dashboard: "Dashboard",
     errors: {
       forbidden: "Accès réservé aux administrateurs.",
       failed: "Enregistrement impossible. Veuillez réessayer.",
@@ -74,6 +75,22 @@ export const ADMIN_TEXT = {
       deposit: "Acompte",
       statusOf: (ref: string) => `Statut de ${ref}`,
       updated: "Statut mis à jour.",
+      assignment: "Attribution",
+      commercial: "Commercial",
+      videaste: "Vidéaste",
+      deadline: "Deadline",
+      revisions: "Tours de retours",
+      unassigned: "— Non attribué —",
+      inactiveMember: "(compte désactivé)",
+      save: "Enregistrer",
+      saving: "…",
+      assigned: "Attribution enregistrée.",
+      assignErrors: {
+        forbidden: "Accès réservé aux administrateurs.",
+        invalid: "Valeur invalide.",
+        notFound: "Membre introuvable ou désactivé.",
+        failed: "Enregistrement impossible.",
+      } as Record<string, string>,
       statuses: {
         nouveau: "Demande reçue",
         acompte_en_attente: "Acompte en attente",
@@ -87,6 +104,7 @@ export const ADMIN_TEXT = {
   en: {
     tabs: { prix: "Video service prices", demandes: "Video requests", chatbot: "Chatbot" },
     viewSite: "View site",
+    dashboard: "Dashboard",
     errors: {
       forbidden: "Administrators only.",
       failed: "Could not save. Please try again.",
@@ -156,6 +174,22 @@ export const ADMIN_TEXT = {
       deposit: "Deposit",
       statusOf: (ref: string) => `Status of ${ref}`,
       updated: "Status updated.",
+      assignment: "Assignment",
+      commercial: "Sales rep",
+      videaste: "Videographer",
+      deadline: "Deadline",
+      revisions: "Revision rounds",
+      unassigned: "— Unassigned —",
+      inactiveMember: "(deactivated account)",
+      save: "Save",
+      saving: "…",
+      assigned: "Assignment saved.",
+      assignErrors: {
+        forbidden: "Admins only.",
+        invalid: "Invalid value.",
+        notFound: "Member not found or deactivated.",
+        failed: "Could not save.",
+      } as Record<string, string>,
       statuses: {
         nouveau: "Request received",
         acompte_en_attente: "Deposit pending",
@@ -166,6 +200,9 @@ export const ADMIN_TEXT = {
       } as Record<string, string>,
     },
   },
-} satisfies Record<TextLang, unknown>;
+} satisfies Record<"fr" | "en", unknown>;
+
+/** The back-office is written in French and English only; other site languages see it in English. */
+export const adminTextFor = (lang: Lang) => ADMIN_TEXT[lang === "fr" ? "fr" : "en"];
 
 export type AdminErrorCode = keyof (typeof ADMIN_TEXT)["fr"]["errors"];

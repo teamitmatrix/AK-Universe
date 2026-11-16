@@ -77,13 +77,35 @@ export type OptionId = (typeof OPTIONS)[number]["id"];
 
 export type Selection = { cycle: Cycle; users: number; options: string[] };
 
-/** Monthly amounts after the annual discount. Used by the page and re-run on the server. */
-export function computeQuote({ cycle, users, options }: Selection) {
-  const k = cycle === "annuel" ? 1 - ANNUAL_DISCOUNT : 1;
+/**
+ * Editable Agents IA numbers. Defaults above; the admin catalogue saves overrides
+ * in site_settings "agents_pricing", merged by lib/agents-pricing.ts.
+ */
+export type AgentsPricing = {
+  planMonthly: number;
+  userPrice: number;
+  /** 0.2 = -20 % on the annual cycle. */
+  annualDiscount: number;
+  options: Record<OptionId, number>;
+  /** Tier name → monthly price and set-up fee (null = on quote). */
+  tiers: Record<string, { price: number | null; setupFrom: number | null }>;
+};
+
+export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
+  planMonthly: PLAN.monthlyPrice,
+  userPrice: USER_PRICE,
+  annualDiscount: ANNUAL_DISCOUNT,
+  options: Object.fromEntries(OPTIONS.map((o) => [o.id, o.price])) as Record<OptionId, number>,
+  tiers: Object.fromEntries(AGENT_TIERS.map((t) => [t.name, { price: t.price, setupFrom: t.setupFrom }])),
+};
+
+/** Monthly amounts after the annual discount. Optional pricing keeps existing callers working. */
+export function computeQuote({ cycle, users, options }: Selection, pricing: AgentsPricing = DEFAULT_AGENTS_PRICING) {
+  const k = cycle === "annuel" ? 1 - pricing.annualDiscount : 1;
   const chosen = OPTIONS.filter((o) => options.includes(o.id));
-  const plan = PLAN.monthlyPrice * k;
-  const usersTotal = users * USER_PRICE * k;
-  const optionsTotal = chosen.reduce((sum, o) => sum + o.price, 0) * k;
+  const plan = pricing.planMonthly * k;
+  const usersTotal = users * pricing.userPrice * k;
+  const optionsTotal = chosen.reduce((sum, o) => sum + (pricing.options[o.id] ?? o.price), 0) * k;
   const monthly = plan + usersTotal + optionsTotal;
   return {
     plan,

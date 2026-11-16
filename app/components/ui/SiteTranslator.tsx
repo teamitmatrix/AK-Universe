@@ -15,8 +15,9 @@ const INLINE_SWITCH = [
   "/paiement",
   "/auth/reset-password",
 ];
-/** Back-office stays in French. */
-const NO_SWITCH = ["/admin"];
+/** Back-office: Admin ships its own French/English copy; /equipe is staff-only. */
+const NO_SWITCH = ["/admin", "/equipe"];
+const isBackOffice = (path: string) => NO_SWITCH.some((p) => path === p || path.startsWith(`${p}/`));
 
 declare global {
   interface Window {
@@ -103,7 +104,7 @@ export function SiteTranslator() {
     loadGoogleTranslate();
   }, [lang]);
 
-  const floating = !INLINE_SWITCH.includes(pathname) && !NO_SWITCH.includes(pathname);
+  const floating = !INLINE_SWITCH.includes(pathname) && !isBackOffice(pathname);
 
   return (
     <>

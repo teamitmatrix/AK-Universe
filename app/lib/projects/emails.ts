@@ -1,6 +1,7 @@
 import "server-only";
 import { emailLayout as layout, escapeHtml, sendEmail, teamAddresses } from "@/lib/email";
 import { readEarlyStartFromContact, type EarlyStartRecord } from "@/config/withdrawal";
+import { getTeamNotifications } from "@/lib/notifications";
 
 /*
  * Video project e-mails, sent when a project is confirmed:
@@ -203,7 +204,10 @@ ${itemsTable(p, { total: "Total (HT)", deposit: event === "deposit_paid" ? "Acom
 
 export async function sendProjectEmails(project: ProjectMail, event: ProjectEvent) {
   const sends = [sendEmail(clientEmail(project, event))];
-  if (teamAddresses().length) sends.push(sendEmail(teamEmail(project, event)));
-  else console.warn("EMAIL_NOTIFY_TO is not set: AK Universe was not notified of", project.reference);
+  // Team copy can be switched off in /admin/parametres → Notifications (the client e-mail is always sent).
+  const notify = await getTeamNotifications();
+  const wanted = event === "received" ? notify.newRequest : notify.depositPaid;
+  if (wanted && teamAddresses().length) sends.push(sendEmail(teamEmail(project, event)));
+  else if (wanted) console.warn("EMAIL_NOTIFY_TO is not set: AK Universe was not notified of", project.reference);
   await Promise.all(sends);
 }

@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { resetPricing, savePricing } from "@/lib/admin/actions";
 import type { PricingOverrides, VideoConfig } from "@/lib/video-config";
-import { textLang, useLang } from "@/components/ui/LangSwitch";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
-import { ADMIN_TEXT } from "./adminText";
+import { adminTextFor } from "./adminText";
 
 const num = (v: string) => Math.max(0, Number(v) || 0);
 
@@ -16,7 +16,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
   const [pending, startTransition] = useTransition();
   const [toast, toastNode] = useToast();
   const [lang] = useLang();
-  const all = ADMIN_TEXT[textLang(lang)];
+  const all = adminTextFor(lang);
   const t = all.pricing;
 
   const update = (fn: (draft: VideoConfig) => void) => {
@@ -61,7 +61,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
   }
 
   return (
-    <main className="container admin notranslate" translate="no">
+    <main className="container admin">
       <h1>
         {t.title[0]}
         <span className="gold">{t.title[1]}</span>
@@ -82,6 +82,7 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
             max={100}
             step={1}
             id="deposit"
+            name="deposit"
             value={cfg.depositPercent}
             onChange={(e) => update((d) => void (d.depositPercent = Math.min(100, num(e.target.value))))}
           />
@@ -94,6 +95,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                 type="number"
                 min={0}
                 max={90}
+                id={`discount-${q}`}
+                name={`discount-${q}`}
                 value={pct}
                 onChange={(e) => update((d) => void (d.qtyDiscounts[q] = Math.min(90, num(e.target.value))))}
               />
@@ -120,6 +123,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                   type="number"
                   min={0}
                   step={10}
+                  id={`option-${id}`}
+                  name={`option-${id}`}
                   value={o.price}
                   onChange={(e) => update((d) => void (d.options[id].price = num(e.target.value)))}
                 />{" "}
@@ -153,6 +158,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                   type="number"
                   min={0}
                   step={10}
+                  id={`service-${s.slug}`}
+                  name={`service-${s.slug}`}
                   value={s.price}
                   onChange={(e) => update((d) => void (d.services[si].price = num(e.target.value)))}
                 />{" "}
@@ -169,6 +176,8 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
                           type="number"
                           min={0}
                           step={10}
+                          id={`duration-${s.slug}-${di}`}
+                          name={`duration-${s.slug}-${di}`}
                           value={dur.extra}
                           onChange={(e) => update((d) => void (d.services[si].durations![di].extra = num(e.target.value)))}
                         />{" "}

@@ -4,6 +4,8 @@ import { getSupabaseEnv } from "./env";
 
 /** Refreshes the Supabase session cookie and returns the current user. */
 export async function updateSession(request: NextRequest) {
+  // Admin identity recovery reads this when Auth rejects a cookie the proxy still accepted.
+  request.headers.set("x-pathname", `${request.nextUrl.pathname}${request.nextUrl.search}`);
   let response = NextResponse.next({ request });
   const { url, key } = getSupabaseEnv();
 
