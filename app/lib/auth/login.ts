@@ -3,13 +3,12 @@
 import { emailConfigured } from "@/lib/email";
 import { createAdminClient, createClient, createPublicClient } from "@/lib/supabase/server";
 import { newEmailCode, sendAuthEmail } from "./emails";
+import { resendLoginOtp, verifyLoginOtp } from "./otp-service";
 import {
-  clearPendingLogin,
   codeStillFresh,
   getPendingLogin,
   isTrustedDevice,
   setPendingLogin,
-  trustThisDevice,
 } from "./two-factor";
 
 /**
@@ -59,28 +58,10 @@ export async function login(email: string, password: string, remember = false, l
   }
 }
 
-/** Step 2 — the e-mailed code. Only works after step 1 in the same browser. */
+/** Kept for compatibility; /verification uses POST /api/auth/otp instead (avoids nginx 502). */
 export async function verifyLoginCode(code: string) {
   try {
-    const pending = await getPendingLogin();
-    if (!pending) return { success: false as const, code: "otp_expired" };
-
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: pending.email,
-      token: code.trim(),
-      type: "email",
-    });
-    if (error || data.user?.id !== pending.uid) {
-      if (!error) await supabase.auth.signOut();
-      // Supabase returns otp_expired for both wrong and expired tokens; with a live pending
-      // cookie the 15-minute window has not elapsed, so treat it as an incorrect code.
-      return { success: false as const, code: "otp_invalid" };
-    }
-
-    if (pending.remember) await trustThisDevice(pending.uid);
-    await clearPendingLogin();
-    return { success: true as const };
+    return await verifyLoginOtp(code);
   } catch (cause) {
     console.error("verifyLoginCode failed", cause);
     return { success: false as const, code: "unknown" };
@@ -89,15 +70,7 @@ export async function verifyLoginCode(code: string) {
 
 export async function resendLoginCode(lang?: string) {
   try {
-    const pending = await getPendingLogin();
-    if (!pending) return { success: false as const, code: "otp_expired" };
-    if (codeStillFresh(pending)) return { success: false as const, code: "rate_limited" };
-
-    const { data } = await createAdminClient().auth.admin.getUserById(pending.uid);
-    if (!data.user) return { success: false as const, code: "unknown" };
-    const sent = await sendAuthEmail("login", data.user, () => newEmailCode(pending.email), lang);
-    if (sent === "sent") await setPendingLogin(pending.uid, pending.email, pending.remember);
-    return sent === "sent" ? { success: true as const } : { success: false as const, code: sent };
+    return await resendLoginOtp(lang);
   } catch (cause) {
     console.error("resendLoginCode failed", cause);
     return { success: false as const, code: "unknown" };

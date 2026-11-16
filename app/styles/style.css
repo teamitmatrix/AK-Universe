@@ -1109,17 +1109,83 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   .home-cta-inner { flex-direction: column; align-items: flex-start; }
   .home-cta .section-sub { max-width: 100%; }
   .mk-grid { padding: 40px 0 80px; gap: 40px; }
-  .auth { grid-template-columns: 1fr; }
-  .auth-side { min-height: 520px; padding: 30px 24px 34px; }
-  .auth-side .logo { left: 24px; top: 20px; }
-  .auth-main { padding: 20px 16px; }
+  .auth {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+    min-height: 100dvh;
+    align-content: start;
+  }
+  /* Compact brand strip — do not stretch into empty black space above the form. */
+  .auth-side {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+    padding: 20px 20px 18px;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+  .auth-side .logo { position: static; left: auto; top: auto; font-size: 1.35rem; }
+  .auth-side .logo img { width: 48px; height: 48px; }
+  .auth-side h2 { font-size: clamp(1.25rem, 5vw, 1.55rem); }
+  .auth-side h2::after { width: 40px; height: 3px; margin-top: 8px; }
+  .auth-side p { display: none; }
+  .auth-feats { display: none; }
+  .login-hero-wrap { display: none !important; }
+  .auth-side-hero { min-height: 0; padding: 18px 20px 14px; gap: 6px; }
+  .auth-side-hero .copy { margin: 0; }
+  /* Form pages already have their own title — keep only the logo strip on small screens. */
+  .auth-side-hero .copy { display: none; }
+  .auth-main {
+    padding: 18px 18px 32px;
+    border-radius: 22px 22px 0 0;
+    flex: 1;
+    min-height: 0;
+  }
+  .auth-main .light-top { min-height: 40px; }
+  .auth-form { width: 100%; padding: 8px 0 20px; margin: 0 auto; }
+  .auth-form h1 { font-size: clamp(1.55rem, 6.5vw, 2.1rem); line-height: 1.15; overflow-wrap: anywhere; }
+  .auth-form .sub { font-size: 1rem; margin: 8px 0 18px; }
+  .auth-form .sub b,
+  #otp-email { overflow-wrap: anywhere; word-break: break-word; }
+  .field { margin-bottom: 14px; }
+  .field label, .field .lbl { font-size: 1rem; margin-bottom: 8px; }
+  .input input, .input select { height: 52px; font-size: 1rem; padding: 0 48px 0 52px; }
+  .input > .ic:first-child { left: 16px; font-size: 1.25rem; }
+  .account-switch { margin: 14px 0 18px; gap: 8px; }
+  .remember-row { margin: -4px 0 18px; font-size: .9rem; }
+  .forgot { margin: -6px 0 18px; font-size: .92rem; }
+  .alt { margin-top: 20px; font-size: 1rem; }
+  .alt a { font-size: 1.05rem; }
+  .rules { margin: -4px 0 18px; padding: 12px 14px; }
+  .otp { gap: 8px; margin: 18px 0; max-width: 360px; margin-inline: auto; }
+  .otp input { font-size: 1.35rem; aspect-ratio: 1; }
+  .resend { margin-top: 16px; font-size: .95rem; }
+  .otp-note { margin-top: 8px; font-size: .85rem; }
+  .auth-error { margin: 0 0 12px; padding: 10px 12px; font-size: .9rem; }
+  /* Verification desktop lock must not apply on phones/tablets. */
+  .auth-verify {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .auth-verify .auth-side,
+  .auth-verify .auth-main {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .auth-verify .auth-otp-form { padding: 4px 0 16px; width: 100%; }
   .pay-grid { grid-template-columns: 1fr; }
   .auth-login { grid-template-columns: 1fr; }
-  .auth-login .auth-side { min-height: auto; padding: 22px 20px; gap: 14px; }
-  .auth-login .login-hero-wrap, .auth-login .login-benefits, .auth-login .auth-side p { display: none; }
-  .login-hero-wrap { display: none; }
-  .auth-side-hero { min-height: auto; }
-  .auth-login .auth-side h2 { font-size: 1.3rem; }
+  .auth-login .auth-side { min-height: 0; padding: 18px 20px 14px; gap: 6px; }
+  .auth-login .login-hero-wrap,
+  .auth-login .login-benefits,
+  .auth-login .auth-side p,
+  .auth-login .auth-side .copy { display: none; }
+  .auth-login .auth-side h2 { font-size: clamp(1.25rem, 5vw, 1.5rem); }
+  .auth-login .auth-side h2::after { display: none; }
 }
 @media (max-width: 640px) {
   .plans, .agents-grid { grid-template-columns: 1fr; }
@@ -1132,9 +1198,15 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   .mega-item .icon-box { width: 46px; height: 46px; font-size: 1.3rem; }
   .row-2, .rules { grid-template-columns: 1fr; }
   .rules { gap: 8px; }
-  .auth-feats { font-size: .9rem; }
-  .otp { gap: 8px; }
-  .otp input { font-size: 1.5rem; }
+  .auth-side { padding: 16px 16px 14px; }
+  .auth-side .logo { font-size: 1.2rem; }
+  .auth-side .logo img { width: 42px; height: 42px; }
+  .auth-side-hero { padding: 16px 16px 12px; }
+  .auth-main { padding: 14px 14px 28px; border-radius: 18px 18px 0 0; }
+  .auth-form h1 { font-size: clamp(1.4rem, 7vw, 1.85rem); }
+  .auth-form .sub { font-size: .95rem; margin: 6px 0 14px; }
+  .otp { gap: 6px; margin: 14px 0; }
+  .otp input { font-size: 1.2rem; }
   .option { flex-wrap: wrap; gap: 10px 14px; }
   .option .muted { margin-left: 36px; order: 3; flex-basis: 100%; }
   .option .switch { margin-left: auto; }
@@ -1144,9 +1216,6 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   .video-controls { gap: 12px; padding: 14px 16px; }
   .video-time { font-size: .95rem; }
   .logo { font-size: 1.3rem; }
-  .auth-side .logo { font-size: 1.4rem; }
-  .auth-side .logo img { width: 56px; height: 56px; }
-  .auth-side p { font-size: 1.1rem; }
   .card-l { padding: 18px; }
   .row-head .amt { font-size: 1.15rem; }
   .steps { font-size: .8rem; }

@@ -2,9 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { resendLoginCode, verifyLoginCode } from "@/lib/auth/login";
 import { safeRedirect } from "@/lib/auth/redirect";
-import { resendSignupCode, verifySignupCode } from "@/lib/auth/signup";
 import { Icon } from "@/components/ui/Icon";
 import { textLang, useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
@@ -56,6 +54,26 @@ const TEXT = {
 };
 
 type ErrorKey = "missingEmail" | "expired" | "incorrect" | "failed" | "";
+type OtpApiResult = { success: boolean; code?: string };
+
+async function postOtp(body: Record<string, string>): Promise<OtpApiResult> {
+  const res = await fetch("/api/auth/otp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(body),
+  });
+  let data: OtpApiResult | null = null;
+  try {
+    data = (await res.json()) as OtpApiResult;
+  } catch {
+    data = null;
+  }
+  if (!data || typeof data.success !== "boolean") {
+    return { success: false, code: "unknown" };
+  }
+  return data;
+}
 
 export function OtpForm() {
   const router = useRouter();
@@ -115,7 +133,12 @@ export function OtpForm() {
     submitting.current = true;
     setLoading(true);
     try {
-      const result = loginStep ? await verifyLoginCode(code) : await verifySignupCode(email, code);
+      const result = await postOtp({
+        action: "verify",
+        step: loginStep ? "login" : "signup",
+        code,
+        email,
+      });
       if (!result.success) {
         setError(result.code === "otp_expired" ? "expired" : result.code === "otp_invalid" ? "incorrect" : "failed");
         setDigits(Array(LENGTH).fill(""));
@@ -139,9 +162,12 @@ export function OtpForm() {
     setCooldown(60);
     setError("");
     try {
-      const result = loginStep
-        ? await resendLoginCode(lang)
-        : await resendSignupCode(email, lang, params.get("redirectTo") ?? undefined);
+      const result = await postOtp({
+        action: "resend",
+        step: loginStep ? "login" : "signup",
+        email,
+        lang: textLang(lang),
+      });
       if (result.success) {
         toast(t.resent);
         setDigits(Array(LENGTH).fill(""));

@@ -50,7 +50,11 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip Next internals, static files and API webhooks.
-    "/((?!_next/static|_next/image|assets/|api/stripe/webhook|favicon.ico|robots.txt|sitemap.xml).*)",
+    {
+      // Skip Next internals, static files, OTP JSON API, and Stripe webhooks.
+      // Also skip Server Action POSTs (next-action) — they must not go through session cookie refresh.
+      source: "/((?!_next/static|_next/image|assets/|api/auth/otp|api/stripe/webhook|favicon.ico|robots.txt|sitemap.xml).*)",
+      missing: [{ type: "header", key: "next-action" }],
+    },
   ],
 };
