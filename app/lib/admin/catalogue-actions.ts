@@ -28,6 +28,15 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
   if (!entries.length) return { success: true };
   if (entries.length > 500) return { success: false, error: "invalid" };
 
+  try {
+    return await writeCatalogue(entries);
+  } catch (cause) {
+    console.error("saveCatalogue crashed:", cause);
+    return { success: false, error: "failed" };
+  }
+}
+
+async function writeCatalogue(entries: [string, number][]): Promise<Result> {
   // Current state, from the database (never from the browser).
   const cfg = await getVideoConfig();
   const video: Required<PricingOverrides> = {
@@ -93,7 +102,10 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
     // RLS (site_settings: admin insert/update) re-checks the admin role in the database.
     const { error } = await supabase
       .from("site_settings")
-      .upsert({ key: AGENTS_PRICING_KEY, value: agents, updated_at: new Date().toISOString(), updated_by: auth.user?.id });
+      .upsert(
+        { key: AGENTS_PRICING_KEY, value: agents, updated_at: new Date().toISOString(), updated_by: auth.user?.id },
+        { onConflict: "key" },
+      );
     if (error) {
       console.error("saveCatalogue (agents) failed:", error.message);
       return { success: false, error: "failed" };
@@ -105,7 +117,10 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
     const { data: auth } = await supabase.auth.getUser();
     const { error } = await supabase
       .from("site_settings")
-      .upsert({ key: DIGITAL_PRICING_KEY, value: digital, updated_at: new Date().toISOString(), updated_by: auth.user?.id });
+      .upsert(
+        { key: DIGITAL_PRICING_KEY, value: digital, updated_at: new Date().toISOString(), updated_by: auth.user?.id },
+        { onConflict: "key" },
+      );
     if (error) {
       console.error("saveCatalogue (digital) failed:", error.message);
       return { success: false, error: "failed" };
@@ -113,7 +128,25 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
     after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
   }
 
-  for (const path of ["/admin/catalogue", "/abonnement", "/paiement", "/agents-ia", "/marketing/forfaits", "/services", "/digital"]) revalidatePath(path);
+  // Revalidate public consumers without wiping the whole app layout (that was crashing the admin page).
+  for (const path of [
+    "/admin/catalogue",
+    "/admin",
+    "/abonnement",
+    "/paiement",
+    "/agents-ia",
+    "/marketing",
+    "/marketing/forfaits",
+    "/services",
+    "/digital",
+    "/projet",
+    "/projet/informations",
+    "/finaliser",
+    "/acompte",
+    "/assets/js/services-data.js",
+  ]) {
+    revalidatePath(path);
+  }
   await audit("catalogue.save", `${entries.length} prix`, { changes: Object.fromEntries(entries) });
   return { success: true };
 }

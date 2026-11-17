@@ -147,8 +147,14 @@ export function LoginScreen() {
       }
       const next = safeRedirect(params.get("redirectTo"), result.home);
       if (result.step === "code") {
-        // Two-factor: the 6-digit code was e-mailed (Resend).
-        router.push(`/verification?step=login&email=${encodeURIComponent(result.email)}&redirectTo=${encodeURIComponent(next)}`);
+        // Two-factor: the 6-digit code was e-mailed (Resend). Carry "remember" so /verification can set aku-trusted.
+        const q = new URLSearchParams({
+          step: "login",
+          email: result.email,
+          redirectTo: next,
+          remember: remember ? "1" : "0",
+        });
+        router.push(`/verification?${q}`);
         return;
       }
       router.replace(next);

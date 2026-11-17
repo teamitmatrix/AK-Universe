@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   // Staff logout should land on sign-in; bare "/" keeps a soft-cached portal view on some browsers.
-  const next = safeRedirect(form?.get("redirectTo")?.toString(), "/connexion");
+  // safeRedirect already accepts undefined; keep an explicit string fallback for the Location header.
+  const next = safeRedirect(form?.get("redirectTo")?.toString(), "/connexion") || "/connexion";
 
   const supabase = await createClient();
   await supabase.auth.signOut();

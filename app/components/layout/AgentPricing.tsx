@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
-import { AGENT_TIERS } from "@/config/pricing";
+import { AGENT_TIERS, type AgentsPricing } from "@/config/pricing";
 import { quoteHref } from "@/lib/contact/quote";
 
-/** Look of each offer, in AGENT_TIERS order (texts and prices live in config/pricing.ts). */
+/** Look of each offer, in AGENT_TIERS order (copy lives in config; amounts come from live pricing). */
 const LOOK = [
   { image: "ph-plan-starter", cta: "Commencer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "rocket" },
   { image: "ph-plan-pro", cta: "Essayer gratuitement", ctaClass: "btn btn-primary btn-block", setupIcon: "gear" },
@@ -11,29 +11,34 @@ const LOOK = [
   { image: "ph-plan-devis", cta: "Nous contacter", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: quoteHref() },
 ];
 
-const PLANS = AGENT_TIERS.map((tier, i) => ({
-  ...tier,
-  ...LOOK[i],
-  popular: "popular" in tier && tier.popular,
-  quote: tier.price === null,
-  price: tier.price === null ? "" : tier.price.toLocaleString("fr-FR"),
-  setup:
-    tier.setupFrom === null ? (
-      <>
-        Mise en place
-        <br />
-        <span className="gold">sur devis</span>
-      </>
-    ) : (
-      <>
-        Mise en place
-        <br />à partir de <span className="gold">{tier.setupFrom.toLocaleString("fr-FR")} € HT</span>
-      </>
-    ),
-}));
-
 /** Pricing block of the AI agents page (/agents-ia#tarifs). */
-export function AgentPricing() {
+export function AgentPricing({ pricing }: { pricing: AgentsPricing }) {
+  const plans = AGENT_TIERS.map((tier, i) => {
+    const live = pricing.tiers[tier.name] ?? { price: tier.price, setupFrom: tier.setupFrom };
+    const price = live.price;
+    const setupFrom = live.setupFrom;
+    return {
+      ...tier,
+      ...LOOK[i],
+      popular: "popular" in tier && tier.popular,
+      quote: price === null,
+      price: price === null ? "" : price.toLocaleString("fr-FR"),
+      setup:
+        setupFrom === null ? (
+          <>
+            Mise en place
+            <br />
+            <span className="gold">sur devis</span>
+          </>
+        ) : (
+          <>
+            Mise en place
+            <br />à partir de <span className="gold">{setupFrom.toLocaleString("fr-FR")} € HT</span>
+          </>
+        ),
+    };
+  });
+
   return (
     <section className="pricing stars" id="tarifs">
       <div className="container">
@@ -51,7 +56,7 @@ export function AgentPricing() {
         </div>
 
         <div className="plans">
-          {PLANS.map((plan) => (
+          {plans.map((plan) => (
             <article key={plan.name} className={`plan${plan.popular ? " featured" : ""}`}>
               {plan.popular && (
                 <span className="popular">

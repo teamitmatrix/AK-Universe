@@ -60,14 +60,19 @@ export async function savePricing(input: PricingOverrides) {
   // RLS (site_settings: admin insert/update) re-checks the admin role in the database.
   const { error } = await supabase
     .from("site_settings")
-    .upsert({ key: PRICING_KEY, value, updated_at: new Date().toISOString(), updated_by: auth.user?.id });
+    .upsert(
+      { key: PRICING_KEY, value, updated_at: new Date().toISOString(), updated_by: auth.user?.id },
+      { onConflict: "key" },
+    );
   if (error) {
     console.error("savePricing failed:", error.message);
     return { success: false as const, error: "failed" as const };
   }
 
   reindexChatbot();
-  revalidatePath("/admin");
+  for (const path of ["/admin", "/admin/catalogue", "/services", "/marketing", "/marketing/forfaits", "/projet", "/finaliser", "/acompte"]) {
+    revalidatePath(path);
+  }
   await audit("pricing.save", "video_pricing");
   return { success: true as const, config: applyOverrides(loadDefaultConfig(), value) };
 }
@@ -78,7 +83,9 @@ export async function resetPricing() {
   const { error } = await supabase.from("site_settings").delete().eq("key", PRICING_KEY);
   if (error) return { success: false as const, error: "resetFailed" as const };
   reindexChatbot();
-  revalidatePath("/admin");
+  for (const path of ["/admin", "/admin/catalogue", "/services", "/marketing", "/marketing/forfaits", "/projet"]) {
+    revalidatePath(path);
+  }
   await audit("pricing.reset", "video_pricing");
   return { success: true as const, config: loadDefaultConfig() };
 }

@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { AGENT_CATEGORIES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { contactHref } from "@/lib/contact/quote";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 const FAQ = CHATBOT_FAQ.filter((topic) => topic.topic.startsWith("Agents IA")).flatMap((topic) => topic.entries);
 
 export default async function Page() {
-  const user = await getCurrentUser();
+  const [user, pricing] = await Promise.all([getCurrentUser(), getAgentsPricing()]);
 
   return (
     <>
@@ -103,7 +104,7 @@ export default async function Page() {
           </div>
         </section>
 
-        <AgentPricing />
+        <AgentPricing pricing={pricing} />
 
         <section className="section" id="faq">
           <div className="container agents-faq">

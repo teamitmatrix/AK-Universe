@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DIGITAL_RUNNING_POLICY, DIGITAL_WEBSITES } from "@/config/digital";
+import { DIGITAL_RUNNING_POLICY, DIGITAL_WEBSITES, type DigitalWebsite } from "@/config/digital";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import { quoteHref } from "@/lib/contact/quote";
@@ -12,14 +12,15 @@ import type { VideoConfig } from "@/lib/video-config";
 const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
 
 /** Priced website offers on /digital#sites — illustrations, HT prices, discover + cart. */
-export function DigitalWebsiteCards({ config }: { config: VideoConfig }) {
+export function DigitalWebsiteCards({ config, websites }: { config: VideoConfig; websites?: DigitalWebsite[] }) {
   const [toast, toastNode] = useToast();
-  const cart = useCart(config);
+  const sites = websites?.length ? websites : config.digitalWebsites?.length ? config.digitalWebsites : DIGITAL_WEBSITES;
+  const cart = useCart({ ...config, digitalWebsites: [...sites] });
 
   return (
     <>
       <div className="agent-tiles digital-website-tiles">
-        {DIGITAL_WEBSITES.map((site) => (
+        {sites.map((site) => (
           <article key={site.id} className="agent-tile marketing-tile digital-website-card" id={site.id}>
             <Link
               href={quoteHref(`digital:${site.id}`)}

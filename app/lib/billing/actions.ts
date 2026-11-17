@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
 import { PLAN, computeQuote, sanitizeSelection, toCents, type Selection } from "@/config/pricing";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { ensureProfile } from "@/lib/auth/session";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -41,9 +42,9 @@ export async function startSubscriptionCheckout(input: {
   if (!auth.user) redirect("/connexion?redirectTo=/abonnement");
   await ensureProfile(auth.user);
 
-  // Never trust client totals: recompute from the sanitized selection.
+  // Never trust client totals: recompute from the sanitized selection + live catalogue prices.
   const selection = sanitizeSelection(input.selection);
-  const quote = computeQuote(selection);
+  const quote = computeQuote(selection, await getAgentsPricing());
   const admin = createAdminClient();
 
   const { data: membership } = await admin

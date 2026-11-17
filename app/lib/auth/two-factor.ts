@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 /*
  * Two-factor sign-in by e-mail. After a correct password no session is created yet:
  *   aku-2fa      (15 min)  the password was checked for this user; allows "resend code" and remembers "Se souvenir de moi"
- *   aku-trusted  (24 hours) set after a code was entered with "Se souvenir de moi": this browser skips the code
+ *   aku-trusted  (30 days) set after a code was entered with "Se souvenir de moi": this browser skips the code
  * Both are httpOnly and HMAC-signed, so they cannot be forged or read by page scripts.
  */
 
@@ -16,7 +16,8 @@ const TRUSTED = "aku-trusted";
 export const OTP_TTL_SEC = 15 * 60;
 /** Minimum gap before a new OTP may replace the previous one (matches e-mail rate limit). */
 export const OTP_RESEND_GAP_SEC = 60;
-const TRUSTED_TTL = 24 * 3600;
+/** How long "Se souvenir de moi" skips the e-mail code on this browser. */
+const TRUSTED_TTL = 30 * 24 * 3600;
 
 function secret() {
   const base = process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;

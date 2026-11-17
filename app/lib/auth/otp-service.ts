@@ -83,11 +83,15 @@ export async function resendSignupOtp(lang?: string): Promise<OtpResult> {
   return sent === "sent" ? { success: true } : { success: false, code: sent };
 }
 
-/** Complete browser-side OTP verification without making sign-in depend on this cleanup call. */
-export async function finalizeOtp(userId: string): Promise<OtpResult> {
+/**
+ * After a successful browser-side OTP verify: clear aku-2fa and optionally set aku-trusted.
+ * `remember` from the client covers the case where the pending cookie already expired but the OTP was still valid.
+ */
+export async function finalizeOtp(userId: string, remember?: boolean): Promise<OtpResult> {
   const pending = await getPendingLogin();
-  if (!pending || pending.uid !== userId) return { success: false, code: "otp_invalid" };
-  if (pending.remember) await trustThisDevice(pending.uid);
+  if (pending && pending.uid !== userId) return { success: false, code: "otp_invalid" };
+  const shouldTrust = Boolean(remember ?? pending?.remember);
+  if (shouldTrust) await trustThisDevice(userId);
   await clearPendingLogin();
   return { success: true };
 }

@@ -99,13 +99,41 @@ export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
   tiers: Object.fromEntries(AGENT_TIERS.map((t) => [t.name, { price: t.price, setupFrom: t.setupFrom }])),
 };
 
+const isPrice = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
+
+/** Fill missing / invalid fields so UI and checkout never show NaN from a partial payload. */
+export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): AgentsPricing {
+  const base = structuredClone(DEFAULT_AGENTS_PRICING);
+  if (!input || typeof input !== "object") return base;
+  if (isPrice(input.planMonthly)) base.planMonthly = input.planMonthly;
+  if (isPrice(input.userPrice)) base.userPrice = input.userPrice;
+  if (isPrice(input.annualDiscount)) base.annualDiscount = Math.min(0.9, input.annualDiscount);
+  if (input.options != null && typeof input.options === "object") {
+    for (const opt of OPTIONS) {
+      const v = (input.options as Record<string, unknown>)[opt.id];
+      if (isPrice(v)) base.options[opt.id] = v;
+    }
+  }
+  if (input.tiers != null && typeof input.tiers === "object") {
+    for (const tier of AGENT_TIERS) {
+      const to = (input.tiers as Record<string, { price?: unknown; setupFrom?: unknown } | null | undefined>)[tier.name];
+      const cur = base.tiers[tier.name];
+      if (!to || !cur) continue;
+      if (cur.price !== null && isPrice(to.price)) cur.price = to.price;
+      if (cur.setupFrom !== null && isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
+    }
+  }
+  return base;
+}
+
 /** Monthly amounts after the annual discount. Optional pricing keeps existing callers working. */
 export function computeQuote({ cycle, users, options }: Selection, pricing: AgentsPricing = DEFAULT_AGENTS_PRICING) {
-  const k = cycle === "annuel" ? 1 - pricing.annualDiscount : 1;
+  const p = normalizeAgentsPricing(pricing);
+  const k = cycle === "annuel" ? 1 - p.annualDiscount : 1;
   const chosen = OPTIONS.filter((o) => options.includes(o.id));
-  const plan = pricing.planMonthly * k;
-  const usersTotal = users * pricing.userPrice * k;
-  const optionsTotal = chosen.reduce((sum, o) => sum + (pricing.options[o.id] ?? o.price), 0) * k;
+  const plan = p.planMonthly * k;
+  const usersTotal = users * p.userPrice * k;
+  const optionsTotal = chosen.reduce((sum, o) => sum + (p.options[o.id] ?? o.price), 0) * k;
   const monthly = plan + usersTotal + optionsTotal;
   return {
     plan,

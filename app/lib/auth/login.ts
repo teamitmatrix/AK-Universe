@@ -35,7 +35,8 @@ export async function login(email: string, password: string, remember = false, l
     const user = data.user;
     const home = await landingPathFor(user.id);
 
-    if (remember && (await isTrustedDevice(user.id))) {
+    // A trusted browser skips the e-mail code until aku-trusted expires (independent of this login's checkbox).
+    if (await isTrustedDevice(user.id)) {
       await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
       return { success: true as const, step: "done" as const, home };
     }

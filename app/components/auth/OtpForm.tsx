@@ -59,12 +59,13 @@ const TEXT = {
 type ErrorKey = "missingEmail" | "expired" | "incorrect" | "failed" | "";
 type OtpApiResult = { success: boolean; code?: string };
 
-async function postOtp(body: Record<string, string>): Promise<OtpApiResult> {
+async function postOtp(body: Record<string, string | undefined>): Promise<OtpApiResult> {
+  const payload = Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined)) as Record<string, string>;
   const res = await fetch("/api/auth/otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
   let data: OtpApiResult | null = null;
   try {
@@ -76,6 +77,15 @@ async function postOtp(body: Record<string, string>): Promise<OtpApiResult> {
     return { success: false, code: "unknown" };
   }
   return data;
+}
+
+/** Login "remember me": explicit 1/0 from LoginScreen; missing → let finalizeOtp use the pending cookie. */
+function rememberForFinalize(params: URLSearchParams, loginStep: boolean): "1" | "0" | undefined {
+  if (!loginStep) return "0";
+  const v = params.get("remember");
+  if (v === "0" || v === "false") return "0";
+  if (v === "1" || v === "true") return "1";
+  return undefined;
 }
 
 export function OtpForm() {
@@ -162,9 +172,17 @@ export function OtpForm() {
         return;
       }
 
-      // Best effort only: clears the pending OTP cookie and remembers this browser when requested.
-      // The Supabase session is already established, so a failure here must never block sign-in.
-      void postOtp({ action: "finalize", userId: data.user.id }).catch(() => undefined);
+      // Must await: otherwise navigation cancels finalize and aku-trusted is never stored → OTP every login.
+      // Session is already verified above — finalize only clears pending + sets aku-trusted; never block sign-in on it.
+      try {
+        await postOtp({
+          action: "finalize",
+          userId: data.user.id,
+          remember: rememberForFinalize(params, loginStep),
+        });
+      } catch {
+        /* Network blip: user is signed in; trust cookie is best-effort. */
+      }
 
       router.replace(safeRedirect(params.get("redirectTo"), loginStep ? "/" : "/organisation"));
       router.refresh();

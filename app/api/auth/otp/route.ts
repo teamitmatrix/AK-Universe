@@ -16,6 +16,7 @@ type Body = {
   email?: string;
   lang?: string;
   userId?: string;
+  remember?: boolean | string;
 };
 
 /**
@@ -36,7 +37,13 @@ export async function POST(request: Request) {
 
   try {
     if (action === "finalize") {
-      const result = await finalizeOtp(String(body.userId ?? ""));
+      const remember =
+        body.remember === true || body.remember === "1" || body.remember === "true"
+          ? true
+          : body.remember === false || body.remember === "0" || body.remember === "false"
+            ? false
+            : undefined;
+      const result = await finalizeOtp(String(body.userId ?? ""), remember);
       return NextResponse.json(result, { status: result.success ? 200 : 400 });
     }
 

@@ -9,8 +9,8 @@ export async function GET() {
   return new Response(`window.AKU_CONFIG = ${JSON.stringify(config)};\n`, {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
-      // Admin price changes reach visitors within a minute.
-      "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+      // Short edge cache; catalogue save revalidates this path so admin edits land quickly.
+      "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
     },
   });
 }

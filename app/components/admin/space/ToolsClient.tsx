@@ -322,7 +322,14 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
   const save = () =>
     start(async () => {
       const payload = Object.fromEntries(changed.map(([k, v]) => [k, Number(v.replace(",", "."))]));
-      const res = await saveCatalogue(payload);
+      let res: Awaited<ReturnType<typeof saveCatalogue>>;
+      try {
+        res = await saveCatalogue(payload);
+      } catch (cause) {
+        // Server Action / network throw before a Result — edits stay in `values`, nothing cleared.
+        console.error("Catalogue save failed:", cause);
+        return toast(t.errors.failed);
+      }
       if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
       setValues({});
       toast(c.saved);
@@ -981,12 +988,20 @@ export function CommissionRatesForm({ initial, ready }: { initial: Record<string
   const [toast, toastNode] = useToast();
   const [pending, start] = useTransition();
   const [values, setValues] = useState(initial);
+  const [prevInitial, setPrevInitial] = useState(initial);
+  // Sync during render (no one-frame lag from useEffect) when the server refreshes rates.
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setValues(initial);
+  }
+  const router = useRouter();
   const save = (event: React.FormEvent) => {
     event.preventDefault();
     start(async () => {
       const res = await saveCommissionRates(values);
       if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
       toast(r.saved);
+      router.refresh();
     });
   };
   return (

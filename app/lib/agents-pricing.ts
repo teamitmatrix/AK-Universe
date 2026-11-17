@@ -54,6 +54,11 @@ export async function getAgentsPricingOverrides(): Promise<AgentsPricingOverride
   }
 }
 
-export async function getAgentsPricing() {
-  return applyAgentsOverrides(await getAgentsPricingOverrides());
+export async function getAgentsPricing(): Promise<AgentsPricing> {
+  try {
+    return applyAgentsOverrides(await getAgentsPricingOverrides());
+  } catch (cause) {
+    console.error("Could not build Agents IA pricing:", cause);
+    return structuredClone(DEFAULT_AGENTS_PRICING);
+  }
 }

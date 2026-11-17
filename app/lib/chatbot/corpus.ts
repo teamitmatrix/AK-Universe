@@ -1,9 +1,11 @@
 import "server-only";
 import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP } from "@/config/digital";
+import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
-import { AGENT_TIERS, ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, USER_PRICE } from "@/config/pricing";
+import { AGENT_TIERS, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
+import { getAgentsPricing } from "@/lib/agents-pricing";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
 import { getChatbotSettings } from "./knowledge";
 
@@ -178,7 +180,7 @@ function marketingDocs(cfg: VideoConfig): Doc[] {
   ];
 }
 
-function agentDocs(): Doc[] {
+function agentDocs(pricing: AgentsPricing): Doc[] {
   return [
     {
       source: "agents",
@@ -201,18 +203,18 @@ function agentDocs(): Doc[] {
       title: "Offres Agents IA (page Tarifs)",
       url: "/agents-ia#tarifs",
       content: `Offres présentées sur /agents-ia#tarifs (prix HT) :\n${list(
-        AGENT_TIERS.map(
-          (t) =>
-            `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${t.price === null ? "sur devis" : `${euros(t.price)} / mois`}, mise en place ${t.setupFrom === null ? "sur devis" : `à partir de ${euros(t.setupFrom)}`}. ${t.desc} Inclus : ${t.features.join(", ")}.`
-        )
+        AGENT_TIERS.map((t) => {
+          const live = pricing.tiers[t.name] ?? { price: t.price, setupFrom: t.setupFrom };
+          return `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${live.price === null ? "sur devis" : `${euros(live.price)} / mois`}, mise en place ${live.setupFrom === null ? "sur devis" : `à partir de ${euros(live.setupFrom)}`}. ${t.desc} Inclus : ${t.features.join(", ")}.`;
+        })
       )}\nSans engagement (annulation à tout moment), accès immédiat (commencez en quelques minutes), essai gratuit via /inscription. Offre Sur devis : nous contacter.`,
     },
     {
       source: "agents",
       title: "Abonnement en ligne AK Universe Pro (page /abonnement)",
       url: "/abonnement",
-      content: `Après inscription, l'abonnement se personnalise sur /abonnement : formule ${PLAN.name} à ${euros(PLAN.monthlyPrice)} HT / mois (${PLAN.features.join(", ")}). Utilisateurs supplémentaires : ${euros(USER_PRICE)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${ANNUAL_DISCOUNT * 100} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
-        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(o.price)} HT / mois — ${o.info}`)
+      content: `Après inscription, l'abonnement se personnalise sur /abonnement : formule ${PLAN.name} à ${euros(pricing.planMonthly)} HT / mois (${PLAN.features.join(", ")}). Utilisateurs supplémentaires : ${euros(pricing.userPrice)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${Math.round(pricing.annualDiscount * 100)} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
+        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(pricing.options[o.id] ?? o.price)} HT / mois — ${o.info}`)
       )}`,
     },
   ];
@@ -236,7 +238,7 @@ function faqDocs(cfg: VideoConfig): Doc[] {
   );
 }
 
-function digitalDocs(): Doc[] {
+function digitalDocs(websites: DigitalWebsite[] = DIGITAL_WEBSITES): Doc[] {
   const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
   return [
     {
@@ -244,7 +246,7 @@ function digitalDocs(): Doc[] {
       title: "Digital — Sites internet & e-commerce",
       url: "/digital#sites",
       content: `Des sites professionnels, rapides et pensés pour convertir vos visiteurs en clients.\n${list(
-        DIGITAL_WEBSITES.map((site) => {
+        websites.map((site) => {
           const running =
             site.runningFrom === null
               ? "pas de frais de fonctionnement affichés (tout éventuel frais récurrent au devis)"
@@ -346,14 +348,19 @@ export function splitPassages(text: string): { title: string; content: string }[
 }
 
 export async function buildCorpus(): Promise<Doc[]> {
-  const [cfg, settings] = await Promise.all([getVideoConfig(), getChatbotSettings()]);
+  const [cfg, settings, agentsPricing, websites] = await Promise.all([
+    getVideoConfig(),
+    getChatbotSettings(),
+    getAgentsPricing(),
+    getDigitalWebsites(),
+  ]);
   return [
     OVERVIEW,
     ...cfg.services.map((s) => serviceDoc(cfg, s)),
     ...videoDocs(cfg),
     ...marketingDocs(cfg),
-    ...agentDocs(),
-    ...digitalDocs(),
+    ...agentDocs(agentsPricing),
+    ...digitalDocs(websites),
     ...faqDocs(cfg),
     ...[companyDoc()].filter((d): d is Doc => d !== null),
     ...splitPassages(settings.knowledge).map((p) => ({ source: "admin", ...p })),

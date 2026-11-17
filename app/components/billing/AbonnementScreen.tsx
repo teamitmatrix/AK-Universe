@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ANNUAL_DISCOUNT, MAX_EXTRA_USERS, OPTIONS, PLAN, USER_PRICE, computeQuote, eur, type Cycle } from "@/config/pricing";
+import {
+  DEFAULT_AGENTS_PRICING,
+  MAX_EXTRA_USERS,
+  OPTIONS,
+  PLAN,
+  computeQuote,
+  eur,
+  normalizeAgentsPricing,
+  type AgentsPricing,
+  type Cycle,
+} from "@/config/pricing";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
 
@@ -62,14 +72,17 @@ const TEXT = {
   },
 };
 
-export function AbonnementScreen() {
+export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing?: AgentsPricing }) {
   const router = useRouter();
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
   const [cycle, setCycle] = useState<Cycle>("mensuel");
   const [users, setUsers] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
-  const quote = computeQuote({ cycle, users, options });
+  // Runtime payloads can be partial after serialisation; never read raw fields for display/math.
+  const rates = normalizeAgentsPricing(pricing);
+  const quote = computeQuote({ cycle, users, options }, rates);
+  const annualPct = Number.isFinite(rates.annualDiscount) ? Math.round(rates.annualDiscount * 100) : 20;
 
   const toggle = (id: string) =>
     setOptions((list) => (list.includes(id) ? list.filter((o) => o !== id) : [...list, id]));
@@ -101,7 +114,7 @@ export function AbonnementScreen() {
                 {t.cycles[c]}
               </button>
             ))}
-            <span className="discount">-{ANNUAL_DISCOUNT * 100}%</span>
+            <span className="discount">-{annualPct}%</span>
           </div>
         </div>
 
@@ -144,7 +157,7 @@ export function AbonnementScreen() {
               <div className="stepper-row">
                 <Icon name="users" />
                 <span>{t.usersLabel}</span>
-                <span className="muted">{eur(USER_PRICE)} {t.perUser}</span>
+                <span className="muted">{eur(rates.userPrice)} {t.perUser}</span>
                 <div className="stepper">
                   <button id="users-minus" aria-label={t.removeUser} onClick={() => setUsers((u) => Math.max(0, u - 1))}>
                     −
@@ -180,7 +193,7 @@ export function AbonnementScreen() {
                         <Icon name="info" />
                       </span>
                     </span>
-                    <span className="muted">{eur(o.price)} {t.perMonth}</span>
+                    <span className="muted">{eur(rates.options[o.id] ?? o.price)} {t.perMonth}</span>
                     <span className="switch">
                       <input type="checkbox" name={o.id} checked={options.includes(o.id)} onChange={() => toggle(o.id)} />
                       <span />

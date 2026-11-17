@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { sanitizeSelection } from "@/config/pricing";
 import { PaiementScreen, PaiementSuccess } from "@/components/billing/PaiementScreen";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
@@ -16,12 +17,12 @@ export default async function PaiementPage({ searchParams }: { searchParams: Pro
 
   if (one(params.success) === "1") return <PaiementSuccess />;
 
-  const user = await getCurrentUser();
+  const [user, pricing] = await Promise.all([getCurrentUser(), getAgentsPricing()]);
   const selection = sanitizeSelection({
     cycle: one(params.cycle) as "mensuel" | "annuel",
     users: Number(one(params.users)),
     options: one(params.options).split(","),
   });
 
-  return <PaiementScreen selection={selection} email={user?.email ?? ""} />;
+  return <PaiementScreen selection={selection} email={user?.email ?? ""} pricing={pricing} />;
 }

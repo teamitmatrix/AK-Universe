@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import type { DigitalWebsite } from "@/config/digital";
 import { createPublicClient } from "@/lib/supabase/server";
 
 /*
@@ -86,6 +87,8 @@ export type VideoConfig = {
     customQuote?: { title: string; text: string; primaryCta: string; secondaryCta: string };
   };
   services: Service[];
+  /** Live digital website prices (defaults + admin catalogue overrides). */
+  digitalWebsites?: DigitalWebsite[];
   [key: string]: unknown;
 };
 
@@ -161,4 +164,9 @@ export async function getPricingOverrides(): Promise<PricingOverrides | null> {
 
 export async function getVideoConfig() {
   return applyOverrides(loadDefaultConfig(), await getPricingOverrides());
+}
+
+/** Attach live digital website prices for cart/pages that need both catalogues. */
+export function withDigitalWebsites(config: VideoConfig, websites: DigitalWebsite[]): VideoConfig {
+  return { ...config, digitalWebsites: websites };
 }

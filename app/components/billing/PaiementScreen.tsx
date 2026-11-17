@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
-import { PLAN, computeQuote, eur, type Selection } from "@/config/pricing";
+import {
+  DEFAULT_AGENTS_PRICING,
+  PLAN,
+  computeQuote,
+  eur,
+  normalizeAgentsPricing,
+  type AgentsPricing,
+  type Selection,
+} from "@/config/pricing";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
@@ -152,7 +160,15 @@ function MethodLogo({ method }: { method: string }) {
   }
 }
 
-export function PaiementScreen({ selection, email: initialEmail }: { selection: Selection; email: string }) {
+export function PaiementScreen({
+  selection,
+  email: initialEmail,
+  pricing = DEFAULT_AGENTS_PRICING,
+}: {
+  selection: Selection;
+  email: string;
+  pricing?: AgentsPricing;
+}) {
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
   const [toast, toastNode] = useToast();
@@ -166,7 +182,8 @@ export function PaiementScreen({ selection, email: initialEmail }: { selection: 
   const [error, setError] = useState<keyof typeof TEXT.fr.errors | "">("");
   const [pending, startTransition] = useTransition();
 
-  const quote = computeQuote(selection);
+  const rates = normalizeAgentsPricing(pricing);
+  const quote = computeQuote(selection, rates);
   const annual = selection.cycle === "annuel";
 
   async function applyPromo(event: FormEvent<HTMLFormElement>) {

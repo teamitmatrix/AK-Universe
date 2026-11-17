@@ -9,7 +9,8 @@ import { Icon } from "@/components/ui/Icon";
 import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV } from "@/config/digital";
 import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getVideoConfig } from "@/lib/video-config";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
+import { getVideoConfig, withDigitalWebsites } from "@/lib/video-config";
 
 export const metadata: Metadata = {
   title: { absolute: "Solutions digitales — AK Universe" },
@@ -18,7 +19,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [user, config] = await Promise.all([getCurrentUser(), getVideoConfig()]);
+  const [user, videoConfig, websites] = await Promise.all([getCurrentUser(), getVideoConfig(), getDigitalWebsites()]);
+  const config = withDigitalWebsites(videoConfig, websites);
   const sites = DIGITAL_GROUPS.find((group) => group.id === "sites");
   const seo = DIGITAL_GROUPS.find((group) => group.id === "seo");
 
@@ -46,7 +48,7 @@ export default async function Page() {
               {sites?.text ??
                 "Des sites professionnels, rapides et pensés pour convertir vos visiteurs en clients."}
             </p>
-            <DigitalWebsiteCards config={config} />
+            <DigitalWebsiteCards config={config} websites={websites} />
 
             {sites ? (
               <div id="applications" className="digital-apps-block">

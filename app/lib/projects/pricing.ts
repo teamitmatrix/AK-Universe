@@ -1,5 +1,6 @@
 import "server-only";
-import { digitalWebsiteOf } from "@/config/digital";
+import { DIGITAL_WEBSITES, digitalWebsiteOf } from "@/config/digital";
+import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig } from "@/lib/video-config";
 import { durationsOf, qtyChoicesOf, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
 
@@ -19,8 +20,9 @@ export type ProjectItemInput = {
 
 /** Validates the client's cart items and prices them. Unknown items are dropped. */
 export async function priceProject(rawItems: ProjectItemInput[]) {
-  const cfg = await getVideoConfig();
+  const [cfg, websites] = await Promise.all([getVideoConfig(), getDigitalWebsites()]);
   const plans = cfg.marketing?.plans ?? [];
+  const digitalCatalog = websites.length ? websites : DIGITAL_WEBSITES;
 
   const items = rawItems.slice(0, 30).flatMap((item) => {
     if (item.type === "forfait") {
@@ -30,7 +32,7 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
     }
 
     if (item.type === "digital") {
-      const site = item.key ? digitalWebsiteOf(item.key) : undefined;
+      const site = item.key ? digitalCatalog.find((s) => s.id === item.key) ?? digitalWebsiteOf(item.key) : undefined;
       if (!site) return [];
       const details =
         site.runningFrom != null

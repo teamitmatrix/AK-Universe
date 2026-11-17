@@ -19,12 +19,12 @@ export async function saveCommissionRates(input: Record<string, number>): Promis
     rows.push({ product_type, rate: Math.round(n * 100) / 100, updated_at: new Date().toISOString() });
   }
   const supabase = await createClient();
-  const { error } = await supabase.from("commission_rates").upsert(rows);
+  const { error } = await supabase.from("commission_rates").upsert(rows, { onConflict: "product_type" });
   if (error) {
     console.error("saveCommissionRates failed:", error.message);
     return fail("failed");
   }
-  for (const path of ["/admin/catalogue", "/commercial/devis-factures"]) revalidatePath(path);
+  for (const path of ["/admin/catalogue", "/commercial/devis-factures", "/commercial", "/admin"]) revalidatePath(path);
   await audit(
     "commission.rates",
     "commission_rates",

@@ -1,9 +1,18 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { digitalWebsiteOf } from "@/config/digital";
+import { DIGITAL_WEBSITES, digitalWebsiteOf as defaultDigitalOf, type DigitalWebsite } from "@/config/digital";
 import { videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import type { VideoConfig } from "@/lib/video-config";
+
+/** Prefer live catalogue prices attached to VideoConfig; fall back to hard-coded defaults. */
+function digitalSites(config: VideoConfig): readonly DigitalWebsite[] {
+  return config.digitalWebsites?.length ? config.digitalWebsites : DIGITAL_WEBSITES;
+}
+
+function digitalWebsiteOf(config: VideoConfig, key: string) {
+  return digitalSites(config).find((site) => site.id === key) ?? defaultDigitalOf(key);
+}
 
 const KEY = "aku-projet";
 const CLIENT_KEY = "aku-client";
@@ -124,7 +133,7 @@ export function planOf(config: VideoConfig, key: string) {
 export function visibleItems(config: VideoConfig, items: CartItem[]) {
   return items.filter((item) => {
     if (isForfait(item)) return !!planOf(config, item.key);
-    if (isDigital(item)) return !!digitalWebsiteOf(item.key);
+    if (isDigital(item)) return !!digitalWebsiteOf(config, item.key);
     return !!serviceOf(config, item.slug);
   });
 }
@@ -134,7 +143,7 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
     const plan = planOf(config, item.key);
     return plan?.price ?? 0;
   }
-  if (isDigital(item)) return digitalWebsiteOf(item.key)?.price ?? 0;
+  if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.price ?? 0;
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
 }
@@ -147,7 +156,7 @@ export function itemSummary(config: VideoConfig, item: CartItem) {
     return `Abonnement mensuel • ${plan.tagline}`;
   }
   if (isDigital(item)) {
-    const site = digitalWebsiteOf(item.key);
+    const site = digitalWebsiteOf(config, item.key);
     if (!site) return "Site internet";
     if (site.runningFrom != null) {
       return `Mise en place HT • Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`;
@@ -163,7 +172,7 @@ export function itemName(config: VideoConfig, item: CartItem) {
     const plan = planOf(config, item.key);
     return plan ? `Forfait ${plan.name}` : "Forfait";
   }
-  if (isDigital(item)) return digitalWebsiteOf(item.key)?.name ?? "Site internet";
+  if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.name ?? "Site internet";
   return serviceOf(config, item.slug)?.name ?? "";
 }
 
@@ -279,7 +288,7 @@ export function saveForfait(config: VideoConfig, key: string) {
 
 /** Adds or replaces a digital website offer in the project cart. */
 export function saveDigitalWebsite(config: VideoConfig, key: string) {
-  if (!digitalWebsiteOf(key)) return;
+  if (!digitalWebsiteOf(config, key)) return;
   const current = getSnapshot().filter((entry) => !(isDigital(entry) && entry.key === key));
   publish(visibleItems(config, [...current, { type: "digital", key, id: newId() }]));
 }
