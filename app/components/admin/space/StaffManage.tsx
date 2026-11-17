@@ -8,6 +8,7 @@ import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import {
   addStaffMember,
+  createCommercial,
   removeStaffMember,
   setStaffActive,
   updateCommercialIdentity,
@@ -16,26 +17,44 @@ import {
 import type { StaffRole } from "@/lib/admin/team";
 import { dashTextFor } from "./dashText";
 
-/** "Ajouter un commercial / vidéaste": gives an existing account the role (no account is created). */
+/** "Ajouter un commercial / vidéaste". Commercial can invite + set name/phone/rate; vidéaste promotes by e-mail. */
 export function AddStaffButton({ role, label }: { role: StaffRole; label: string }) {
   const [lang] = useLang();
   const t = dashTextFor(lang);
   const m = t.manage;
   const dialog = useRef<HTMLDialogElement>(null);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [target, setTarget] = useState("");
+  const [rate, setRate] = useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
   const router = useRouter();
 
+  const reset = () => {
+    setEmail("");
+    setFirstName("");
+    setLastName("");
+    setPhone("");
+    setTarget("");
+    setRate("");
+    setError("");
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     start(async () => {
-      const res = await addStaffMember(email, role);
+      const res =
+        role === "commercial"
+          ? await createCommercial({ email, firstName, lastName, phone, targetEuros: target, ratePercent: rate })
+          : await addStaffMember(email, role);
       if (!res.success) return setError(t.errors[res.error] ?? t.errors.failed);
       dialog.current?.close();
-      setEmail("");
+      reset();
       toast(m.added);
       router.refresh();
     });
@@ -55,11 +74,41 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
               <X size={18} />
             </button>
           </header>
-          <p className="adm-muted">{m.addIntro}</p>
+          <p className="adm-muted">{role === "commercial" ? m.addIntroCommercial : m.addIntro}</p>
+          {role === "commercial" && (
+            <div className="adm-form-row">
+              <label className="adm-field">
+                <span>{m.firstName}</span>
+                <input required autoComplete="given-name" maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              </label>
+              <label className="adm-field">
+                <span>{m.lastName}</span>
+                <input required autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </label>
+            </div>
+          )}
           <label className="adm-field">
             <span>{m.email}</span>
             <input type="email" required autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
+          {role === "commercial" && (
+            <>
+              <label className="adm-field">
+                <span>{m.phone}</span>
+                <input type="tel" autoComplete="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" />
+              </label>
+              <div className="adm-form-row">
+                <label className="adm-field">
+                  <span>{m.target}</span>
+                  <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="20000" />
+                </label>
+                <label className="adm-field">
+                  <span>{m.rate}</span>
+                  <input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="12" />
+                </label>
+              </div>
+            </>
+          )}
           {error && (
             <p className="adm-error" role="alert">
               {error}
@@ -146,16 +195,18 @@ function StaffRemoveButton({
   );
 }
 
-/** Sales-rep name fields on the commercial detail page. */
+/** Sales-rep name (+ phone) fields on the commercial detail page. */
 export function CommercialIdentityForm({
   id,
   firstName,
   lastName,
+  phone: initialPhone = "",
   email,
 }: {
   id: string;
   firstName: string;
   lastName: string;
+  phone?: string;
   email: string;
 }) {
   const [lang] = useLang();
@@ -163,6 +214,7 @@ export function CommercialIdentityForm({
   const m = t.manage;
   const [first, setFirst] = useState(firstName);
   const [last, setLast] = useState(lastName);
+  const [phone, setPhone] = useState(initialPhone);
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
   const router = useRouter();
@@ -170,7 +222,7 @@ export function CommercialIdentityForm({
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     start(async () => {
-      const res = await updateCommercialIdentity(id, { firstName: first, lastName: last });
+      const res = await updateCommercialIdentity(id, { firstName: first, lastName: last, phone });
       if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
       toast(m.saved);
       router.refresh();
@@ -194,6 +246,10 @@ export function CommercialIdentityForm({
         <label className="adm-field">
           <span>{m.email}</span>
           <input value={email} readOnly disabled />
+        </label>
+        <label className="adm-field">
+          <span>{m.phone}</span>
+          <input type="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
         </label>
         <button type="submit" className="adm-btn" disabled={pending}>
           {pending ? m.saving : m.save}

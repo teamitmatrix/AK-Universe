@@ -3,7 +3,8 @@
 import { audit } from "./audit";
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/lib/supabase/env";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { isUuid, type StaffRole } from "./team";
 import { syncProjectProspect } from "@/lib/commercial/project-prospects";
 import { notifyLeadAssigned, notifyProjectAssigned } from "@/lib/notify";
@@ -15,13 +16,23 @@ import { notifyLeadAssigned, notifyProjectAssigned } from "@/lib/notify";
  * migration 005) re-checks the admin role in the database as well.
  */
 
-type Fail = { success: false; error: "forbidden" | "invalid" | "noAccount" | "isAdmin" | "otherRole" | "notFound" | "failed" };
+type Fail = { success: false; error: "forbidden" | "invalid" | "noAccount" | "isAdmin" | "otherRole" | "notFound" | "failed" | "inviteFailed" };
 type Result = { success: true } | Fail;
 
 const ROLES: StaffRole[] = ["commercial", "videaste"];
 const fail = (error: Fail["error"]): Fail => ({ success: false, error });
 /** Case-insensitive exact match: `_` and `%` in an e-mail must not act as LIKE wildcards. */
 const likeEscape = (v: string) => v.replace(/[\\%_]/g, (m) => `\\${m}`);
+const cleanText = (v: unknown, max: number) => {
+  const s = String(v ?? "").trim();
+  return s.length > max ? undefined : s || null;
+};
+const parseOptionalNumber = (v: string, max: number) => {
+  const raw = String(v ?? "").trim().replace(",", ".");
+  if (raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 && n <= max ? n : undefined;
+};
 
 function revalidateTeam() {
   revalidatePath("/admin/dashboard");
@@ -102,35 +113,115 @@ export async function setStaffActive(id: string, active: boolean): Promise<Resul
   return { success: true };
 }
 
-/** First / last name of a sales rep (videographers use updateVideasteProfile). */
+export type CreateCommercialInput = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  targetEuros: string;
+  ratePercent: string;
+};
+
+/**
+ * Creates a sales rep: invites a new account (name + phone + rate/target) or promotes an existing one and
+ * fills identity fields.
+ */
+export async function createCommercial(input: CreateCommercialInput): Promise<Result> {
+  if (!(await isAdmin())) return fail("forbidden");
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const first = cleanText(input.firstName, 80);
+  const last = cleanText(input.lastName, 80);
+  const phone = cleanText(input.phone, 40);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return fail("invalid");
+  if (first === undefined || last === undefined || phone === undefined) return fail("invalid");
+  if (phone && !/^[+0-9 ().-]{4,40}$/.test(phone)) return fail("invalid");
+  if (!first && !last) return fail("invalid");
+  const target = parseOptionalNumber(input.targetEuros, 10_000_000);
+  const rate = parseOptionalNumber(input.ratePercent, 100);
+  if (target === undefined || rate === undefined) return fail("invalid");
+
+  const patch = {
+    role: "commercial" as const,
+    active: true,
+    first_name: first,
+    last_name: last,
+    phone,
+    monthly_target_cents: target === null ? null : Math.round(target * 100),
+    commission_rate: rate === null ? null : Math.round(rate * 100) / 100,
+  };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("profiles").select("id, role").ilike("email", likeEscape(email)).maybeSingle();
+  if (existing) {
+    if (existing.role === "admin") return fail("isAdmin");
+    if (existing.role !== "user" && existing.role !== "commercial") return fail("otherRole");
+    const { error } = await supabase.from("profiles").update(patch).eq("id", existing.id);
+    if (error) {
+      console.error("createCommercial promote failed:", error.message);
+      return fail("failed");
+    }
+    revalidateTeam();
+    await audit("staff.add", email, { role: "commercial", created: false });
+    return { success: true };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { first_name: first ?? "", last_name: last ?? "" },
+      redirectTo: `${getSiteUrl()}/connexion`,
+    });
+    if (inviteErr || !invited.user) {
+      console.error("createCommercial invite failed:", inviteErr?.message);
+      return fail("inviteFailed");
+    }
+    const { error } = await supabase.from("profiles").update(patch).eq("id", invited.user.id);
+    if (error) {
+      console.error("createCommercial profile update failed:", error.message);
+      return fail("failed");
+    }
+  } catch (cause) {
+    console.error("createCommercial failed:", cause);
+    return fail("failed");
+  }
+
+  revalidateTeam();
+  await audit("staff.add", email, { role: "commercial", created: true });
+  return { success: true };
+}
+
+/** First / last name (+ optional phone) of a sales rep (videographers use updateVideasteProfile). */
 export async function updateCommercialIdentity(
   id: string,
-  input: { firstName: string; lastName: string },
+  input: { firstName: string; lastName: string; phone?: string },
 ): Promise<Result> {
   if (!(await isAdmin())) return fail("forbidden");
   if (!isUuid(id)) return fail("invalid");
-  const clean = (v: unknown, max: number) => {
-    const s = String(v ?? "").trim();
-    return s.length > max ? undefined : s || null;
-  };
-  const first_name = clean(input?.firstName, 80);
-  const last_name = clean(input?.lastName, 80);
+  const first_name = cleanText(input?.firstName, 80);
+  const last_name = cleanText(input?.lastName, 80);
   if (first_name === undefined || last_name === undefined) return fail("invalid");
+  const patch: Record<string, string | null> = { first_name, last_name };
+  if (input.phone !== undefined) {
+    const phone = cleanText(input.phone, 40);
+    if (phone === undefined) return fail("invalid");
+    if (phone && !/^[+0-9 ().-]{4,40}$/.test(phone)) return fail("invalid");
+    patch.phone = phone;
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .update({ first_name, last_name })
+    .update(patch)
     .eq("id", id)
     .eq("role", "commercial")
     .select("id");
   if (error) {
     console.error("updateCommercialIdentity failed:", error.message);
-    return fail("failed");
+    return fail(/phone/.test(error.message) ? "failed" : "failed");
   }
   if (!data?.length) return fail("notFound");
   revalidateTeam();
-  await audit("staff.profile", id);
+  await audit("staff.profile", id, { phone: input.phone !== undefined });
   return { success: true };
 }
 

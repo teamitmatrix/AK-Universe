@@ -1,0 +1,52 @@
+import "server-only";
+import { loadCatalogue } from "@/lib/admin/catalogue";
+import type { ProductType } from "./commission-rules";
+
+/*
+ * Catalogue offered in the "Nouveau devis / facture" modal — the SAME prices the site sells at
+ * (lib/admin/catalogue.ts: site_settings "video_pricing" / "agents_pricing"). Each priced field becomes one line
+ * choice, tagged with its product type for the commission rule:
+ *   Agents IA setup → agents (15 %) · Agents IA monthly, subscription items → abonnements (10 %)
+ *   marketing packages → marketing (12 %) · video services → videos (10 %) · video options → options (10 %)
+ * Line prices are always re-read here on the server when a document is saved; the browser only sends an id.
+ */
+
+export type SalesCatalogueItem = { id: string; label: string; detail: string; productType: ProductType; unitCents: number; recurring: boolean };
+
+export async function loadSalesCatalogue(): Promise<SalesCatalogueItem[]> {
+  const { rows } = await loadCatalogue();
+  const items: SalesCatalogueItem[] = [];
+  for (const row of rows) {
+    if (row.category === "regles") continue;
+    for (const field of row.fields) {
+      if (field.unit === "pct" || !(field.value > 0)) continue;
+      const monthly = field.label === "monthly";
+      const type: ProductType =
+        row.category === "agents"
+          ? monthly
+            ? "abonnements"
+            : "agents"
+          : row.category === "abonnement"
+            ? "abonnements"
+            : row.category === "marketing"
+              ? "marketing"
+              : row.category === "videos"
+                ? "videos"
+                : "options";
+      const suffix = row.fields.length > 1 || row.category === "agents" ? (monthly ? " — abonnement mensuel" : " — mise en place") : "";
+      items.push({
+        id: `${row.id}#${field.key}`,
+        label: `${row.name}${suffix}`,
+        detail: row.detail,
+        productType: type,
+        unitCents: Math.round(field.value * 100),
+        recurring: monthly,
+      });
+    }
+  }
+  return items;
+}
+
+export async function catalogueItemById(id: string) {
+  return (await loadSalesCatalogue()).find((i) => i.id === id) ?? null;
+}

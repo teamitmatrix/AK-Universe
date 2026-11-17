@@ -80,18 +80,19 @@ export async function recordBalance(projectId: string): Promise<{ success: true;
 }
 
 /**
- * Creates the missing commissions: one "en attente" commission per paid sale that has a sales rep with a
- * commission rate and no commission yet (amount = sale total × rate). Idempotent — a unique index on
- * commissions.project_id (migration 007) prevents duplicates even if two admins click at once.
+ * Creates the missing commissions: one "en attente" commission per paid video sale that has a sales rep with a
+ * commission rate and no commission yet (amount = sale total × rate). Also backfills subscription commissions
+ * (migration 014 ensure_subscription_commission) for paid subscription payments. Idempotent.
  */
 export async function generateCommissions(): Promise<{ success: true; created: number; skippedNoRate: number } | Fail> {
   if (!(await isAdmin())) return fail("forbidden");
   const supabase = await createClient();
 
-  const [{ data: projects, error: pErr }, { data: existing, error: cErr }, { data: reps }] = await Promise.all([
+  const [{ data: projects, error: pErr }, { data: existing, error: cErr }, { data: reps }, { data: subPays }] = await Promise.all([
     supabase.from("video_projects").select("id, status, total_cents, commercial_id").not("commercial_id", "is", null).in("status", [...PAID]).limit(10000),
     supabase.from("commissions").select("project_id").not("project_id", "is", null).limit(10000),
     supabase.from("profiles").select("*").eq("role", "commercial"),
+    supabase.from("payments").select("id").eq("kind", "subscription").in("status", ["paid", "complete"]).limit(10000),
   ]);
   if (pErr || cErr) {
     console.error("generateCommissions failed:", (pErr ?? cErr)?.message);
@@ -118,9 +119,21 @@ export async function generateCommissions(): Promise<{ success: true; created: n
       return fail("failed");
     }
   }
+
+  let subCreated = 0;
+  if (subPays?.length) {
+    const { count: before } = await supabase.from("commissions").select("id", { count: "exact", head: true }).not("payment_id", "is", null);
+    for (const pay of subPays) {
+      await supabase.rpc("ensure_subscription_commission", { p_payment_id: pay.id });
+    }
+    const { count: after } = await supabase.from("commissions").select("id", { count: "exact", head: true }).not("payment_id", "is", null);
+    subCreated = Math.max(0, (after ?? 0) - (before ?? 0));
+  }
+
+  const created = rows.length + subCreated;
   revalidateFinance();
-  if (rows.length) await audit("commission.generate", `${rows.length} commission(s)`, { created: rows.length, skippedNoRate });
-  return { success: true, created: rows.length, skippedNoRate };
+  if (created) await audit("commission.generate", `${created} commission(s)`, { created: rows.length, subscription: subCreated, skippedNoRate });
+  return { success: true, created, skippedNoRate };
 }
 
 /** Allowed commission workflow: en attente → validée → à payer → payée. */
@@ -147,5 +160,45 @@ export async function setCommissionStatus(id: string, to: "validee" | "a_payer" 
   revalidateFinance();
   await audit(`commission.${to}`, id);
   if (to === "validee" || to === "payee") await notifyCommission(id, to);
+  return { success: true };
+}
+
+/** Marks every selected commission currently "à payer" as paid (bulk payout). Max 200 ids. */
+export async function bulkMarkCommissionsPaid(ids: string[]): Promise<{ success: true; updated: number } | Fail> {
+  if (!(await isAdmin())) return fail("forbidden");
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 200 || ids.some((id) => !isUuid(id))) return fail("invalid");
+  const supabase = await createClient();
+  const paidAt = new Date().toISOString();
+  const { data, error } = await supabase.from("commissions").update({ status: "payee", paid_at: paidAt }).in("id", ids).eq("status", "a_payer").select("id");
+  if (error) {
+    console.error("bulkMarkCommissionsPaid failed:", error.message);
+    return fail("failed");
+  }
+  const updated = data?.length ?? 0;
+  revalidateFinance();
+  if (updated) {
+    await audit("commission.bulk_payee", `${updated} commission(s)`, { updated });
+    for (const row of data ?? []) await notifyCommission(row.id, "payee");
+  }
+  return { success: true, updated };
+}
+
+/** Assigns (or clears) the sales rep earning recurring commissions on a subscription. */
+export async function assignSubscriptionCommercial(subscriptionId: string, commercialId: string | null): Promise<{ success: true } | Fail> {
+  if (!(await isAdmin())) return fail("forbidden");
+  if (!isUuid(subscriptionId) || (commercialId !== null && !isUuid(commercialId))) return fail("invalid");
+  const supabase = await createClient();
+  if (commercialId) {
+    const { data: rep } = await supabase.from("profiles").select("id").eq("id", commercialId).eq("role", "commercial").eq("active", true).maybeSingle();
+    if (!rep) return fail("notFound");
+  }
+  const { data, error } = await supabase.from("subscriptions").update({ commercial_id: commercialId }).eq("id", subscriptionId).select("id");
+  if (error) {
+    console.error("assignSubscriptionCommercial failed:", error.message);
+    return fail("failed");
+  }
+  if (!data?.length) return fail("notFound");
+  revalidateFinance();
+  await audit("subscription.assign", subscriptionId, { commercialId });
   return { success: true };
 }

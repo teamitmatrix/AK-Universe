@@ -3,6 +3,8 @@
  * commission_rates table (migration 012): the database recomputes every quote / invoice from it, so the values
  * below are only labels and the defaults shown before the table exists.
  *   commission = amount actually collected (HT) × rate of the product type (else the rep's own rate)
+ *   optional fixed_commission_cents on a line replaces the % for that line (migration 014)
+ *   recurring AI subscriptions use the "abonnements" rate on each paid Stripe cycle
  */
 export const PRODUCT_TYPES = ["agents", "abonnements", "marketing", "videos", "options", "prestations"] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];

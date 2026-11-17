@@ -19,8 +19,8 @@ export async function isDeactivated(uid: string) {
 }
 
 /**
- * Where a signed-in user lands. Commercial and videaste spaces are still on another branch:
- * until they land on main, those roles use /equipe (shared tasks / assigned projects).
+ * Where a signed-in user lands after login / /espace.
+ * Commercial → Sales portal. Videaste portal is not on this branch yet → /equipe.
  * null = deactivated (must not get in).
  */
 export async function homePathFor(uid: string) {
@@ -30,6 +30,7 @@ export async function homePathFor(uid: string) {
     case "admin":
       return "/admin/dashboard";
     case "commercial":
+      return "/commercial/dashboard";
     case "videaste":
       return "/equipe";
   }

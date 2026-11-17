@@ -253,6 +253,7 @@ function CommercialDetailBody({
         id={person.id}
         firstName={person.first_name ?? ""}
         lastName={person.last_name ?? ""}
+        phone={(person as { phone?: string | null }).phone ?? ""}
         email={person.email}
       />
       <StaffSettings

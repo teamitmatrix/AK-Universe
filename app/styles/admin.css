@@ -2162,6 +2162,9 @@ td > .adm-badge:first-child {
 .adm-check input {
   accent-color: var(--adm-accent);
 }
+.adm-check-col {
+  width: 2.5rem;
+}
 
 /* Videographer profile form embedded in admin team detail (shared markup classes). */
 .vid-ok { margin: 0; color: #1a7f4b; font-size: 13px; }
