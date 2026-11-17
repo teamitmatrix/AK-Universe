@@ -1,7 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { homePathFor } from "@/lib/auth/account";
 import { getCurrentUser } from "@/lib/auth/session";
-import { publicOrigin } from "@/lib/supabase/env";
+import { redirectToPath } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -10,15 +9,14 @@ import { createClient } from "@/lib/supabase/server";
  *   admin → /admin/dashboard · vidéaste → /videaste/dashboard · logged out → /connexion
  * The role is read on the server from profiles, never from the browser. A deactivated account is signed out.
  */
-export async function GET(request: NextRequest) {
-  const origin = publicOrigin(request);
+export async function GET() {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.redirect(new URL("/connexion", origin));
+  if (!user) return redirectToPath("/connexion", 307);
 
   const home = await homePathFor(user.id);
   if (!home) {
     await (await createClient()).auth.signOut();
-    return NextResponse.redirect(new URL("/connexion?error=disabled", origin));
+    return redirectToPath("/connexion?error=disabled", 307);
   }
-  return NextResponse.redirect(new URL(home, origin));
+  return redirectToPath(home, 307);
 }

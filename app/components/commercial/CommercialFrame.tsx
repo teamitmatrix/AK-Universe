@@ -34,6 +34,7 @@ export function CommercialFrame({ lang, me, children }: { lang: TextLang; me: { 
           </span>
         </div>
         <form action="/auth/signout" method="post">
+          <input type="hidden" name="redirectTo" value="/connexion" />
           <button type="submit" className="com-logout">
             <LogOut size={16} aria-hidden="true" />
             {t.logout}

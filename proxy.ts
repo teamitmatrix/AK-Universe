@@ -1,5 +1,5 @@
 ﻿import { NextResponse, type NextRequest } from "next/server";
-import { publicOrigin } from "@/lib/supabase/env";
+import { redirectToPath } from "@/lib/supabase/env";
 import { updateSession } from "@/lib/supabase/proxy";
 
 /** Pages that require a signed-in user. */
@@ -34,18 +34,17 @@ export async function proxy(request: NextRequest) {
 
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
-  const origin = publicOrigin(request);
 
   const isProtected = PROTECTED_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   if (!user && isProtected) {
-    const url = new URL("/connexion", origin);
-    url.searchParams.set("redirectTo", `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(url);
+    const redirectTo = encodeURIComponent(`${pathname}${request.nextUrl.search}`);
+    // Relative Location — do not use request.url / Host (Docker bind or VPS IP:port).
+    return redirectToPath(`/connexion?redirectTo=${redirectTo}`, 307);
   }
 
   if (user && GUEST_ONLY_ROUTES.includes(pathname)) {
     // Keep main's guest redirect for clients; staff land via /espace after they open it.
-    return NextResponse.redirect(new URL("/", origin));
+    return redirectToPath("/", 307);
   }
 
   return response;

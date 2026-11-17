@@ -11,20 +11,33 @@ export function getSiteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 }
 
+const LOOPBACK_OR_BIND =
+  /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::\]|\[::1\])(?::\d+)?$/i;
+const BARE_IPV4 = /^(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?$/;
+
+function hostIsUsable(host: string) {
+  if (!host) return false;
+  if (LOOPBACK_OR_BIND.test(host) || BARE_IPV4.test(host)) return false;
+  return true;
+}
+
 /**
- * Public origin for redirects behind Docker/nginx.
- * `request.url` is often `http://0.0.0.0:3000/...` in the container — using that as the
- * redirect base sends browsers to a dead host (502 Bad Gateway).
+ * Public origin when an absolute URL is required (e-mails, OAuth redirectTo, etc.).
+ * Prefer relative redirects via `redirectToPath` for browser navigations behind Docker/nginx —
+ * `request.url` / `Host` are often `0.0.0.0:3000` or the server IP:port.
  */
 export function publicOrigin(request: Request): string {
   const site = getSiteUrl();
-  // Production: trust the configured public URL first (avoids container bind addresses).
-  if (site && !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(site)) return site;
+  try {
+    const siteHost = new URL(site).host;
+    if (hostIsUsable(siteHost)) return site;
+  } catch {
+    /* fall through */
+  }
 
   const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const host = forwardedHost || request.headers.get("host")?.split(",")[0]?.trim() || "";
-  const badHost = !host || host.startsWith("0.0.0.0") || host.startsWith("[::]");
-  if (!badHost) {
+  if (hostIsUsable(host)) {
     const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
     const proto =
       forwardedProto === "http" || forwardedProto === "https"
@@ -35,4 +48,13 @@ export function publicOrigin(request: Request): string {
     return `${proto}://${host}`;
   }
   return site;
+}
+
+/**
+ * Same-origin redirect using a relative Location header.
+ * The browser keeps https://akuniverse.com even when the Node process only knows 0.0.0.0 / the VPS IP.
+ */
+export function redirectToPath(path: string, status: 303 | 302 | 307 = 303) {
+  const location = path.startsWith("/") ? path : `/${path}`;
+  return new Response(null, { status, headers: { Location: location } });
 }
