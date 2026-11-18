@@ -262,7 +262,9 @@ function CommercialDetailBody({
         role="commercial"
         active={active}
         targetCents={person.monthly_target_cents}
-        rate={person.commission_rate}
+        rateAi={person.commission_rate_ai ?? person.commission_rate}
+        rateMarketing={person.commission_rate_marketing ?? person.commission_rate}
+        rateDigital={person.commission_rate_digital ?? person.commission_rate}
         listHref="/admin/commerciaux"
       />
 

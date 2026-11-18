@@ -28,7 +28,9 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [target, setTarget] = useState("");
-  const [rate, setRate] = useState("");
+  const [rateAi, setRateAi] = useState("");
+  const [rateMarketing, setRateMarketing] = useState("");
+  const [rateDigital, setRateDigital] = useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
@@ -40,7 +42,9 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
     setLastName("");
     setPhone("");
     setTarget("");
-    setRate("");
+    setRateAi("");
+    setRateMarketing("");
+    setRateDigital("");
     setError("");
   };
 
@@ -50,7 +54,16 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
     start(async () => {
       const res =
         role === "commercial"
-          ? await createCommercial({ email, firstName, lastName, phone, targetEuros: target, ratePercent: rate })
+          ? await createCommercial({
+              email,
+              firstName,
+              lastName,
+              phone,
+              targetEuros: target,
+              rateAi,
+              rateMarketing,
+              rateDigital,
+            })
           : await addStaffMember(email, role);
       if (!res.success) return setError(t.errors[res.error] ?? t.errors.failed);
       dialog.current?.close();
@@ -97,14 +110,22 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
                 <span>{m.phone}</span>
                 <input type="tel" autoComplete="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" />
               </label>
+              <label className="adm-field">
+                <span>{m.target}</span>
+                <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="20000" />
+              </label>
               <div className="adm-form-row">
                 <label className="adm-field">
-                  <span>{m.target}</span>
-                  <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="20000" />
+                  <span>{m.rateAi}</span>
+                  <input inputMode="decimal" value={rateAi} onChange={(e) => setRateAi(e.target.value)} placeholder="12" />
                 </label>
                 <label className="adm-field">
-                  <span>{m.rate}</span>
-                  <input inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="12" />
+                  <span>{m.rateMarketing}</span>
+                  <input inputMode="decimal" value={rateMarketing} onChange={(e) => setRateMarketing(e.target.value)} placeholder="12" />
+                </label>
+                <label className="adm-field">
+                  <span>{m.rateDigital}</span>
+                  <input inputMode="decimal" value={rateDigital} onChange={(e) => setRateDigital(e.target.value)} placeholder="12" />
                 </label>
               </div>
             </>
@@ -260,14 +281,16 @@ export function CommercialIdentityForm({
   );
 }
 
-/** Detail page panel: sales target + commission rate (commercial) and account activation (both teams). */
+/** Detail page panel: sales target + IA/Marketing/Digital rates (commercial) and account activation (both teams). */
 export function StaffSettings({
   id,
   name,
   role,
   active,
   targetCents,
-  rate,
+  rateAi,
+  rateMarketing,
+  rateDigital,
   listHref,
   anchorEdit,
 }: {
@@ -276,7 +299,9 @@ export function StaffSettings({
   role: StaffRole;
   active: boolean;
   targetCents?: number | null;
-  rate?: number | null;
+  rateAi?: number | null;
+  rateMarketing?: number | null;
+  rateDigital?: number | null;
   listHref: string;
   /** When true, this card is the #adm-staff-edit target (videographers: profile form is separate). */
   anchorEdit?: boolean;
@@ -285,7 +310,9 @@ export function StaffSettings({
   const t = dashTextFor(lang);
   const m = t.manage;
   const [target, setTarget] = useState(targetCents != null ? String(targetCents / 100) : "");
-  const [pct, setPct] = useState(rate != null ? String(rate) : "");
+  const [ai, setAi] = useState(rateAi != null ? String(rateAi) : "");
+  const [marketing, setMarketing] = useState(rateMarketing != null ? String(rateMarketing) : "");
+  const [digital, setDigital] = useState(rateDigital != null ? String(rateDigital) : "");
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
   const router = useRouter();
@@ -293,7 +320,12 @@ export function StaffSettings({
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     start(async () => {
-      const res = await updateCommercialSettings(id, { targetEuros: target, ratePercent: pct });
+      const res = await updateCommercialSettings(id, {
+        targetEuros: target,
+        rateAi: ai,
+        rateMarketing: marketing,
+        rateDigital: digital,
+      });
       if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
       toast(m.saved);
       router.refresh();
@@ -322,8 +354,16 @@ export function StaffSettings({
             <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="20000" />
           </label>
           <label className="adm-field">
-            <span>{m.rate}</span>
-            <input inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} placeholder="12" />
+            <span>{m.rateAi}</span>
+            <input inputMode="decimal" value={ai} onChange={(e) => setAi(e.target.value)} placeholder="12" />
+          </label>
+          <label className="adm-field">
+            <span>{m.rateMarketing}</span>
+            <input inputMode="decimal" value={marketing} onChange={(e) => setMarketing(e.target.value)} placeholder="12" />
+          </label>
+          <label className="adm-field">
+            <span>{m.rateDigital}</span>
+            <input inputMode="decimal" value={digital} onChange={(e) => setDigital(e.target.value)} placeholder="12" />
           </label>
           <button type="submit" className="adm-btn" disabled={pending}>
             {pending ? m.saving : m.save}

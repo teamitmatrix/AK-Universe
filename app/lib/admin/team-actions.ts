@@ -65,8 +65,11 @@ export async function addStaffMember(email: string, role: StaffRole): Promise<Re
   return { success: true };
 }
 
-/** Monthly target (euros excl. VAT) and commission rate (%) of a sales rep. Empty = not set. */
-export async function updateCommercialSettings(id: string, input: { targetEuros: string; ratePercent: string }): Promise<Result> {
+/** Monthly target (€ HT) and per-line commission rates (IA / Marketing / Digital). Empty = not set. */
+export async function updateCommercialSettings(
+  id: string,
+  input: { targetEuros: string; rateAi: string; rateMarketing: string; rateDigital: string },
+): Promise<Result> {
   if (!(await isAdmin())) return fail("forbidden");
   if (!isUuid(id)) return fail("invalid");
 
@@ -77,13 +80,23 @@ export async function updateCommercialSettings(id: string, input: { targetEuros:
     return Number.isFinite(n) && n >= 0 && n <= max ? n : undefined;
   };
   const target = parse(input.targetEuros, 10_000_000);
-  const rate = parse(input.ratePercent, 100);
-  if (target === undefined || rate === undefined) return fail("invalid");
+  const rateAi = parse(input.rateAi, 100);
+  const rateMarketing = parse(input.rateMarketing, 100);
+  const rateDigital = parse(input.rateDigital, 100);
+  if (target === undefined || rateAi === undefined || rateMarketing === undefined || rateDigital === undefined) return fail("invalid");
 
+  const pct = (n: number | null) => (n === null ? null : Math.round(n * 100) / 100);
+  // Keep legacy commission_rate in sync with IA as a fallback for video-project commissions.
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .update({ monthly_target_cents: target === null ? null : Math.round(target * 100), commission_rate: rate === null ? null : Math.round(rate * 100) / 100 })
+    .update({
+      monthly_target_cents: target === null ? null : Math.round(target * 100),
+      commission_rate_ai: pct(rateAi),
+      commission_rate_marketing: pct(rateMarketing),
+      commission_rate_digital: pct(rateDigital),
+      commission_rate: pct(rateAi),
+    })
     .eq("id", id)
     .eq("role", "commercial")
     .select("id");
@@ -93,7 +106,7 @@ export async function updateCommercialSettings(id: string, input: { targetEuros:
   }
   if (!data?.length) return fail("notFound");
   revalidateTeam();
-  await audit("staff.settings", id, { targetEuros: target, ratePercent: rate });
+  await audit("staff.settings", id, { targetEuros: target, rateAi, rateMarketing, rateDigital });
   return { success: true };
 }
 
@@ -119,11 +132,13 @@ export type CreateCommercialInput = {
   lastName: string;
   phone: string;
   targetEuros: string;
-  ratePercent: string;
+  rateAi: string;
+  rateMarketing: string;
+  rateDigital: string;
 };
 
 /**
- * Creates a sales rep: invites a new account (name + phone + rate/target) or promotes an existing one and
+ * Creates a sales rep: invites a new account (name + phone + rates/target) or promotes an existing one and
  * fills identity fields.
  */
 export async function createCommercial(input: CreateCommercialInput): Promise<Result> {
@@ -137,9 +152,12 @@ export async function createCommercial(input: CreateCommercialInput): Promise<Re
   if (phone && !/^[+0-9 ().-]{4,40}$/.test(phone)) return fail("invalid");
   if (!first && !last) return fail("invalid");
   const target = parseOptionalNumber(input.targetEuros, 10_000_000);
-  const rate = parseOptionalNumber(input.ratePercent, 100);
-  if (target === undefined || rate === undefined) return fail("invalid");
+  const rateAi = parseOptionalNumber(input.rateAi, 100);
+  const rateMarketing = parseOptionalNumber(input.rateMarketing, 100);
+  const rateDigital = parseOptionalNumber(input.rateDigital, 100);
+  if (target === undefined || rateAi === undefined || rateMarketing === undefined || rateDigital === undefined) return fail("invalid");
 
+  const pct = (n: number | null) => (n === null ? null : Math.round(n * 100) / 100);
   const patch = {
     role: "commercial" as const,
     active: true,
@@ -147,7 +165,10 @@ export async function createCommercial(input: CreateCommercialInput): Promise<Re
     last_name: last,
     phone,
     monthly_target_cents: target === null ? null : Math.round(target * 100),
-    commission_rate: rate === null ? null : Math.round(rate * 100) / 100,
+    commission_rate_ai: pct(rateAi),
+    commission_rate_marketing: pct(rateMarketing),
+    commission_rate_digital: pct(rateDigital),
+    commission_rate: pct(rateAi),
   };
 
   const supabase = await createClient();

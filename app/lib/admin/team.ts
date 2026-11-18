@@ -29,6 +29,10 @@ export type StaffProfile = {
   role: StaffRole;
   active?: boolean;
   commission_rate?: number | null;
+  /** Per business line (migration 015); overrides global commission_rates when set. */
+  commission_rate_ai?: number | null;
+  commission_rate_marketing?: number | null;
+  commission_rate_digital?: number | null;
   monthly_target_cents?: number | null;
   /** Migration 013 (videographer roster). */
   phone?: string | null;
