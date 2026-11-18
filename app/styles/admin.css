@@ -1529,7 +1529,7 @@ td > .adm-badge:first-child {
   flex-direction: column;
   flex-wrap: nowrap;
   gap: 8px;
-  align-items: stretch;
+  align-items: flex-start;
 }
 .adm-margin-stack {
   min-width: 5.5rem;
@@ -1552,7 +1552,8 @@ td > .adm-badge:first-child {
 .adm-price-input {
   display: inline-flex;
   align-items: center;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--adm-line);
   border-radius: 8px;
@@ -1560,10 +1561,9 @@ td > .adm-badge:first-child {
   overflow: hidden;
 }
 .adm-price-input input {
-  width: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 7px 8px;
+  width: 4.75rem;
+  flex: none;
+  padding: 7px 6px 7px 8px;
   border: 0;
   background: none;
   color: var(--adm-text);
