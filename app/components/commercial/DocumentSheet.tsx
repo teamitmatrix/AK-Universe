@@ -1,5 +1,6 @@
 import { PRODUCT_TYPE_LABELS } from "@/lib/commercial/commission-rules";
 import type { SalesDoc } from "@/lib/commercial/sales-docs";
+import { BANK } from "@/config/company";
 import type { Company } from "@/lib/company";
 
 const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
@@ -127,6 +128,21 @@ export function DocumentSheet({ doc, company }: { doc: SalesDoc; company: Compan
         <p className="doc-legal">
           {company.legalName} — {company.legalForm} — RCS {company.rcs} — {company.address}
         </p>
+        <div className="doc-bank">
+          {/* eslint-disable-next-line @next/next/no-img-element -- same SVG as the site header; must print without the image optimizer */}
+          <img src="/assets/img/logo.svg" alt="AK Universe" className="doc-bank-logo" />
+          <div>
+            <p>
+              <strong>Coordonnées Bancaire :</strong> {BANK.holder}
+            </p>
+            <p>
+              <strong>IBAN :</strong> {BANK.iban}
+            </p>
+            <p>
+              <strong>BIC-ADRESSE SWIFT :</strong> {BANK.bic}
+            </p>
+          </div>
+        </div>
       </footer>
     </article>
   );

@@ -1494,13 +1494,30 @@ td > .adm-badge:first-child {
 
 /* Catalogue */
 .adm-catalogue {
-  min-width: 1100px;
+  table-layout: fixed;
+  min-width: 1180px;
 }
 .adm-catalogue th {
   white-space: normal;
   line-height: 1.25;
-  max-width: 9.5rem;
   vertical-align: bottom;
+}
+.adm-catalogue th:first-child,
+.adm-catalogue td:first-child {
+  width: 200px;
+}
+.adm-catalogue td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  vertical-align: top;
+}
+.adm-catalogue .adm-stack {
+  min-width: 0;
+  max-width: 200px;
+}
+.adm-catalogue .adm-stack strong,
+.adm-catalogue .adm-stack .adm-person-mail {
+  white-space: normal;
 }
 .adm-price-fields {
   display: flex;

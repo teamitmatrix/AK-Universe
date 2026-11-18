@@ -30,6 +30,13 @@ export const COMPANY = {
   mediator: TODO,
 };
 
+/** Printed at the bottom left of quotes and invoices. */
+export const BANK = {
+  holder: "QONTO",
+  iban: "FR76 1695 8000 0195 9689 5928 171",
+  bic: "QNTOFRP1XXX",
+};
+
 /** tel: link for COMPANY.phone ("+33 06 …" → "+336…": the trunk 0 is dropped after a country code). */
 export const phoneHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "").replace(/^(\+\d{2})0/, "$1")}`;
 
