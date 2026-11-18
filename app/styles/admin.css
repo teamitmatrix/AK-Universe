@@ -1493,10 +1493,24 @@ td > .adm-badge:first-child {
 }
 
 /* Catalogue */
+.adm-catalogue {
+  min-width: 1100px;
+}
+.adm-catalogue th {
+  white-space: normal;
+  line-height: 1.25;
+  max-width: 9.5rem;
+  vertical-align: bottom;
+}
 .adm-price-fields {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.adm-margin-stack {
+  min-width: 5.5rem;
 }
 .adm-price {
   display: flex;
@@ -1508,16 +1522,21 @@ td > .adm-badge:first-child {
   font-size: 11px;
   font-weight: 600;
 }
+.adm-price.is-readonly strong {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 13px;
+}
 .adm-price-input {
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--adm-line);
   border-radius: 8px;
-  background: var(--adm-surface);
+  background: #fff;
   overflow: hidden;
 }
 .adm-price-input input {
-  width: 92px;
+  width: 88px;
   padding: 7px 8px;
   border: 0;
   background: none;

@@ -83,13 +83,20 @@ async function parse(input: DocInput) {
     if (l.catalogueId) {
       const item = catalogue.get(l.catalogueId);
       if (!item) return null;
+      // Rep may lower the unit price within the admin max-discount cap; never above list price.
+      const rawPrice = String(l.unitEuros ?? "").trim().replace(/\s/g, "").replace(",", ".");
+      const requested = rawPrice === "" ? item.unitCents / 100 : Number(rawPrice);
+      if (!Number.isFinite(requested) || requested < 0 || requested > 1_000_000) return null;
+      const requestedCents = Math.round(requested * 100);
+      const minCents = Math.round(item.unitCents * (1 - item.maxDiscountPercent / 100));
+      if (requestedCents < minCents || requestedCents > item.unitCents) return null;
       lines.push({
         catalogue_id: item.id,
         label: item.label,
         detail: item.detail.slice(0, 300),
         product_type: item.productType,
         qty,
-        unit_cents: item.unitCents,
+        unit_cents: requestedCents,
         fixed_commission_cents,
       });
     } else {

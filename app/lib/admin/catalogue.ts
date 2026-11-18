@@ -2,6 +2,7 @@ import "server-only";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS, PLAN } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
+import { getCatalogueCommercial, type CatalogueCommercialEntry } from "@/lib/catalogue-commercial";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, loadDefaultConfig } from "@/lib/video-config";
 
@@ -11,39 +12,109 @@ import { getVideoConfig, loadDefaultConfig } from "@/lib/video-config";
  *   video services, options, deposit, quantity discounts, marketing packages → site_settings "video_pricing"
  *   Agents IA tiers, subscription, extra user, annual discount, options      → site_settings "agents_pricing"
  *   website setup and monthly running fees                                   → site_settings "digital_pricing"
+ * Cost prices + max authorized discounts                                    → site_settings "catalogue_commercial"
  * Field keys are stable ids understood by saveCatalogue() (catalogue-actions.ts).
  */
 
 export type CatalogueCategory = "agents" | "abonnement" | "marketing" | "videos" | "options" | "digital" | "regles";
 export type CatalogueField = { key: string; label: "price" | "setup" | "percent" | "monthly"; value: number; default: number; unit: "eur" | "eurMonth" | "pct" };
-export type CatalogueRow = { id: string; category: CatalogueCategory; name: string; detail: string; fields: CatalogueField[]; href?: string };
+
+/** Cost + discount caps for rows that sell in € (not percent rules). */
+export type CatalogueCommercial = {
+  hasMonthly: boolean;
+  hasSetup: boolean;
+  costMonthly: number | null;
+  costSetup: number | null;
+  maxDiscountMonthly: number;
+  maxDiscountSetup: number;
+};
+
+export type CatalogueRow = {
+  id: string;
+  category: CatalogueCategory;
+  name: string;
+  detail: string;
+  fields: CatalogueField[];
+  href?: string;
+  commercial: CatalogueCommercial | null;
+};
+
+function withCommercial(id: string, fields: CatalogueField[], meta: CatalogueCommercialEntry | undefined): CatalogueCommercial | null {
+  if (fields.every((f) => f.unit === "pct")) return null;
+  const hasMonthly = fields.some((f) => f.label === "monthly");
+  // One-off "price" sits in the set-up / mise-en-place column (same as explicit setup).
+  const hasSetup = fields.some((f) => f.label === "setup" || f.label === "price");
+  return {
+    hasMonthly,
+    hasSetup,
+    costMonthly: hasMonthly ? (meta?.costMonthly ?? null) : null,
+    costSetup: hasSetup ? (meta?.costSetup ?? null) : null,
+    maxDiscountMonthly: hasMonthly ? (meta?.maxDiscountMonthly ?? 0) : 0,
+    maxDiscountSetup: hasSetup ? (meta?.maxDiscountSetup ?? 0) : 0,
+  };
+}
+
+function row(
+  base: Omit<CatalogueRow, "commercial">,
+  meta: CatalogueCommercialEntry | undefined,
+): CatalogueRow {
+  return { ...base, commercial: withCommercial(base.id, base.fields, meta) };
+}
 
 export async function loadCatalogue() {
-  const [cfg, agents, websites] = await Promise.all([getVideoConfig(), getAgentsPricing(), getDigitalWebsites()]);
+  const [cfg, agents, websites, commercial] = await Promise.all([
+    getVideoConfig(),
+    getAgentsPricing(),
+    getDigitalWebsites(),
+    getCatalogueCommercial(),
+  ]);
   const def = loadDefaultConfig();
   const rows: CatalogueRow[] = [];
+  const meta = (id: string) => commercial[id];
 
   // Agents IA offers (/agents-ia#tarifs). "Sur devis" stays on quote.
   for (const tier of AGENT_TIERS) {
     const cur = agents.tiers[tier.name];
     if (!cur || tier.price === null) continue;
-    rows.push({
-      id: `tier:${tier.name}`,
-      category: "agents",
-      name: `Agents IA — ${tier.name}`,
-      detail: tier.desc,
-      href: "/agents-ia#tarifs",
-      fields: [
-        { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
-        ...(tier.setupFrom !== null ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: cur.setupFrom ?? 0, default: tier.setupFrom, unit: "eur" as const }] : []),
-      ],
-    });
+    const id = `tier:${tier.name}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "agents",
+          name: `Agents IA — ${tier.name}`,
+          detail: tier.desc,
+          href: "/agents-ia#tarifs",
+          fields: [
+            { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
+            ...(tier.setupFrom !== null
+              ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: cur.setupFrom ?? 0, default: tier.setupFrom, unit: "eur" as const }]
+              : []),
+          ],
+        },
+        meta(id),
+      ),
+    );
   }
 
   // Online subscription (/abonnement → Stripe checkout).
-  rows.push(
-    { id: "sub:plan", category: "abonnement", name: PLAN.name, detail: PLAN.features.join(" · "), href: "/abonnement", fields: [{ key: "a:plan", label: "monthly", value: agents.planMonthly, default: PLAN.monthlyPrice, unit: "eurMonth" }] },
-    { id: "sub:user", category: "abonnement", name: "Utilisateur supplémentaire", detail: "Par utilisateur et par mois", href: "/abonnement", fields: [{ key: "a:user", label: "monthly", value: agents.userPrice, default: 9.9, unit: "eurMonth" }] },
+  for (const base of [
+    {
+      id: "sub:plan",
+      category: "abonnement" as const,
+      name: PLAN.name,
+      detail: PLAN.features.join(" · "),
+      href: "/abonnement",
+      fields: [{ key: "a:plan", label: "monthly" as const, value: agents.planMonthly, default: PLAN.monthlyPrice, unit: "eurMonth" as const }],
+    },
+    {
+      id: "sub:user",
+      category: "abonnement" as const,
+      name: "Utilisateur supplémentaire",
+      detail: "Par utilisateur et par mois",
+      href: "/abonnement",
+      fields: [{ key: "a:user", label: "monthly" as const, value: agents.userPrice, default: 9.9, unit: "eurMonth" as const }],
+    },
     ...OPTIONS.map((o) => ({
       id: `sub:opt:${o.id}`,
       category: "abonnement" as const,
@@ -52,71 +123,105 @@ export async function loadCatalogue() {
       href: "/abonnement",
       fields: [{ key: `a:opt:${o.id}`, label: "monthly" as const, value: agents.options[o.id], default: o.price, unit: "eurMonth" as const }],
     })),
-  );
+  ]) {
+    rows.push(row(base, meta(base.id)));
+  }
 
   // Marketing packages (/marketing/forfaits).
   for (const plan of cfg.marketing?.plans ?? []) {
     if (plan.price === null) continue;
     const d = def.marketing?.plans?.find((p) => p.key === plan.key);
-    rows.push({
-      id: `plan:${plan.key}`,
-      category: "marketing",
-      name: `Forfait Marketing — ${plan.name}`,
-      detail: plan.tagline,
-      href: "/marketing/forfaits",
-      fields: [
-        { key: `v:plan:${plan.key}:price`, label: "monthly", value: plan.price, default: d?.price ?? plan.price, unit: "eurMonth" },
-        ...(plan.setupPrice != null ? [{ key: `v:plan:${plan.key}:setup`, label: "setup" as const, value: plan.setupPrice, default: d?.setupPrice ?? plan.setupPrice, unit: "eur" as const }] : []),
-      ],
-    });
+    const id = `plan:${plan.key}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "marketing",
+          name: `Forfait Marketing — ${plan.name}`,
+          detail: plan.tagline,
+          href: "/marketing/forfaits",
+          fields: [
+            { key: `v:plan:${plan.key}:price`, label: "monthly", value: plan.price, default: d?.price ?? plan.price, unit: "eurMonth" },
+            ...(plan.setupPrice != null
+              ? [{ key: `v:plan:${plan.key}:setup`, label: "setup" as const, value: plan.setupPrice, default: d?.setupPrice ?? plan.setupPrice, unit: "eur" as const }]
+              : []),
+          ],
+        },
+        meta(id),
+      ),
+    );
   }
 
   // Video services ("à partir de" price; duration supplements stay in Prix → durées).
   for (const s of cfg.services) {
     const d = def.services.find((x) => x.slug === s.slug);
-    rows.push({
-      id: `svc:${s.slug}`,
-      category: "videos",
-      name: s.name,
-      detail: s.unit ? `À partir de · ${s.unit}` : "À partir de",
-      href: `/services/${s.slug}`,
-      fields: [{ key: `v:svc:${s.slug}`, label: "price", value: s.price, default: d?.price ?? s.price, unit: "eur" }],
-    });
+    const id = `svc:${s.slug}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "videos",
+          name: s.name,
+          detail: s.unit ? `À partir de · ${s.unit}` : "À partir de",
+          href: `/services/${s.slug}`,
+          fields: [{ key: `v:svc:${s.slug}`, label: "price", value: s.price, default: d?.price ?? s.price, unit: "eur" }],
+        },
+        meta(id),
+      ),
+    );
   }
 
   // Video options.
-  for (const [id, o] of Object.entries(cfg.options)) {
-    rows.push({
-      id: `opt:${id}`,
-      category: "options",
-      name: o.label,
-      detail: o.per === "video" ? "Par vidéo" : "Par projet",
-      fields: [{ key: `v:opt:${id}`, label: "price", value: o.price, default: def.options[id]?.price ?? o.price, unit: "eur" }],
-    });
+  for (const [oid, o] of Object.entries(cfg.options)) {
+    const id = `opt:${oid}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "options",
+          name: o.label,
+          detail: o.per === "video" ? "Par vidéo" : "Par projet",
+          fields: [{ key: `v:opt:${oid}`, label: "price", value: o.price, default: def.options[oid]?.price ?? o.price, unit: "eur" }],
+        },
+        meta(id),
+      ),
+    );
   }
 
   // Website setup and monthly running fees (/digital).
   const liveSite = new Map(websites.map((s) => [s.id, s]));
   for (const site of DIGITAL_WEBSITES) {
     const cur = liveSite.get(site.id) ?? site;
-    rows.push({
-      id: `site:${site.id}`,
-      category: "digital",
-      name: site.name,
-      detail: site.runningFrom === null ? "Mise en place" : "Mise en place et frais de fonctionnement mensuels",
-      href: "/digital#sites",
-      fields: [
-        { key: `d:site:${site.id}:price`, label: "setup", value: cur.price, default: site.price, unit: "eur" },
-        ...(site.runningFrom !== null
-          ? [{ key: `d:site:${site.id}:running`, label: "monthly" as const, value: cur.runningFrom ?? site.runningFrom, default: site.runningFrom, unit: "eurMonth" as const }]
-          : []),
-      ],
-    });
+    const id = `site:${site.id}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "digital",
+          name: site.name,
+          detail: site.runningFrom === null ? "Mise en place" : "Mise en place et frais de fonctionnement mensuels",
+          href: "/digital#sites",
+          fields: [
+            { key: `d:site:${site.id}:price`, label: "setup", value: cur.price, default: site.price, unit: "eur" },
+            ...(site.runningFrom !== null
+              ? [{ key: `d:site:${site.id}:running`, label: "monthly" as const, value: cur.runningFrom ?? site.runningFrom, default: site.runningFrom, unit: "eurMonth" as const }]
+              : []),
+          ],
+        },
+        meta(id),
+      ),
+    );
   }
 
-  // Pricing rules.
-  rows.push(
-    { id: "rule:deposit", category: "regles", name: "Acompte vidéo", detail: "Pourcentage du devis payé à la réservation", fields: [{ key: "v:deposit", label: "percent", value: cfg.depositPercent, default: def.depositPercent, unit: "pct" }] },
+  // Pricing rules (percent only — no cost / margin / max-discount columns).
+  for (const base of [
+    {
+      id: "rule:deposit",
+      category: "regles" as const,
+      name: "Acompte vidéo",
+      detail: "Pourcentage du devis payé à la réservation",
+      fields: [{ key: "v:deposit", label: "percent" as const, value: cfg.depositPercent, default: def.depositPercent, unit: "pct" as const }],
+    },
     ...Object.entries(cfg.qtyDiscounts).map(([qty, pct]) => ({
       id: `rule:qty:${qty}`,
       category: "regles" as const,
@@ -124,8 +229,16 @@ export async function loadCatalogue() {
       detail: "Remise sur quantité (services vidéo)",
       fields: [{ key: `v:qty:${qty}`, label: "percent" as const, value: pct, default: def.qtyDiscounts[qty] ?? pct, unit: "pct" as const }],
     })),
-    { id: "rule:annual", category: "regles", name: "Remise paiement annuel", detail: "Abonnement Agents IA, 12 mois payés d'avance", fields: [{ key: "a:annual", label: "percent", value: Math.round(agents.annualDiscount * 100), default: 20, unit: "pct" }] },
-  );
+    {
+      id: "rule:annual",
+      category: "regles" as const,
+      name: "Remise paiement annuel",
+      detail: "Abonnement Agents IA, 12 mois payés d'avance",
+      fields: [{ key: "a:annual", label: "percent" as const, value: Math.round(agents.annualDiscount * 100), default: 20, unit: "pct" as const }],
+    },
+  ]) {
+    rows.push(row(base, undefined));
+  }
 
   return { rows };
 }

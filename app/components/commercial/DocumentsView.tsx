@@ -43,7 +43,7 @@ const ACTION_LABEL: Record<DocKind, Partial<Record<DocStatus, string>>> = {
 };
 const ERRORS: Record<string, string> = {
   forbidden: "Accès refusé.",
-  invalid: "Vérifiez les champs : client, date et au moins une ligne valide.",
+  invalid: "Vérifiez les champs : client, date, lignes et remises (plafond catalogue).",
   notFound: "Ce document n'existe plus.",
   locked: "Ce document est verrouillé (accepté, payé ou annulé).",
   transition: "Ce changement de statut n'est pas possible.",
@@ -439,6 +439,16 @@ function DocumentModal({
               {lines.map((l) => {
                 const fromCatalogue = !!l.catalogueId;
                 const type = l.productType as ProductType;
+                const catItem = fromCatalogue ? byId.get(l.catalogueId!) : undefined;
+                const listEuros = catItem ? catItem.unitCents / 100 : null;
+                const maxDisc = catItem?.maxDiscountPercent ?? 0;
+                const minEuros = listEuros != null ? Math.round(listEuros * (1 - maxDisc / 100) * 100) / 100 : null;
+                const priceLocked = fromCatalogue && maxDisc <= 0;
+                const priceTitle = fromCatalogue
+                  ? maxDisc > 0
+                    ? `Prix catalogue ${listEuros?.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € — remise max ${maxDisc} % (min ${minEuros?.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €)`
+                    : "Prix du catalogue (aucune remise autorisée)"
+                  : undefined;
                 return (
                   <li key={l.key} className="com-line">
                     <span className="com-line-badge" title={PRODUCT_TYPE_LABELS[type]}>
@@ -447,7 +457,10 @@ function DocumentModal({
                     {fromCatalogue ? (
                       <span className="com-line-label">
                         <strong>{l.label}</strong>
-                        <small>{byId.get(l.catalogueId!)?.detail ?? ""}</small>
+                        <small>
+                          {byId.get(l.catalogueId!)?.detail ?? ""}
+                          {maxDisc > 0 ? ` · Remise max ${maxDisc} %` : ""}
+                        </small>
                       </span>
                     ) : (
                       <span className="com-line-label">
@@ -474,11 +487,20 @@ function DocumentModal({
                       <input
                         aria-label="Prix unitaire HT (€)"
                         inputMode="decimal"
-                        readOnly={fromCatalogue}
-                        title={fromCatalogue ? "Prix du catalogue" : undefined}
+                        readOnly={priceLocked}
+                        title={priceTitle}
+                        min={minEuros ?? undefined}
+                        max={listEuros ?? undefined}
                         required
                         value={l.unitEuros}
                         onChange={(e) => updateLine(l.key, { unitEuros: e.target.value })}
+                        onBlur={() => {
+                          if (!fromCatalogue || listEuros == null || minEuros == null) return;
+                          const p = num(l.unitEuros);
+                          if (!Number.isFinite(p)) return;
+                          const clamped = Math.min(listEuros, Math.max(minEuros, p));
+                          if (clamped !== p) updateLine(l.key, { unitEuros: String(clamped) });
+                        }}
                       />
                       <span>€</span>
                     </label>

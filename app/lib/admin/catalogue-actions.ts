@@ -6,12 +6,20 @@ import { after } from "next/server";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS } from "@/config/pricing";
 import { AGENTS_PRICING_KEY, getAgentsPricingOverrides, type AgentsPricingOverrides } from "@/lib/agents-pricing";
+import {
+  CATALOGUE_COMMERCIAL_KEY,
+  getCatalogueCommercial,
+  sanitizeCommercialMap,
+  type CatalogueCommercialEntry,
+  type CatalogueCommercialMap,
+} from "@/lib/catalogue-commercial";
 import { DIGITAL_PRICING_KEY, getDigitalPricingOverrides, type DigitalPricingOverrides } from "@/lib/digital-pricing";
 import { isAdmin } from "@/lib/auth/session";
 import { ensureIndex } from "@/lib/chatbot/rag";
 import { createClient } from "@/lib/supabase/server";
 import { getVideoConfig, type PricingOverrides } from "@/lib/video-config";
 import { savePricing } from "./actions";
+import { loadCatalogue } from "./catalogue";
 
 /**
  * Saves the edited prices of /admin/catalogue. The browser sends only { fieldKey: number } for the fields it
@@ -36,9 +44,12 @@ export async function saveCatalogue(changes: Record<string, number>): Promise<Re
   }
 }
 
+const COMMERCIAL_PARTS = new Set(["costMonthly", "costSetup", "maxDiscountMonthly", "maxDiscountSetup"]);
+
 async function writeCatalogue(entries: [string, number][]): Promise<Result> {
   // Current state, from the database (never from the browser).
   const cfg = await getVideoConfig();
+  const knownRows = new Set((await loadCatalogue()).rows.filter((r) => r.commercial).map((r) => r.id));
   const video: Required<PricingOverrides> = {
     depositPercent: cfg.depositPercent,
     qtyDiscounts: { ...cfg.qtyDiscounts },
@@ -50,16 +61,37 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
   agents.options = { ...(agents.options ?? {}) };
   agents.tiers = { ...(agents.tiers ?? {}) };
   const digital: DigitalPricingOverrides = { websites: { ...((await getDigitalPricingOverrides())?.websites ?? {}) } };
+  const commercial: CatalogueCommercialMap = { ...(await getCatalogueCommercial()) };
   let videoTouched = false;
   let agentsTouched = false;
   let digitalTouched = false;
+  let commercialTouched = false;
 
   for (const [key, raw] of entries) {
     const n = Number(raw);
-    const isPct = key === "v:deposit" || key.startsWith("v:qty:") || key === "a:annual";
+    const isPct =
+      key === "v:deposit" ||
+      key.startsWith("v:qty:") ||
+      key === "a:annual" ||
+      key.includes(":maxDiscount");
     if (!Number.isFinite(n) || n < 0 || n > (isPct ? 100 : MAX_PRICE)) return { success: false, error: "invalid" };
     const v = Math.round(n * 100) / 100;
     const [scope, kind, id, part] = key.split(":");
+
+    if (scope === "c") {
+      // c:{rowId}:{costMonthly|costSetup|maxDiscountMonthly|maxDiscountSetup}
+      // rowId itself contains ":" (e.g. tier:Starter) — re-parse.
+      const match = /^c:(.+):(costMonthly|costSetup|maxDiscountMonthly|maxDiscountSetup)$/.exec(key);
+      if (!match) return { success: false, error: "invalid" };
+      const rowId = match[1];
+      const field = match[2] as keyof CatalogueCommercialEntry;
+      if (!knownRows.has(rowId) || !COMMERCIAL_PARTS.has(field)) return { success: false, error: "invalid" };
+      commercialTouched = true;
+      const cur: CatalogueCommercialEntry = { ...(commercial[rowId] ?? {}) };
+      cur[field] = v;
+      commercial[rowId] = cur;
+      continue;
+    }
 
     if (scope === "v") {
       videoTouched = true;
@@ -127,6 +159,25 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
     }
     after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
   }
+  if (commercialTouched) {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert(
+        {
+          key: CATALOGUE_COMMERCIAL_KEY,
+          value: sanitizeCommercialMap(commercial),
+          updated_at: new Date().toISOString(),
+          updated_by: auth.user?.id,
+        },
+        { onConflict: "key" },
+      );
+    if (error) {
+      console.error("saveCatalogue (commercial) failed:", error.message);
+      return { success: false, error: "failed" };
+    }
+  }
 
   // Revalidate public consumers without wiping the whole app layout (that was crashing the admin page).
   for (const path of [
@@ -144,6 +195,8 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
     "/finaliser",
     "/acompte",
     "/assets/js/services-data.js",
+    "/commercial/devis-factures",
+    "/commercial",
   ]) {
     revalidatePath(path);
   }

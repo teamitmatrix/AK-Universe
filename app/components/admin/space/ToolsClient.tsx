@@ -285,14 +285,38 @@ export function TaskActions({ id, title, done, canDelete = true }: { id: string;
 // Catalogue
 // =========================================================
 
+type CatalogueField = { key: string; label: string; value: number; default: number; unit: string };
+type CatalogueCommercial = {
+  hasMonthly: boolean;
+  hasSetup: boolean;
+  costMonthly: number | null;
+  costSetup: number | null;
+  maxDiscountMonthly: number;
+  maxDiscountSetup: number;
+};
 type CatalogueRow = {
   id: string;
   category: string;
   name: string;
   detail: string;
   href?: string;
-  fields: { key: string; label: string; value: number; default: number; unit: string }[];
+  fields: CatalogueField[];
+  commercial: CatalogueCommercial | null;
 };
+
+const parseNum = (v: string) => Number(String(v).replace(",", "."));
+const fieldOf = (r: CatalogueRow, kind: "monthly" | "setup") =>
+  r.fields.find((f) => (kind === "monthly" ? f.label === "monthly" : f.label === "setup" || f.label === "price"));
+const commercialKey = (rowId: string, part: string) => `c:${rowId}:${part}`;
+
+function marginEuro(sell: number, cost: number | null): number | null {
+  if (cost == null || !Number.isFinite(cost) || !Number.isFinite(sell)) return null;
+  return Math.round((sell - cost) * 100) / 100;
+}
+function marginPct(sell: number, cost: number | null): number | null {
+  if (cost == null || !(cost > 0) || !Number.isFinite(sell)) return null;
+  return Math.round(((sell - cost) / cost) * 10000) / 100;
+}
 
 export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
   const { t, locale } = useT();
@@ -303,10 +327,34 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
-  const original = useMemo(() => Object.fromEntries(rows.flatMap((r) => r.fields.map((f) => [f.key, f.value]))), [rows]);
-  const changed = Object.entries(values).filter(([k, v]) => v.trim() !== "" && Number(v.replace(",", ".")) !== original[k]);
 
-  // Warn before leaving with unsaved prices.
+  const original = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    for (const r of rows) {
+      for (const f of r.fields) map[f.key] = f.value;
+      if (!r.commercial) continue;
+      if (r.commercial.hasMonthly) {
+        map[commercialKey(r.id, "costMonthly")] = r.commercial.costMonthly;
+        map[commercialKey(r.id, "maxDiscountMonthly")] = r.commercial.maxDiscountMonthly;
+      }
+      if (r.commercial.hasSetup) {
+        map[commercialKey(r.id, "costSetup")] = r.commercial.costSetup;
+        map[commercialKey(r.id, "maxDiscountSetup")] = r.commercial.maxDiscountSetup;
+      }
+    }
+    return map;
+  }, [rows]);
+
+  const changed = Object.entries(values).filter(([k, v]) => {
+    const trimmed = v.trim();
+    const orig = original[k];
+    // Clearing a previously unset cost back to empty is not a change.
+    if (trimmed === "") return orig != null && !k.includes(":maxDiscount");
+    const n = parseNum(trimmed);
+    if (!Number.isFinite(n)) return false;
+    return n !== (orig ?? (k.includes(":cost") ? null : 0));
+  });
+
   useEffect(() => {
     if (!changed.length) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
@@ -316,17 +364,41 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
 
   const fmt = (v: number, unit: string) =>
     unit === "pct" ? `${v.toLocaleString(locale)} %` : `${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c.units[unit]}`;
+  const fmtEuro = (v: number | null) =>
+    v == null ? "—" : `${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toLocaleString(locale, { maximumFractionDigits: 2 })} %`);
+
   const q = query.trim().toLowerCase();
   const visible = rows.filter((r) => (!category || r.category === category) && (!q || r.name.toLowerCase().includes(q) || r.detail.toLowerCase().includes(q)));
 
+  const setVal = (key: string, value: string) => setValues((s) => ({ ...s, [key]: value }));
+  const live = (key: string, fallback: number | null): number | null => {
+    const raw = values[key];
+    if (raw === undefined) return fallback;
+    if (raw.trim() === "") return null;
+    const n = parseNum(raw);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const dirty = (key: string, fallback: number | null) => {
+    if (values[key] === undefined) return false;
+    const raw = values[key].trim();
+    if (raw === "") return fallback != null;
+    return parseNum(raw) !== fallback;
+  };
+
   const save = () =>
     start(async () => {
-      const payload = Object.fromEntries(changed.map(([k, v]) => [k, Number(v.replace(",", "."))]));
+      const payload: Record<string, number> = {};
+      for (const [k, v] of changed) {
+        const n = parseNum(v);
+        if (!Number.isFinite(n)) return toast(t.errors.invalid);
+        if (k.includes(":maxDiscount") && (n < 0 || n > 100)) return toast(t.errors.invalid);
+        payload[k] = n;
+      }
       let res: Awaited<ReturnType<typeof saveCatalogue>>;
       try {
         res = await saveCatalogue(payload);
       } catch (cause) {
-        // Server Action / network throw before a Result — edits stay in `values`, nothing cleared.
         console.error("Catalogue save failed:", cause);
         return toast(t.errors.failed);
       }
@@ -335,6 +407,59 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
       toast(c.saved);
       router.refresh();
     });
+
+  const priceInput = (opts: {
+    key: string;
+    label: string;
+    value: number | null;
+    unitKey: "eur" | "eurMonth" | "pct";
+    aria: string;
+    showLabel?: boolean;
+    defaultValue?: number;
+    max?: number;
+    allowEmpty?: boolean;
+  }) => {
+    const display = values[opts.key] ?? (opts.value == null ? "" : String(opts.value));
+    const isDirty = dirty(opts.key, opts.value);
+    return (
+      <label className={`adm-price${isDirty ? " is-dirty" : ""}`}>
+        {opts.showLabel !== false && <small>{opts.label}</small>}
+        <span className="adm-price-input">
+          <input
+            inputMode="decimal"
+            value={display}
+            max={opts.max}
+            placeholder={opts.allowEmpty ? "—" : undefined}
+            onChange={(e) => setVal(opts.key, e.target.value)}
+            aria-label={opts.aria}
+          />
+          <em>{c.units[opts.unitKey]}</em>
+        </span>
+        {opts.defaultValue != null && opts.value !== opts.defaultValue && !isDirty && (
+          <button type="button" className="adm-mini-link" title={c.reset} onClick={() => setVal(opts.key, String(opts.defaultValue))}>
+            {c.default(fmt(opts.defaultValue, opts.unitKey))}
+          </button>
+        )}
+      </label>
+    );
+  };
+
+  const readOnlyStack = (monthly: number | null, setup: number | null, format: (n: number | null) => string, showMonthly: boolean, showSetup: boolean) => (
+    <span className="adm-price-fields adm-margin-stack">
+      {showMonthly && (
+        <span className="adm-price is-readonly">
+          <small>{c.labels.monthly}</small>
+          <strong className="notranslate">{format(monthly)}</strong>
+        </span>
+      )}
+      {showSetup && (
+        <span className="adm-price is-readonly">
+          <small>{c.labels.setup}</small>
+          <strong className="notranslate">{format(setup)}</strong>
+        </span>
+      )}
+    </span>
+  );
 
   return (
     <>
@@ -360,63 +485,145 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
               <tr>
                 <th scope="col">{c.cols.product}</th>
                 <th scope="col">{c.cols.category}</th>
+                <th scope="col">{c.cols.costMonthly}</th>
+                <th scope="col">{c.cols.costSetup}</th>
                 <th scope="col">{c.cols.price}</th>
+                <th scope="col">{c.cols.marginEuro}</th>
+                <th scope="col">{c.cols.marginRate}</th>
+                <th scope="col">{c.cols.maxDiscount}</th>
               </tr>
             </thead>
             <tbody>
-              {visible.map((r) => (
-                <tr key={r.id}>
-                  <td data-label={c.cols.product}>
-                    <span className="adm-stack">
-                      <strong>
-                        {r.name}
-                        {r.href && (
-                          <a href={r.href} target="_blank" rel="noopener noreferrer" className="adm-inline-link" aria-label={c.view} title={c.view}>
-                            <ExternalLink size={12} />
-                          </a>
+              {visible.map((r) => {
+                const com = r.commercial;
+                const monthlyField = fieldOf(r, "monthly");
+                const setupField = fieldOf(r, "setup");
+                const sellMonthly = monthlyField ? live(monthlyField.key, monthlyField.value) : null;
+                const sellSetup = setupField ? live(setupField.key, setupField.value) : null;
+                const costM = com?.hasMonthly ? live(commercialKey(r.id, "costMonthly"), com.costMonthly) : null;
+                const costS = com?.hasSetup ? live(commercialKey(r.id, "costSetup"), com.costSetup) : null;
+
+                return (
+                  <tr key={r.id}>
+                    <td data-label={c.cols.product}>
+                      <span className="adm-stack">
+                        <strong>
+                          {r.name}
+                          {r.href && (
+                            <a href={r.href} target="_blank" rel="noopener noreferrer" className="adm-inline-link" aria-label={c.view} title={c.view}>
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </strong>
+                        <span className="adm-person-mail">{r.detail}</span>
+                      </span>
+                    </td>
+                    <td data-label={c.cols.category}>
+                      <span className="adm-badge is-info">{c.categories[r.category]}</span>
+                    </td>
+                    <td data-label={c.cols.costMonthly}>
+                      {com?.hasMonthly ? (
+                        priceInput({
+                          key: commercialKey(r.id, "costMonthly"),
+                          label: c.labels.monthly,
+                          value: com.costMonthly,
+                          unitKey: "eur",
+                          aria: `${r.name} — ${c.cols.costMonthly}`,
+                          showLabel: false,
+                          allowEmpty: true,
+                        })
+                      ) : (
+                        <span className="adm-muted">—</span>
+                      )}
+                    </td>
+                    <td data-label={c.cols.costSetup}>
+                      {com?.hasSetup ? (
+                        priceInput({
+                          key: commercialKey(r.id, "costSetup"),
+                          label: c.labels.setup,
+                          value: com.costSetup,
+                          unitKey: "eur",
+                          aria: `${r.name} — ${c.cols.costSetup}`,
+                          showLabel: false,
+                          allowEmpty: true,
+                        })
+                      ) : (
+                        <span className="adm-muted">—</span>
+                      )}
+                    </td>
+                    <td data-label={c.cols.price}>
+                      <span className="adm-price-fields">
+                        {r.fields.map((f) =>
+                          priceInput({
+                            key: f.key,
+                            label: c.labels[f.label] ?? f.label,
+                            value: f.value,
+                            unitKey: (f.unit === "pct" || f.unit === "eurMonth" ? f.unit : "eur") as "eur" | "eurMonth" | "pct",
+                            aria: `${r.name} — ${c.labels[f.label] ?? f.label}`,
+                            showLabel: r.fields.length > 1 || !!com,
+                            defaultValue: f.default,
+                            max: f.unit === "pct" ? 100 : undefined,
+                          }),
                         )}
-                      </strong>
-                      <span className="adm-person-mail">{r.detail}</span>
-                    </span>
-                  </td>
-                  <td data-label={c.cols.category}>
-                    <span className="adm-badge is-info">{c.categories[r.category]}</span>
-                  </td>
-                  <td data-label={c.cols.price}>
-                    <span className="adm-price-fields">
-                      {r.fields.map((f) => {
-                        const v = values[f.key] ?? String(f.value);
-                        const dirty = values[f.key] !== undefined && Number(v.replace(",", ".")) !== f.value;
-                        const isDefault = f.value === f.default;
-                        return (
-                          <label key={f.key} className={`adm-price${dirty ? " is-dirty" : ""}`}>
-                            {r.fields.length > 1 && <small>{c.labels[f.label]}</small>}
-                            <span className="adm-price-input">
-                              <input
-                                inputMode="decimal"
-                                value={v}
-                                onChange={(e) => setValues((s) => ({ ...s, [f.key]: e.target.value }))}
-                                aria-label={`${r.name} — ${c.labels[f.label]}`}
-                              />
-                              <em>{c.units[f.unit]}</em>
-                            </span>
-                            {!isDefault && !dirty && (
-                              <button
-                                type="button"
-                                className="adm-mini-link"
-                                title={c.reset}
-                                onClick={() => setValues((s) => ({ ...s, [f.key]: String(f.default) }))}
-                              >
-                                {c.default(fmt(f.default, f.unit))}
-                              </button>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                      </span>
+                    </td>
+                    <td data-label={c.cols.marginEuro}>
+                      {com
+                        ? readOnlyStack(
+                            sellMonthly != null ? marginEuro(sellMonthly, costM) : null,
+                            sellSetup != null ? marginEuro(sellSetup, costS) : null,
+                            fmtEuro,
+                            !!com.hasMonthly,
+                            !!com.hasSetup,
+                          )
+                        : (
+                          <span className="adm-muted">—</span>
+                        )}
+                    </td>
+                    <td data-label={c.cols.marginRate}>
+                      {com
+                        ? readOnlyStack(
+                            sellMonthly != null ? marginPct(sellMonthly, costM) : null,
+                            sellSetup != null ? marginPct(sellSetup, costS) : null,
+                            fmtPct,
+                            !!com.hasMonthly,
+                            !!com.hasSetup,
+                          )
+                        : (
+                          <span className="adm-muted">—</span>
+                        )}
+                    </td>
+                    <td data-label={c.cols.maxDiscount}>
+                      {com ? (
+                        <span className="adm-price-fields">
+                          {com.hasMonthly &&
+                            priceInput({
+                              key: commercialKey(r.id, "maxDiscountMonthly"),
+                              label: c.labels.monthly,
+                              value: com.maxDiscountMonthly,
+                              unitKey: "pct",
+                              aria: `${r.name} — ${c.cols.maxDiscount} (${c.labels.monthly})`,
+                              showLabel: com.hasMonthly && com.hasSetup,
+                              max: 100,
+                            })}
+                          {com.hasSetup &&
+                            priceInput({
+                              key: commercialKey(r.id, "maxDiscountSetup"),
+                              label: c.labels.setup,
+                              value: com.maxDiscountSetup,
+                              unitKey: "pct",
+                              aria: `${r.name} — ${c.cols.maxDiscount} (${c.labels.setup})`,
+                              showLabel: com.hasMonthly && com.hasSetup,
+                              max: 100,
+                            })}
+                        </span>
+                      ) : (
+                        <span className="adm-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
