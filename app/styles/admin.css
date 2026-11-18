@@ -1495,7 +1495,7 @@ td > .adm-badge:first-child {
 /* Catalogue */
 .adm-catalogue {
   table-layout: fixed;
-  min-width: 1180px;
+  min-width: 1380px;
 }
 .adm-catalogue th {
   white-space: normal;
@@ -1505,6 +1505,11 @@ td > .adm-badge:first-child {
 .adm-catalogue th:first-child,
 .adm-catalogue td:first-child {
   width: 200px;
+}
+.adm-catalogue th:nth-child(5),
+.adm-catalogue td:nth-child(5) {
+  width: 230px;
+  min-width: 230px;
 }
 .adm-catalogue td {
   padding-top: 16px;
@@ -1547,13 +1552,17 @@ td > .adm-badge:first-child {
 .adm-price-input {
   display: inline-flex;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--adm-line);
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
 }
 .adm-price-input input {
-  width: 88px;
+  width: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 7px 8px;
   border: 0;
   background: none;
@@ -1564,7 +1573,8 @@ td > .adm-badge:first-child {
   outline: none;
 }
 .adm-price-input em {
-  padding: 0 8px;
+  flex: none;
+  padding: 0 8px 0 0;
   color: var(--adm-muted);
   font-size: 12px;
   font-style: normal;
