@@ -20,7 +20,7 @@ export async function isDeactivated(uid: string) {
 
 /**
  * Where a signed-in user lands after login / /espace.
- * Commercial → Sales portal. Videaste portal is not on this branch yet → /equipe.
+ * Admin → admin dashboard · Commercial → sales portal · Videaste → videographer portal.
  * null = deactivated (must not get in).
  */
 export async function homePathFor(uid: string) {
@@ -32,7 +32,7 @@ export async function homePathFor(uid: string) {
     case "commercial":
       return "/commercial/dashboard";
     case "videaste":
-      return "/equipe";
+      return "/videaste/dashboard";
   }
   const { data } = await createAdminClient().from("organization_members").select("organization_id").eq("user_id", uid).limit(1);
   return data?.length ? "/entreprise/dashboard" : "/dashboard";

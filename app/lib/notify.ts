@@ -57,6 +57,15 @@ const noticeCopy = (type: NotificationType, data: NotificationData): { subject: 
       return { subject: `Tâche attribuée${data.title ? ` — ${data.title}` : ""}`, lines: [data.title ?? "", data.dueAt ? `Échéance ${data.dueAt}` : ""] };
     case "reminder_due":
       return { subject: `Rappel${data.title ? ` — ${data.title}` : ""}`, lines: [data.title ?? "", data.dueAt ? `Échéance ${data.dueAt}` : ""] };
+    case "project_assigned":
+      return { subject: `Nouveau projet attribué ${data.reference ?? ""}`.trim(), lines: [who] };
+    case "version_reviewed": {
+      const decision = data.decision === "validee" ? "Validée" : data.decision === "modifications" ? "Modifications demandées" : "Réponse client";
+      return {
+        subject: `${decision}${data.title ? ` — ${data.title}` : ""}${data.reference ? ` (${data.reference})` : ""}`.trim(),
+        lines: [who, data.title ?? "", decision],
+      };
+    }
     default:
       return null;
   }

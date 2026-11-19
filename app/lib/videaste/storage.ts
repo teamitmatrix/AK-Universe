@@ -48,3 +48,34 @@ export function providerOf(raw: string): Provider | null {
   const host = url.hostname.toLowerCase();
   return HOSTS.find(([, re]) => re.test(host))?.[0] ?? null;
 }
+
+/**
+ * A publicly fetchable preview image for a storage link when the provider exposes one without hosting the file
+ * ourselves (Google Drive thumbnails; Dropbox raw image links). Returns null when no preview can be derived —
+ * the UI then shows a provider-branded cover instead of an empty play icon.
+ */
+export function thumbnailOf(raw: string, provider: Provider = providerOf(raw) ?? "google_drive"): string | null {
+  const value = String(raw ?? "").trim();
+  if (!value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (provider === "google_drive") {
+    const fromPath = url.pathname.match(/\/(?:file|document|presentation|spreadsheets)\/d\/([^/]+)/)?.[1];
+    const id = fromPath || url.searchParams.get("id");
+    return id ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w640` : null;
+  }
+  if (provider === "dropbox") {
+    // Only direct image paths can be shown as <img>; videos fall back to the branded cover.
+    if (!/\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url.pathname)) return null;
+    const rawUrl = new URL(url.href);
+    rawUrl.searchParams.set("raw", "1");
+    rawUrl.searchParams.delete("dl");
+    if (/dropbox\.com$/i.test(rawUrl.hostname)) rawUrl.hostname = "dl.dropboxusercontent.com";
+    return rawUrl.toString();
+  }
+  return null;
+}
