@@ -8,7 +8,15 @@ export function Field({ value }: { value: string }) {
   return value === TODO ? <mark className="legal-todo">[{TODO}]</mark> : <>{value}</>;
 }
 
-export async function LegalPage({ title, children }: { title: string; children: React.ReactNode }) {
+export async function LegalPage({
+  title,
+  updatedAt,
+  children,
+}: {
+  title: string;
+  updatedAt?: string;
+  children: React.ReactNode;
+}) {
   const user = await getCurrentUser();
   return (
     <>
@@ -17,7 +25,7 @@ export async function LegalPage({ title, children }: { title: string; children: 
         <div className="container legal-body">
           <p className="eyebrow">AK Universe</p>
           <h1 className="section-title">{title}</h1>
-          <p className="legal-updated">Dernière mise à jour : {COMPANY.updatedAt}</p>
+          <p className="legal-updated">Dernière mise à jour : {updatedAt ?? COMPANY.updatedAt}</p>
           {children}
         </div>
       </main>

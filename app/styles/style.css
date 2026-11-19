@@ -2064,3 +2064,66 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   }
 }
 #sites, #seo, #tarifs, #developper, #methode { scroll-margin-top: 160px; }
+
+/* ---------- À propos ---------- */
+.about-hero { text-align: center; }
+.about-prose { max-width: 760px; }
+.about-hero h1 { font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 800; margin: 0; }
+.about-kicker {
+  color: var(--gold);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 18px auto 22px;
+}
+.about-prose p:not(.eyebrow):not(.about-kicker) {
+  color: #e6ded2;
+  font-size: 1.12rem;
+  line-height: 1.6;
+  margin: 0 auto 16px;
+}
+.about-prose p:last-child { margin-bottom: 0; }
+.about-statement {
+  text-align: center;
+  font-size: clamp(1.6rem, 3vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 auto 22px;
+}
+.about-title { margin-bottom: 28px; }
+.about-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.about-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.about-card {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: linear-gradient(180deg, #15100b, #0c0906);
+}
+.about-card .eyebrow { text-align: left; }
+.about-card h2, .about-card h3 {
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+  font-weight: 800;
+  line-height: 1.3;
+  margin: 0 0 12px;
+}
+.about-card > p { color: #d6cdbf; line-height: 1.55; margin: 0 0 14px; }
+.about-card .feature-list { margin: 8px 0 0; }
+.about-cta h2 { margin-bottom: 16px; }
+.about-cta > p { color: #e6ded2; font-size: 1.08rem; line-height: 1.55; margin: 0 auto 14px; max-width: 62ch; }
+.about-cta .about-kicker { margin-bottom: 8px; }
+.about-cta-actions { display: flex; justify-content: center; margin-top: 22px; }
+.about-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 28px;
+  margin-top: 22px !important;
+}
+.about-contacts a { color: var(--gold); font-weight: 700; }
+.about-contacts a:hover { color: var(--gold-3); }
+@media (max-width: 900px) {
+  .about-grid, .about-duo { grid-template-columns: 1fr; }
+  .about-cta-actions .btn { width: 100%; }
+}

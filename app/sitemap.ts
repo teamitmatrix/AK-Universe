@@ -5,6 +5,7 @@ import { getSiteUrl } from "@/lib/supabase/env";
 
 const PUBLIC_PAGES = [
   "/",
+  "/a-propos",
   "/contact",
   "/marketing",
   "/marketing/realisations",
