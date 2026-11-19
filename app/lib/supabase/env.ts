@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 export function getSupabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -51,10 +53,12 @@ export function publicOrigin(request: Request): string {
 }
 
 /**
- * Same-origin redirect using a relative Location header.
- * The browser keeps https://akuniverse.com even when the Node process only knows 0.0.0.0 / the VPS IP.
+ * Browser redirect for proxy / route handlers. Uses an absolute URL based on getSiteUrl()
+ * (NEXT_PUBLIC_SITE_URL, or http://localhost:3000) so Next.js never receives a relative Location
+ * (which throws Invalid URL in the proxy). Set NEXT_PUBLIC_SITE_URL to the public origin in Docker/VPS
+ * so redirects never leak 0.0.0.0 / the bind address from request.url.
  */
 export function redirectToPath(path: string, status: 303 | 302 | 307 = 303) {
   const location = path.startsWith("/") ? path : `/${path}`;
-  return new Response(null, { status, headers: { Location: location } });
+  return NextResponse.redirect(new URL(location, getSiteUrl()), status);
 }

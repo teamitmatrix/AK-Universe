@@ -1,4 +1,4 @@
-/** Shared error codes for the videographer profile form (admin edit + future videaste space). */
+/** Shared error codes for the videographer space and admin videographer profile form. */
 export const VID_ERRORS: Record<string, string> = {
   forbidden: "Accès refusé.",
   invalid: "Vérifiez les champs du formulaire.",

@@ -11,6 +11,7 @@ const PROTECTED_ROUTES = [
   "/acompte",
   "/admin",
   "/commercial",
+  "/videaste",
   "/equipe",
   "/espace",
 ];
