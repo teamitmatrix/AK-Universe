@@ -189,7 +189,7 @@ const TEXT = {
         overloaded: "En surcharge",
       },
       roster: "Tous les vidéastes",
-      empty: "Aucun vidéaste pour l'instant. Ajoutez un compte existant avec « Ajouter un vidéaste ».",
+      empty: "Aucun vidéaste pour l'instant. Invitez-en un avec « Ajouter un vidéaste ».",
       cols: {
         name: "Vidéaste",
         email: "E-mail",
@@ -259,6 +259,8 @@ const TEXT = {
       addIntro: "Saisissez l'e-mail d'un compte déjà inscrit sur le site : il recevra ce rôle. Aucun compte n'est créé ici.",
       addIntroCommercial:
         "Créez un commercial (invitation par e-mail) ou saisissez l'e-mail d'un compte déjà inscrit. Nom, téléphone, taux et objectif sont enregistrés tout de suite.",
+      addIntroVideaste:
+        "Créez un vidéaste (invitation par e-mail) ou saisissez l'e-mail d'un compte déjà inscrit. Nom et téléphone sont enregistrés tout de suite ; le rôle vidéaste est attribué immédiatement.",
       email: "E-mail du compte",
       phone: "Téléphone",
       add: "Ajouter",
@@ -603,7 +605,7 @@ const TEXT = {
         overloaded: "Overloaded",
       },
       roster: "All videographers",
-      empty: "No videographer yet. Add an existing account with “Add a videographer”.",
+      empty: "No videographer yet. Invite one with “Add a videographer”.",
       cols: {
         name: "Videographer",
         email: "E-mail",
@@ -673,6 +675,8 @@ const TEXT = {
       addIntro: "Enter the e-mail of an account already registered on the site: it will receive this role. No account is created here.",
       addIntroCommercial:
         "Create a sales rep (e-mail invite) or enter an existing account e-mail. Name, phone, rate and target are saved immediately.",
+      addIntroVideaste:
+        "Create a videographer (e-mail invite) or enter an existing account e-mail. Name and phone are saved immediately; the videaste role is assigned right away.",
       email: "Account e-mail",
       phone: "Phone",
       add: "Add",

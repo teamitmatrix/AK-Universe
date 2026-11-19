@@ -7,8 +7,8 @@ import { Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import {
-  addStaffMember,
   createCommercial,
+  createVideaste,
   removeStaffMember,
   setStaffActive,
   updateCommercialIdentity,
@@ -17,7 +17,7 @@ import {
 import type { StaffRole } from "@/lib/admin/team";
 import { dashTextFor } from "./dashText";
 
-/** "Ajouter un commercial / vidéaste". Commercial can invite + set name/phone/rate; vidéaste promotes by e-mail. */
+/** "Ajouter un commercial / vidéaste". Both can invite by e-mail or promote an existing account. */
 export function AddStaffButton({ role, label }: { role: StaffRole; label: string }) {
   const [lang] = useLang();
   const t = dashTextFor(lang);
@@ -35,6 +35,7 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
   const router = useRouter();
+  const isCommercial = role === "commercial";
 
   const reset = () => {
     setEmail("");
@@ -52,19 +53,18 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
     e.preventDefault();
     setError("");
     start(async () => {
-      const res =
-        role === "commercial"
-          ? await createCommercial({
-              email,
-              firstName,
-              lastName,
-              phone,
-              targetEuros: target,
-              rateAi,
-              rateMarketing,
-              rateDigital,
-            })
-          : await addStaffMember(email, role);
+      const res = isCommercial
+        ? await createCommercial({
+            email,
+            firstName,
+            lastName,
+            phone,
+            targetEuros: target,
+            rateAi,
+            rateMarketing,
+            rateDigital,
+          })
+        : await createVideaste({ email, firstName, lastName, phone });
       if (!res.success) return setError(t.errors[res.error] ?? t.errors.failed);
       dialog.current?.close();
       reset();
@@ -82,34 +82,32 @@ export function AddStaffButton({ role, label }: { role: StaffRole; label: string
       <dialog ref={dialog} className="adm-modal" aria-labelledby={`adm-add-${role}`}>
         <form className="adm-modal-card" onSubmit={submit}>
           <header>
-            <h2 id={`adm-add-${role}`}>{m.addTitle(role === "commercial" ? m.roleCommercial : m.roleVideaste)}</h2>
+            <h2 id={`adm-add-${role}`}>{m.addTitle(isCommercial ? m.roleCommercial : m.roleVideaste)}</h2>
             <button type="button" className="adm-icon-btn" onClick={() => dialog.current?.close()} aria-label={m.cancel}>
               <X size={18} />
             </button>
           </header>
-          <p className="adm-muted">{role === "commercial" ? m.addIntroCommercial : m.addIntro}</p>
-          {role === "commercial" && (
-            <div className="adm-form-row">
-              <label className="adm-field">
-                <span>{m.firstName}</span>
-                <input required autoComplete="given-name" maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              </label>
-              <label className="adm-field">
-                <span>{m.lastName}</span>
-                <input required autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />
-              </label>
-            </div>
-          )}
+          <p className="adm-muted">{isCommercial ? m.addIntroCommercial : m.addIntroVideaste}</p>
+          <div className="adm-form-row">
+            <label className="adm-field">
+              <span>{m.firstName}</span>
+              <input required autoComplete="given-name" maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            </label>
+            <label className="adm-field">
+              <span>{m.lastName}</span>
+              <input required autoComplete="family-name" maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            </label>
+          </div>
           <label className="adm-field">
             <span>{m.email}</span>
             <input type="email" required autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} />
           </label>
-          {role === "commercial" && (
+          <label className="adm-field">
+            <span>{m.phone}</span>
+            <input type="tel" autoComplete="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" />
+          </label>
+          {isCommercial && (
             <>
-              <label className="adm-field">
-                <span>{m.phone}</span>
-                <input type="tel" autoComplete="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" />
-              </label>
               <label className="adm-field">
                 <span>{m.target}</span>
                 <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="20000" />

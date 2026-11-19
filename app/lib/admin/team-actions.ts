@@ -211,6 +211,76 @@ export async function createCommercial(input: CreateCommercialInput): Promise<Re
   return { success: true };
 }
 
+export type CreateVideasteInput = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+};
+
+/**
+ * Creates a videographer: invites a new account (name + phone) or promotes an existing one and
+ * fills identity fields — same invite flow as sales reps (role is set immediately).
+ */
+export async function createVideaste(input: CreateVideasteInput): Promise<Result> {
+  if (!(await isAdmin())) return fail("forbidden");
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const first = cleanText(input.firstName, 80);
+  const last = cleanText(input.lastName, 80);
+  const phone = cleanText(input.phone, 40);
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return fail("invalid");
+  if (first === undefined || last === undefined || phone === undefined) return fail("invalid");
+  if (phone && !/^[+0-9 ().-]{4,40}$/.test(phone)) return fail("invalid");
+  if (!first && !last) return fail("invalid");
+
+  const patch = {
+    role: "videaste" as const,
+    active: true,
+    first_name: first,
+    last_name: last,
+    phone,
+  };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from("profiles").select("id, role").ilike("email", likeEscape(email)).maybeSingle();
+  if (existing) {
+    if (existing.role === "admin") return fail("isAdmin");
+    if (existing.role !== "user" && existing.role !== "videaste") return fail("otherRole");
+    const { error } = await supabase.from("profiles").update(patch).eq("id", existing.id);
+    if (error) {
+      console.error("createVideaste promote failed:", error.message);
+      return fail("failed");
+    }
+    revalidateTeam();
+    await audit("staff.add", email, { role: "videaste", created: false });
+    return { success: true };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { first_name: first ?? "", last_name: last ?? "" },
+      redirectTo: `${getSiteUrl()}/connexion`,
+    });
+    if (inviteErr || !invited.user) {
+      console.error("createVideaste invite failed:", inviteErr?.message);
+      return fail("inviteFailed");
+    }
+    const { error } = await supabase.from("profiles").update(patch).eq("id", invited.user.id);
+    if (error) {
+      console.error("createVideaste profile update failed:", error.message);
+      return fail("failed");
+    }
+  } catch (cause) {
+    console.error("createVideaste failed:", cause);
+    return fail("failed");
+  }
+
+  revalidateTeam();
+  await audit("staff.add", email, { role: "videaste", created: true });
+  return { success: true };
+}
+
 /** First / last name (+ optional phone) of a sales rep (videographers use updateVideasteProfile). */
 export async function updateCommercialIdentity(
   id: string,
