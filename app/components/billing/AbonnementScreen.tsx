@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   DEFAULT_AGENTS_PRICING,
   MAX_EXTRA_USERS,
@@ -17,6 +17,26 @@ import {
 import { parseAgentsCycle, readAgentsCycle, writeAgentsCycle } from "@/lib/agents-cycle";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
+
+const CYCLE_EVENT = "aku-agents-cycle";
+
+function subscribeCycle(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === "aku-agents-cycle" || event.key === null) onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(CYCLE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(CYCLE_EVENT, onStoreChange);
+  };
+}
+
+function persistCycle(next: Cycle) {
+  writeAgentsCycle(next);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(CYCLE_EVENT));
+}
 
 const TEXT = {
   fr: {
@@ -87,7 +107,10 @@ export function AbonnementScreen({
   const searchParams = useSearchParams();
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
-  const [cycle, setCycle] = useState<Cycle>(initialCycle ?? "mensuel");
+  const storedCycle = useSyncExternalStore(subscribeCycle, readAgentsCycle, () => initialCycle ?? "mensuel");
+  const queryCycle = parseAgentsCycle(searchParams.get("cycle"));
+  const [pickedCycle, setPickedCycle] = useState<Cycle | null>(null);
+  const cycle = pickedCycle ?? queryCycle ?? initialCycle ?? storedCycle;
   const [users, setUsers] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
   // Runtime payloads can be partial after serialisation; never read raw fields for display/math.
@@ -97,30 +120,16 @@ export function AbonnementScreen({
   const quote = computeQuote({ cycle, users, options: options.filter((id) => !hiddenOpts.has(id)) }, rates);
   const annualPct = Number.isFinite(rates.annualDiscount) ? Math.round(rates.annualDiscount * 100) : 20;
 
-  useEffect(() => {
-    const fromQuery = parseAgentsCycle(searchParams.get("cycle"));
-    if (fromQuery) {
-      setCycle(fromQuery);
-      writeAgentsCycle(fromQuery);
-      return;
-    }
-    if (initialCycle) {
-      writeAgentsCycle(initialCycle);
-      return;
-    }
-    setCycle(readAgentsCycle());
-  }, [searchParams, initialCycle]);
-
-  const chooseCycle = (next: Cycle) => {
-    setCycle(next);
-    writeAgentsCycle(next);
-  };
+  const chooseCycle = useCallback((next: Cycle) => {
+    setPickedCycle(next);
+    persistCycle(next);
+  }, []);
 
   const toggle = (id: string) =>
     setOptions((list) => (list.includes(id) ? list.filter((o) => o !== id) : [...list, id]));
 
   function goToPayment() {
-    writeAgentsCycle(cycle);
+    persistCycle(cycle);
     const params = new URLSearchParams({ cycle, users: String(users), options: options.join(",") });
     router.push(`/paiement?${params}`);
   }
