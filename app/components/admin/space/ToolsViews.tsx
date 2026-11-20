@@ -38,7 +38,7 @@ import { FilterBar } from "./CrmClient";
 import { dashTextFor } from "./dashText";
 import { RevenueChart } from "./RevenueChart";
 import { AddStaffButton, StaffOpenLink } from "./StaffManage";
-import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewPromotionButton, NewTaskButton, NotificationsForm, PasswordForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
+import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewAgentServiceButton, NewPromotionButton, NewTaskButton, NotificationsForm, PasswordForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
 import type { loadCommissionRates } from "@/lib/admin/rates";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, PageHead, formatters } from "./ui";
@@ -83,7 +83,9 @@ export function CatalogueView({
   return (
     <AdmShell t={dashTextFor(lang)} active="catalogue" admin={admin}>
       <div className="adm-content">
-        <PageHead title={c.title} subtitle={c.subtitle} />
+        <PageHead title={c.title} subtitle={c.subtitle}>
+          <NewAgentServiceButton />
+        </PageHead>
         <section className="adm-card" aria-labelledby="adm-cat">
           <CardHead Icon={Tags} title={c.list}>
             <span className="adm-muted adm-small">{data.rows.length}</span>
@@ -91,7 +93,7 @@ export function CatalogueView({
           <Note tone="info">
             {c.durationsNote} <Link href="/admin">→</Link> {c.onQuoteNote}
           </Note>
-          <CatalogueEditor rows={data.rows} />
+          <CatalogueEditor rows={data.rows} customAgents={data.customAgents} />
         </section>
         <section className="adm-card" aria-labelledby="adm-rates">
           <CardHead Icon={Percent} title={c.rates.title} />

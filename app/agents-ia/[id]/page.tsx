@@ -6,19 +6,21 @@ import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
-import { agentById, agents } from "@/config/agents";
+import { agents } from "@/config/agents";
+import { getSiteAgentById } from "@/lib/agents-catalog";
 import { getCurrentUser } from "@/lib/auth/session";
 
 type Props = { params: Promise<{ id: string }> };
 
-export const dynamicParams = false;
+/** Allow admin-created agents (DB) in addition to the static catalog. */
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return agents.map((agent) => ({ id: agent.id }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const agent = agentById((await params).id);
+  const agent = await getSiteAgentById((await params).id);
   if (!agent) return {};
   return {
     title: { absolute: `${agent.name} — ${agent.role} — AK Universe` },
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
-  const agent = agentById((await params).id);
+  const agent = await getSiteAgentById((await params).id);
   if (!agent) notFound();
   const user = await getCurrentUser();
 

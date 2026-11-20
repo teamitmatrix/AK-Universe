@@ -69,7 +69,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Les agents IA s'intègrent-ils à mon CRM ou à mes outils ?",
-        a: "Oui : l'offre Pro inclut des intégrations (CRM, outils…), Pro Business des intégrations avancées et l'offre Sur devis des intégrations spécifiques. L'Agent Technique est dédié aux automatisations et intégrations.",
+        a: "Oui : les offres Starter, Growth, Business et Enterprise couvrent des packs d'agents avec crédits partagés ; l'offre Sur devis permet des intégrations et un périmètre sur mesure. Plusieurs agents (Milo, Nora, Adam…) se branchent sur CRM, téléphonie, e-mail et outils métier.",
         url: "/agents-ia#tarifs",
       },
       {

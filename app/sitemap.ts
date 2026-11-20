@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { agents } from "@/config/agents";
+import { getSiteAgents } from "@/lib/agents-catalog";
 import { loadDefaultConfig } from "@/lib/video-config";
 import { getSiteUrl } from "@/lib/supabase/env";
 
@@ -22,9 +22,9 @@ const PUBLIC_PAGES = [
   "/cgv",
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = getSiteUrl();
   const services = loadDefaultConfig().services.map((service) => `/services/${service.slug}`);
-  const agentPages = agents.map((agent) => `/agents-ia/${agent.id}`);
+  const agentPages = (await getSiteAgents()).map((agent) => `/agents-ia/${agent.id}`);
   return [...PUBLIC_PAGES, ...agentPages, ...services].map((p) => ({ url: `${site}${p}` }));
 }

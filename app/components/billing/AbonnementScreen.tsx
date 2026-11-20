@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   DEFAULT_AGENTS_PRICING,
   MAX_EXTRA_USERS,
@@ -14,6 +14,7 @@ import {
   type AgentsPricing,
   type Cycle,
 } from "@/config/pricing";
+import { parseAgentsCycle, readAgentsCycle, writeAgentsCycle } from "@/lib/agents-cycle";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
 
@@ -72,22 +73,54 @@ const TEXT = {
   },
 };
 
-export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing?: AgentsPricing }) {
+export function AbonnementScreen({
+  pricing = DEFAULT_AGENTS_PRICING,
+  initialCycle,
+  hiddenOptionIds = [],
+}: {
+  pricing?: AgentsPricing;
+  initialCycle?: Cycle;
+  /** Catalogue soft-deleted option ids (e.g. telephonie). */
+  hiddenOptionIds?: string[];
+}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
-  const [cycle, setCycle] = useState<Cycle>("mensuel");
+  const [cycle, setCycle] = useState<Cycle>(initialCycle ?? "mensuel");
   const [users, setUsers] = useState(0);
   const [options, setOptions] = useState<string[]>([]);
   // Runtime payloads can be partial after serialisation; never read raw fields for display/math.
   const rates = normalizeAgentsPricing(pricing);
-  const quote = computeQuote({ cycle, users, options }, rates);
+  const hiddenOpts = new Set(hiddenOptionIds);
+  const visibleOptions = OPTIONS.filter((o) => !hiddenOpts.has(o.id));
+  const quote = computeQuote({ cycle, users, options: options.filter((id) => !hiddenOpts.has(id)) }, rates);
   const annualPct = Number.isFinite(rates.annualDiscount) ? Math.round(rates.annualDiscount * 100) : 20;
+
+  useEffect(() => {
+    const fromQuery = parseAgentsCycle(searchParams.get("cycle"));
+    if (fromQuery) {
+      setCycle(fromQuery);
+      writeAgentsCycle(fromQuery);
+      return;
+    }
+    if (initialCycle) {
+      writeAgentsCycle(initialCycle);
+      return;
+    }
+    setCycle(readAgentsCycle());
+  }, [searchParams, initialCycle]);
+
+  const chooseCycle = (next: Cycle) => {
+    setCycle(next);
+    writeAgentsCycle(next);
+  };
 
   const toggle = (id: string) =>
     setOptions((list) => (list.includes(id) ? list.filter((o) => o !== id) : [...list, id]));
 
   function goToPayment() {
+    writeAgentsCycle(cycle);
     const params = new URLSearchParams({ cycle, users: String(users), options: options.join(",") });
     router.push(`/paiement?${params}`);
   }
@@ -110,7 +143,7 @@ export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing
           <p>{t.subtitle}</p>
           <div className="cycle" role="group" aria-label={t.cycleLabel}>
             {(["mensuel", "annuel"] as const).map((c) => (
-              <button key={c} data-cycle={c} aria-pressed={cycle === c} onClick={() => setCycle(c)}>
+              <button key={c} type="button" data-cycle={c} aria-pressed={cycle === c} onClick={() => chooseCycle(c)}>
                 {t.cycles[c]}
               </button>
             ))}
@@ -184,7 +217,7 @@ export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing
                 </div>
               </div>
               <div className="options">
-                {OPTIONS.map((o) => (
+                {visibleOptions.map((o) => (
                   <label key={o.id} className="option">
                     <Icon name={o.icon} />
                     <span>

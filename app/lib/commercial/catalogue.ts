@@ -27,7 +27,7 @@ export async function loadSalesCatalogue(): Promise<SalesCatalogueItem[]> {
   const { rows } = await loadCatalogue();
   const items: SalesCatalogueItem[] = [];
   for (const row of rows) {
-    if (row.category === "regles") continue;
+    if (row.hidden || row.category === "regles") continue;
     for (const field of row.fields) {
       if (field.unit === "pct" || !(field.value > 0)) continue;
       const monthly = field.label === "monthly";

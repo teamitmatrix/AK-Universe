@@ -2,9 +2,9 @@ import "server-only";
 import { createPublicClient } from "@/lib/supabase/server";
 
 /**
- * Admin commercial meta for catalogue rows (cost prices + max authorized discounts).
- * Stored in site_settings "catalogue_commercial", keyed by catalogue row id.
- * Selling prices stay in video_pricing / agents_pricing / digital_pricing.
+ * Admin commercial meta for catalogue rows (cost prices + max authorized discounts +
+ * optional name/detail overrides and soft-hide). Stored in site_settings "catalogue_commercial",
+ * keyed by catalogue row id. Selling prices stay in video_pricing / agents_pricing / digital_pricing.
  */
 
 export const CATALOGUE_COMMERCIAL_KEY = "catalogue_commercial";
@@ -16,12 +16,23 @@ export type CatalogueCommercialEntry = {
   maxDiscountMonthly?: number;
   /** 0–100. Cap on the set-up / one-off selling price. */
   maxDiscountSetup?: number;
+  /** Display name override (catalogue + commercial devis lines). */
+  name?: string;
+  /** Short description override. */
+  detail?: string;
+  /** Soft-deleted: hidden from sales catalogue and public offers. */
+  hidden?: boolean;
 };
 
 export type CatalogueCommercialMap = Record<string, CatalogueCommercialEntry>;
 
 const isMoney = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1_000_000;
 const isPct = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 100;
+const text = (v: unknown, max: number) => {
+  if (typeof v !== "string") return undefined;
+  const s = v.trim().slice(0, max);
+  return s || undefined;
+};
 
 export function sanitizeCommercialMap(raw: unknown): CatalogueCommercialMap {
   if (!raw || typeof raw !== "object") return {};
@@ -34,6 +45,11 @@ export function sanitizeCommercialMap(raw: unknown): CatalogueCommercialMap {
     if (isMoney(e.costSetup)) clean.costSetup = Math.round(e.costSetup * 100) / 100;
     if (isPct(e.maxDiscountMonthly)) clean.maxDiscountMonthly = Math.round(e.maxDiscountMonthly * 100) / 100;
     if (isPct(e.maxDiscountSetup)) clean.maxDiscountSetup = Math.round(e.maxDiscountSetup * 100) / 100;
+    const name = text(e.name, 160);
+    const detail = text(e.detail, 300);
+    if (name) clean.name = name;
+    if (detail) clean.detail = detail;
+    if (e.hidden === true) clean.hidden = true;
     if (Object.keys(clean).length) out[id] = clean;
   }
   return out;
@@ -52,6 +68,12 @@ export async function getCatalogueCommercial(): Promise<CatalogueCommercialMap> 
     console.error("Could not load catalogue commercial meta:", cause);
     return {};
   }
+}
+
+/** Row ids marked hidden (soft-deleted) in the admin catalogue. */
+export async function getHiddenCatalogueIds(): Promise<Set<string>> {
+  const map = await getCatalogueCommercial();
+  return new Set(Object.entries(map).filter(([, e]) => e.hidden).map(([id]) => id));
 }
 
 export function marginEuro(sell: number, cost: number | null | undefined): number | null {

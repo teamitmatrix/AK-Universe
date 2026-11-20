@@ -6,6 +6,8 @@ import { after } from "next/server";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS } from "@/config/pricing";
 import { AGENTS_PRICING_KEY, getAgentsPricingOverrides, type AgentsPricingOverrides } from "@/lib/agents-pricing";
+import { AGENTS_CATALOG_KEY } from "@/config/agents-catalog";
+import { getAgentsCatalog, sanitizeCatalogList } from "@/lib/agents-catalog";
 import {
   CATALOGUE_COMMERCIAL_KEY,
   getCatalogueCommercial,
@@ -62,10 +64,12 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
   agents.tiers = { ...(agents.tiers ?? {}) };
   const digital: DigitalPricingOverrides = { websites: { ...((await getDigitalPricingOverrides())?.websites ?? {}) } };
   const commercial: CatalogueCommercialMap = { ...(await getCatalogueCommercial()) };
+  const agentsCatalog = await getAgentsCatalog();
   let videoTouched = false;
   let agentsTouched = false;
   let digitalTouched = false;
   let commercialTouched = false;
+  let agentsCatalogTouched = false;
 
   for (const [key, raw] of entries) {
     const n = Number(raw);
@@ -78,13 +82,25 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
     const v = Math.round(n * 100) / 100;
     const [scope, kind, id, part] = key.split(":");
 
+    if (scope === "s" && kind === "agent" && id && (part === "price" || part === "setup")) {
+      const idx = agentsCatalog.findIndex((a) => a.id === id);
+      if (idx < 0) return { success: false, error: "invalid" };
+      agentsCatalogTouched = true;
+      const cur = { ...agentsCatalog[idx]! };
+      if (part === "price") cur.priceMonthly = v;
+      else cur.setupFrom = v;
+      cur.updatedAt = new Date().toISOString();
+      agentsCatalog[idx] = cur;
+      continue;
+    }
+
     if (scope === "c") {
       // c:{rowId}:{costMonthly|costSetup|maxDiscountMonthly|maxDiscountSetup}
       // rowId itself contains ":" (e.g. tier:Starter) — re-parse.
       const match = /^c:(.+):(costMonthly|costSetup|maxDiscountMonthly|maxDiscountSetup)$/.exec(key);
       if (!match) return { success: false, error: "invalid" };
       const rowId = match[1];
-      const field = match[2] as keyof CatalogueCommercialEntry;
+      const field = match[2] as "costMonthly" | "costSetup" | "maxDiscountMonthly" | "maxDiscountSetup";
       if (!knownRows.has(rowId) || !COMMERCIAL_PARTS.has(field)) return { success: false, error: "invalid" };
       commercialTouched = true;
       const cur: CatalogueCommercialEntry = { ...(commercial[rowId] ?? {}) };
@@ -178,28 +194,141 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
       return { success: false, error: "failed" };
     }
   }
-
-  // Revalidate public consumers without wiping the whole app layout (that was crashing the admin page).
-  for (const path of [
-    "/admin/catalogue",
-    "/admin",
-    "/abonnement",
-    "/paiement",
-    "/agents-ia",
-    "/marketing",
-    "/marketing/forfaits",
-    "/services",
-    "/digital",
-    "/projet",
-    "/projet/informations",
-    "/finaliser",
-    "/acompte",
-    "/assets/js/services-data.js",
-    "/commercial/devis-factures",
-    "/commercial",
-  ]) {
-    revalidatePath(path);
+  if (agentsCatalogTouched) {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase.from("site_settings").upsert(
+      {
+        key: AGENTS_CATALOG_KEY,
+        value: sanitizeCatalogList(agentsCatalog),
+        updated_at: new Date().toISOString(),
+        updated_by: auth.user?.id,
+      },
+      { onConflict: "key" },
+    );
+    if (error) {
+      console.error("saveCatalogue (agents catalog) failed:", error.message);
+      return { success: false, error: "failed" };
+    }
+    after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
   }
+
+  await revalidateCataloguePaths();
   await audit("catalogue.save", `${entries.length} prix`, { changes: Object.fromEntries(entries) });
   return { success: true };
+}
+
+const CATALOGUE_PATHS = [
+  "/admin/catalogue",
+  "/admin",
+  "/abonnement",
+  "/paiement",
+  "/agents-ia",
+  "/marketing",
+  "/marketing/forfaits",
+  "/services",
+  "/digital",
+  "/projet",
+  "/projet/informations",
+  "/finaliser",
+  "/acompte",
+  "/assets/js/services-data.js",
+  "/commercial/devis-factures",
+  "/commercial",
+];
+
+// agents catalog price keys also need the agents listing refreshed (handled via /agents-ia above).
+
+async function revalidateCataloguePaths() {
+  for (const path of CATALOGUE_PATHS) revalidatePath(path);
+}
+
+async function upsertCommercialMap(commercial: CatalogueCommercialMap) {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.from("site_settings").upsert(
+    {
+      key: CATALOGUE_COMMERCIAL_KEY,
+      value: sanitizeCommercialMap(commercial),
+      updated_at: new Date().toISOString(),
+      updated_by: auth.user?.id,
+    },
+    { onConflict: "key" },
+  );
+  return error;
+}
+
+/** Edit display name / detail of an existing catalogue row (soft overrides, not config files). */
+export async function updateCatalogueItem(
+  id: string,
+  input: { name: string; detail: string },
+): Promise<Result> {
+  if (!(await isAdmin())) return { success: false, error: "forbidden" };
+  const rowId = String(id ?? "").trim();
+  if (!rowId || rowId.length > 120) return { success: false, error: "invalid" };
+  const name = String(input?.name ?? "").trim().slice(0, 160);
+  const detail = String(input?.detail ?? "").trim().slice(0, 300);
+  if (!name) return { success: false, error: "invalid" };
+
+  try {
+    const { rows } = await loadCatalogue();
+    const row = rows.find((r) => r.id === rowId);
+    if (!row) return { success: false, error: "invalid" };
+
+    const commercial = { ...(await getCatalogueCommercial()) };
+    const cur: CatalogueCommercialEntry = { ...(commercial[rowId] ?? {}) };
+    if (name === row.defaultName) delete cur.name;
+    else cur.name = name;
+    if (detail === row.defaultDetail || detail === "") delete cur.detail;
+    else cur.detail = detail;
+    if (Object.keys(cur).length) commercial[rowId] = cur;
+    else delete commercial[rowId];
+
+    const error = await upsertCommercialMap(commercial);
+    if (error) {
+      console.error("updateCatalogueItem failed:", error.message);
+      return { success: false, error: "failed" };
+    }
+    after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
+    await revalidateCataloguePaths();
+    await audit("catalogue.item.update", rowId, { name, detail });
+    return { success: true };
+  } catch (cause) {
+    console.error("updateCatalogueItem crashed:", cause);
+    return { success: false, error: "failed" };
+  }
+}
+
+/** Soft-delete or restore a catalogue product (pricing rules cannot be deleted). */
+export async function setCatalogueItemHidden(id: string, hidden: boolean): Promise<Result> {
+  if (!(await isAdmin())) return { success: false, error: "forbidden" };
+  const rowId = String(id ?? "").trim();
+  if (!rowId || rowId.length > 120) return { success: false, error: "invalid" };
+
+  try {
+    const { rows } = await loadCatalogue();
+    const row = rows.find((r) => r.id === rowId);
+    if (!row) return { success: false, error: "invalid" };
+    if (!row.canDelete) return { success: false, error: "invalid" };
+
+    const commercial = { ...(await getCatalogueCommercial()) };
+    const cur: CatalogueCommercialEntry = { ...(commercial[rowId] ?? {}) };
+    if (hidden) cur.hidden = true;
+    else delete cur.hidden;
+    if (Object.keys(cur).length) commercial[rowId] = cur;
+    else delete commercial[rowId];
+
+    const error = await upsertCommercialMap(commercial);
+    if (error) {
+      console.error("setCatalogueItemHidden failed:", error.message);
+      return { success: false, error: "failed" };
+    }
+    after(() => ensureIndex(true).catch((cause) => console.error("Chatbot reindex failed:", cause)));
+    await revalidateCataloguePaths();
+    await audit(hidden ? "catalogue.item.hide" : "catalogue.item.restore", rowId);
+    return { success: true };
+  } catch (cause) {
+    console.error("setCatalogueItemHidden crashed:", cause);
+    return { success: false, error: "failed" };
+  }
 }

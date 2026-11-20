@@ -731,8 +731,19 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 }
 .pricing-head { text-align: center; position: relative; }
 .pricing-head h1, .pricing-head h2 { font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 800; }
-.pricing-head p { color: #e6ded2; font-size: 1.25rem; margin: 18px auto 44px; max-width: 560px; }
-.plans { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-items: stretch; }
+.pricing-head p { color: #e6ded2; font-size: 1.25rem; margin: 18px auto 18px; max-width: 560px; }
+.pricing .cycle {
+  background: rgba(255, 255, 255, .08);
+  margin: 8px auto 36px;
+}
+.pricing .cycle button { color: #e6ded2; }
+.pricing .cycle button[aria-pressed="true"] { color: #1b1206; }
+.pricing .per-year {
+  color: #d6cdbf;
+  font-size: .95rem;
+  margin-top: 6px;
+}
+.plans { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
 .plan {
   position: relative; display: flex; flex-direction: column; padding: 28px 26px 22px;
   border-radius: 14px; border: 1px solid rgba(253,185,66,.3);

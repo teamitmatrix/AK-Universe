@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/admin/team";
 import { loadSalesCatalogue } from "./catalogue";
 import { DOC_TRANSITIONS, VAT_RATE, isProductType, type DocKind, type DocStatus } from "./commission-rules";
-import { notifyQuoteSent } from "@/lib/notify-mail";
+import { notifyDocumentIssued } from "./document-share";
 import { getCommercial } from "./session";
 
 /*
@@ -144,9 +144,7 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
       console.error("saveSalesDocument insert failed:", error?.message);
       return fail("failed");
     }
-    if (data.kind === "devis" && data.status === "en_attente") {
-      await notifyQuoteSent({ number: data.number as string | null, clientName: data.client_name as string, totalHtCents: Number(data.total_ht_cents ?? 0) });
-    }
+    if (data.status === "en_attente") await notifyDocumentIssued(data.id as string);
     revalidate();
     return { success: true, id: data.id };
   }
@@ -164,8 +162,8 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   }
   if (!data?.length) return fail("notFound");
   const saved = data[0]!;
-  if (saved.kind === "devis" && saved.status === "en_attente" && current.status !== "en_attente") {
-    await notifyQuoteSent({ number: saved.number as string | null, clientName: saved.client_name as string, totalHtCents: Number(saved.total_ht_cents ?? 0) });
+  if (saved.status === "en_attente" && current.status !== "en_attente") {
+    await notifyDocumentIssued(saved.id as string);
   }
   revalidate();
   return { success: true, id };
@@ -190,10 +188,7 @@ export async function setSalesDocumentStatus(id: string, to: DocStatus): Promise
     return fail(/document_locked/.test(error.message) ? "locked" : /amount_paid/.test(error.message) ? "failed" : "failed");
   }
   if (!data?.length) return fail("transition");
-  if (to === "en_attente" && current.kind === "devis") {
-    const doc = data[0]!;
-    await notifyQuoteSent({ number: doc.number as string | null, clientName: doc.client_name as string, totalHtCents: Number(doc.total_ht_cents ?? 0) });
-  }
+  if (to === "en_attente") await notifyDocumentIssued(data[0]!.id as string);
   revalidate();
   return { success: true };
 }

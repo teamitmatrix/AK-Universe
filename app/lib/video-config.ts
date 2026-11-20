@@ -163,7 +163,22 @@ export async function getPricingOverrides(): Promise<PricingOverrides | null> {
 }
 
 export async function getVideoConfig() {
-  return applyOverrides(loadDefaultConfig(), await getPricingOverrides());
+  const config = applyOverrides(loadDefaultConfig(), await getPricingOverrides());
+  // Soft-deleted catalogue rows (admin “Supprimer”) stay out of public offers.
+  try {
+    const { getCatalogueCommercial } = await import("@/lib/catalogue-commercial");
+    const commercial = await getCatalogueCommercial();
+    config.services = config.services.filter((s) => !commercial[`svc:${s.slug}`]?.hidden);
+    if (config.marketing?.plans) {
+      config.marketing.plans = config.marketing.plans.filter((p) => !commercial[`plan:${p.key}`]?.hidden);
+    }
+    for (const id of Object.keys(config.options)) {
+      if (commercial[`opt:${id}`]?.hidden) delete config.options[id];
+    }
+  } catch (cause) {
+    console.error("Could not apply catalogue visibility:", cause);
+  }
+  return config;
 }
 
 /** Attach live digital website prices for cart/pages that need both catalogues. */

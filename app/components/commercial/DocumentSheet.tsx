@@ -14,40 +14,46 @@ export function DocumentSheet({ doc, company }: { doc: SalesDoc; company: Compan
   return (
     <article className="doc-sheet" aria-label={`${isQuote ? "Devis" : "Facture"} ${doc.number}`}>
       <header className="doc-head">
-        <div className="doc-company">
-          <p className="doc-brand notranslate" translate="no">
-            <span>AK</span> UNIVERSE
-          </p>
-          <p>{company.legalName}</p>
-          <p>{company.address}</p>
-          <p>
-            {company.email} · {company.phone}
-          </p>
-          <p>
-            SIRET : {company.siret} · TVA intracom. : {company.vat}
-          </p>
-        </div>
-        <div className="doc-title">
-          <h1>{isQuote ? "DEVIS" : "FACTURE"}</h1>
-          <p>
-            <strong>N° :</strong> {doc.number}
-          </p>
-          <p>
-            <strong>Date :</strong> {dateFr(doc.issueDate)}
-          </p>
-          {isQuote ? (
+        <div className="doc-head-row">
+          <div className="doc-company">
+            <p>{company.legalName}</p>
+            <p>{company.address}</p>
             <p>
-              <strong>Valable jusqu&apos;au :</strong> {dateFr(validity)}
+              {company.email} · {company.phone}
             </p>
-          ) : (
-            doc.dueDate && (
+            <p>
+              SIRET : {company.siret} · TVA intracom. : {company.vat}
+            </p>
+          </div>
+          <div className="doc-brand-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element -- must print without the image optimizer */}
+            <img src="/assets/img/logo.svg" alt="AK Universe" className="doc-logo" width={72} height={72} />
+            <p className="doc-brand notranslate" translate="no">
+              <span>AK</span> UNIVERSE
+            </p>
+          </div>
+          <div className="doc-title">
+            <h1>{isQuote ? "DEVIS" : "FACTURE"}</h1>
+            <p>
+              <strong>N° :</strong> {doc.number}
+            </p>
+            <p>
+              <strong>Date :</strong> {dateFr(doc.issueDate)}
+            </p>
+            {isQuote ? (
               <p>
-                <strong>Échéance :</strong> {dateFr(doc.dueDate)}
+                <strong>Valable jusqu&apos;au :</strong> {dateFr(validity)}
               </p>
-            )
-          )}
-          {doc.status === "brouillon" && <p className="doc-draft">BROUILLON</p>}
-          {doc.status === "payee" && doc.paidAt && <p className="doc-paid">Payée le {dateFr(doc.paidAt)}</p>}
+            ) : (
+              doc.dueDate && (
+                <p>
+                  <strong>Échéance :</strong> {dateFr(doc.dueDate)}
+                </p>
+              )
+            )}
+            {doc.status === "brouillon" && <p className="doc-draft">BROUILLON</p>}
+            {doc.status === "payee" && doc.paidAt && <p className="doc-paid">Payée le {dateFr(doc.paidAt)}</p>}
+          </div>
         </div>
       </header>
 

@@ -6,11 +6,13 @@ import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
-import { AGENT_CATEGORIES, agents } from "@/config/agents";
+import { AGENT_CATEGORIES } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
-import { contactHref } from "@/lib/contact/quote";
+import { getSiteAgents } from "@/lib/agents-catalog";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getHiddenCatalogueIds } from "@/lib/catalogue-commercial";
+import { contactHref } from "@/lib/contact/quote";
 
 export const metadata: Metadata = {
   title: { absolute: "Agents IA — AK Universe" },
@@ -22,7 +24,12 @@ export const metadata: Metadata = {
 const FAQ = CHATBOT_FAQ.filter((topic) => topic.topic.startsWith("Agents IA")).flatMap((topic) => topic.entries);
 
 export default async function Page() {
-  const [user, pricing] = await Promise.all([getCurrentUser(), getAgentsPricing()]);
+  const [user, pricing, hidden, agents] = await Promise.all([
+    getCurrentUser(),
+    getAgentsPricing(),
+    getHiddenCatalogueIds(),
+    getSiteAgents(),
+  ]);
 
   return (
     <>
@@ -104,7 +111,7 @@ export default async function Page() {
           </div>
         </section>
 
-        <AgentPricing pricing={pricing} />
+        <AgentPricing pricing={pricing} hiddenIds={[...hidden]} />
 
         <section className="section" id="faq">
           <div className="container agents-faq">

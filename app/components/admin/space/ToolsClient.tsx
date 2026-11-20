@@ -3,19 +3,74 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ExternalLink, Eye, Plus, Power, RotateCcw, Search, Trash2, Upload, X } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Eye, Pencil, Plus, Power, RotateCcw, Search, Trash2, Upload, X } from "lucide-react";
 import { localeOf } from "@/config/languages";
 import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
-import { saveCatalogue } from "@/lib/admin/catalogue-actions";
+import {
+  createAgentService,
+  deleteAgentService,
+  updateAgentService,
+  type AgentServiceInput,
+} from "@/lib/admin/agents-catalog-actions";
+import { saveCatalogue, setCatalogueItemHidden, updateCatalogueItem } from "@/lib/admin/catalogue-actions";
 import { saveCommissionRates } from "@/lib/admin/rates-actions";
+import { AGENT_ICON_CHOICES, type CatalogAgent } from "@/config/agents-catalog";
+import type { AgentCategory } from "@/config/agents";
 import { PRODUCT_TYPES } from "@/lib/commercial/commission-rules";
 import { PERSON_NOTIFICATION_IDS, TEAM_NOTIFICATION_IDS, type TeamNotifications } from "@/lib/notification-ids";
 import { createPromotion, setPromotionActive, type NewPromotion } from "@/lib/admin/promotions-actions";
 import { changeMyPassword, saveCompany, saveNotifications, updateMyProfile } from "@/lib/admin/settings-actions";
 import { createTask, deleteTask, setTaskDone } from "@/lib/admin/tasks-actions";
 import { toolsTextFor } from "./toolsText";
+
+const emptyAgentForm = (): AgentServiceInput => ({
+  name: "",
+  role: "",
+  headline: "",
+  description: "",
+  example: "",
+  category: "client",
+  icon: "sparkle",
+  portrait: "/assets/img/agents/milo-card.jpg",
+  heroPortrait: "/assets/img/agents/milo-hero.jpg",
+  task1: "",
+  task2: "",
+  task3: "",
+  action: "",
+  integrations: "E-mail, CRM",
+  demoClient: "",
+  demoAgent: "",
+  priceMonthly: "",
+  setupFrom: "",
+  published: true,
+});
+
+function agentToForm(agent: CatalogAgent): AgentServiceInput {
+  return {
+    id: agent.id,
+    name: agent.name,
+    role: agent.role,
+    headline: agent.headline,
+    description: agent.description,
+    example: agent.example,
+    category: agent.category,
+    icon: agent.icon,
+    portrait: agent.portrait,
+    heroPortrait: agent.heroPortrait,
+    task1: agent.tasks[0]?.label ?? "",
+    task2: agent.tasks[1]?.label ?? "",
+    task3: agent.tasks[2]?.label ?? "",
+    action: agent.action,
+    integrations: agent.integrations.join(", "),
+    demoClient: agent.demo.find((d) => d.from === "client")?.text ?? "",
+    demoAgent: agent.demo.find((d) => d.from === "agent")?.text ?? "",
+    priceMonthly: agent.priceMonthly != null ? String(agent.priceMonthly) : "",
+    setupFrom: agent.setupFrom != null ? String(agent.setupFrom) : "",
+    published: agent.published,
+  };
+}
 
 const useT = () => {
   const [lang] = useLang();
@@ -299,9 +354,13 @@ type CatalogueRow = {
   category: string;
   name: string;
   detail: string;
+  defaultName: string;
+  defaultDetail: string;
   href?: string;
   fields: CatalogueField[];
   commercial: CatalogueCommercial | null;
+  hidden: boolean;
+  canDelete: boolean;
 };
 
 const parseNum = (v: string) => Number(String(v).replace(",", "."));
@@ -318,15 +377,25 @@ function marginPct(sell: number, cost: number | null): number | null {
   return Math.round(((sell - cost) / cost) * 10000) / 100;
 }
 
-export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
+export function CatalogueEditor({ rows, customAgents = [] }: { rows: CatalogueRow[]; customAgents?: CatalogAgent[] }) {
   const { t, locale } = useT();
   const c = t.catalogue;
+  const af = c.agentForm;
   const router = useRouter();
   const [toast, toastNode] = useToast();
   const [pending, start] = useTransition();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
+  const [showHidden, setShowHidden] = useState(false);
+  const [editing, setEditing] = useState<CatalogueRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDetail, setEditDetail] = useState("");
+  const [agentForm, setAgentForm] = useState<AgentServiceInput>(emptyAgentForm());
+  const [agentEditId, setAgentEditId] = useState<string | null>(null);
+  const editDialog = useRef<HTMLDialogElement>(null);
+  const agentDialog = useRef<HTMLDialogElement>(null);
+  const customById = useMemo(() => new Map(customAgents.map((a) => [a.id, a])), [customAgents]);
 
   const original = useMemo(() => {
     const map: Record<string, number | null> = {};
@@ -368,8 +437,14 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
     v == null ? "—" : `${v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   const fmtPct = (v: number | null) => (v == null ? "—" : `${v.toLocaleString(locale, { maximumFractionDigits: 2 })} %`);
 
+  const hiddenCount = rows.filter((r) => r.hidden).length;
   const q = query.trim().toLowerCase();
-  const visible = rows.filter((r) => (!category || r.category === category) && (!q || r.name.toLowerCase().includes(q) || r.detail.toLowerCase().includes(q)));
+  const visible = rows.filter(
+    (r) =>
+      (showHidden || !r.hidden) &&
+      (!category || r.category === category) &&
+      (!q || r.name.toLowerCase().includes(q) || r.detail.toLowerCase().includes(q)),
+  );
 
   const setVal = (key: string, value: string) => setValues((s) => ({ ...s, [key]: value }));
   const live = (key: string, fallback: number | null): number | null => {
@@ -385,6 +460,87 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
     if (raw === "") return fallback != null;
     return parseNum(raw) !== fallback;
   };
+
+  const openEdit = (row: CatalogueRow) => {
+    if (row.id.startsWith("agent:")) {
+      const agent = customById.get(row.id.slice("agent:".length));
+      if (!agent) return toast(t.errors.notFound);
+      setAgentEditId(agent.id);
+      setAgentForm(agentToForm(agent));
+      agentDialog.current?.showModal();
+      return;
+    }
+    setEditing(row);
+    setEditName(row.name);
+    setEditDetail(row.detail);
+    editDialog.current?.showModal();
+  };
+
+  const saveMeta = () =>
+    start(async () => {
+      if (!editing) return;
+      const name = editName.trim();
+      if (!name) return toast(t.errors.invalid);
+      let res: Awaited<ReturnType<typeof updateCatalogueItem>>;
+      try {
+        res = await updateCatalogueItem(editing.id, { name, detail: editDetail.trim() });
+      } catch (cause) {
+        console.error("Catalogue meta save failed:", cause);
+        return toast(t.errors.failed);
+      }
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      editDialog.current?.close();
+      setEditing(null);
+      toast(c.editSaved);
+      router.refresh();
+    });
+
+  const saveAgent = () =>
+    start(async () => {
+      try {
+        const res = agentEditId ? await updateAgentService(agentEditId, agentForm) : await createAgentService(agentForm);
+        if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      } catch (cause) {
+        console.error("Agent service save failed:", cause);
+        return toast(t.errors.failed);
+      }
+      agentDialog.current?.close();
+      setAgentEditId(null);
+      setAgentForm(emptyAgentForm());
+      toast(agentEditId ? af.updated : af.created);
+      router.refresh();
+    });
+
+  const toggleHidden = (row: CatalogueRow) =>
+    start(async () => {
+      if (!row.canDelete) return;
+      if (row.id.startsWith("agent:")) {
+        const agentId = row.id.slice("agent:".length);
+        if (!window.confirm(af.deleteConfirm(row.name))) return;
+        let res: Awaited<ReturnType<typeof deleteAgentService>>;
+        try {
+          res = await deleteAgentService(agentId);
+        } catch (cause) {
+          console.error("Agent delete failed:", cause);
+          return toast(t.errors.failed);
+        }
+        if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+        toast(af.deleted);
+        router.refresh();
+        return;
+      }
+      if (!row.hidden && !window.confirm(c.deleteConfirm(row.name))) return;
+      let res: Awaited<ReturnType<typeof setCatalogueItemHidden>>;
+      try {
+        res = await setCatalogueItemHidden(row.id, !row.hidden);
+      } catch (cause) {
+        console.error("Catalogue hide failed:", cause);
+        return toast(t.errors.failed);
+      }
+      if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      toast(row.hidden ? c.restored : c.deleted);
+      router.refresh();
+    });
 
   const save = () =>
     start(async () => {
@@ -475,6 +631,11 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
             </option>
           ))}
         </select>
+        {hiddenCount > 0 && (
+          <button type="button" className="adm-btn is-ghost" onClick={() => setShowHidden((v) => !v)}>
+            {showHidden ? c.hideHidden : c.showHidden} ({hiddenCount})
+          </button>
+        )}
       </div>
       {visible.length === 0 ? (
         <p className="adm-empty">{c.empty}</p>
@@ -491,6 +652,7 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
                 <th scope="col">{c.cols.marginEuro}</th>
                 <th scope="col">{c.cols.marginRate}</th>
                 <th scope="col">{c.cols.maxDiscount}</th>
+                <th scope="col">{c.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -504,12 +666,13 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
                 const costS = com?.hasSetup ? live(commercialKey(r.id, "costSetup"), com.costSetup) : null;
 
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={r.hidden ? "is-muted" : undefined}>
                     <td data-label={c.cols.product}>
                       <span className="adm-stack">
                         <strong>
                           {r.name}
-                          {r.href && (
+                          {r.hidden && <span className="adm-badge is-muted">{c.hiddenBadge}</span>}
+                          {r.href && !r.hidden && (
                             <a href={r.href} target="_blank" rel="noopener noreferrer" className="adm-inline-link" aria-label={c.view} title={c.view}>
                               <ExternalLink size={12} />
                             </a>
@@ -621,6 +784,32 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
                         <span className="adm-muted">—</span>
                       )}
                     </td>
+                    <td data-label={c.actions}>
+                      <span className="adm-row-actions">
+                        <button
+                          type="button"
+                          className="adm-icon-btn sm"
+                          onClick={() => openEdit(r)}
+                          disabled={pending}
+                          aria-label={c.edit}
+                          title={c.edit}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {r.canDelete && (
+                          <button
+                            type="button"
+                            className="adm-icon-btn sm"
+                            onClick={() => toggleHidden(r)}
+                            disabled={pending}
+                            aria-label={r.hidden ? c.restore : c.delete}
+                            title={r.hidden ? c.restore : c.delete}
+                          >
+                            {r.hidden ? <RotateCcw size={14} /> : <Trash2 size={14} />}
+                          </button>
+                        )}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
@@ -637,6 +826,260 @@ export function CatalogueEditor({ rows }: { rows: CatalogueRow[] }) {
           {pending ? t.common.saving : c.save}
         </button>
       </div>
+      <dialog ref={editDialog} className="adm-modal" aria-labelledby="adm-catalogue-edit-title" onClose={() => setEditing(null)}>
+        <form
+          className="adm-modal-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            saveMeta();
+          }}
+        >
+          <header>
+            <h2 id="adm-catalogue-edit-title">{c.editTitle}</h2>
+            <button type="button" className="adm-icon-btn" onClick={() => editDialog.current?.close()} aria-label={t.common.close}>
+              <X size={18} />
+            </button>
+          </header>
+          <label className="adm-field">
+            <span>{c.editName}</span>
+            <input value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={160} required autoFocus />
+          </label>
+          <label className="adm-field">
+            <span>{c.editDetail}</span>
+            <textarea value={editDetail} onChange={(e) => setEditDetail(e.target.value)} maxLength={300} rows={3} />
+          </label>
+          {editing && (editName !== editing.defaultName || editDetail !== editing.defaultDetail) && (
+            <button
+              type="button"
+              className="adm-mini-link"
+              onClick={() => {
+                setEditName(editing.defaultName);
+                setEditDetail(editing.defaultDetail);
+              }}
+            >
+              {c.reset}
+            </button>
+          )}
+          <div className="adm-modal-actions">
+            <button type="button" className="adm-btn is-ghost" onClick={() => editDialog.current?.close()} disabled={pending}>
+              {t.common.cancel}
+            </button>
+            <button type="submit" className="adm-btn" disabled={pending || !editName.trim()}>
+              {pending ? t.common.saving : c.editSave}
+            </button>
+          </div>
+        </form>
+      </dialog>
+      <AgentServiceDialog
+        dialogRef={agentDialog}
+        form={agentForm}
+        setForm={setAgentForm}
+        editing={!!agentEditId}
+        pending={pending}
+        onClose={() => {
+          setAgentEditId(null);
+          setAgentForm(emptyAgentForm());
+        }}
+        onSubmit={saveAgent}
+      />
+      {toastNode}
+    </>
+  );
+}
+
+function AgentServiceDialog({
+  dialogRef,
+  form,
+  setForm,
+  editing,
+  pending,
+  onClose,
+  onSubmit,
+  createMode,
+}: {
+  dialogRef: React.RefObject<HTMLDialogElement | null>;
+  form: AgentServiceInput;
+  setForm: React.Dispatch<React.SetStateAction<AgentServiceInput>>;
+  editing: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onSubmit: () => void;
+  createMode?: boolean;
+}) {
+  const { t } = useT();
+  const c = t.catalogue;
+  const af = c.agentForm;
+  const set = (key: keyof AgentServiceInput) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const value = e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value;
+    setForm((s) => ({ ...s, [key]: value }));
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="adm-modal"
+      aria-labelledby="adm-agent-service-title"
+      onClose={onClose}
+    >
+      <form
+        className="adm-modal-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
+        <header>
+          <h2 id="adm-agent-service-title">{editing ? af.save : c.newAgent}</h2>
+          <button type="button" className="adm-icon-btn" onClick={() => dialogRef.current?.close()} aria-label={t.common.close}>
+            <X size={18} />
+          </button>
+        </header>
+        <p className="adm-muted adm-small">{af.intro}</p>
+        <div className="adm-form-grid">
+          <label className="adm-field">
+            <span>{af.name}</span>
+            <input required maxLength={80} value={form.name} onChange={set("name")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.role}</span>
+            <input required maxLength={80} value={form.role} onChange={set("role")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.headline}</span>
+            <input maxLength={120} value={form.headline} onChange={set("headline")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.category}</span>
+            <select className="adm-select" value={form.category} onChange={set("category")}>
+              {(Object.keys(af.categories) as AgentCategory[]).map((k) => (
+                <option key={k} value={k}>
+                  {af.categories[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+            <span>{af.description}</span>
+            <textarea required maxLength={600} rows={3} value={form.description} onChange={set("description")} />
+          </label>
+          <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+            <span>{af.example}</span>
+            <textarea maxLength={220} rows={2} value={form.example} onChange={set("example")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.icon}</span>
+            <select className="adm-select" value={form.icon} onChange={set("icon")}>
+              {AGENT_ICON_CHOICES.map((icon) => (
+                <option key={icon} value={icon}>
+                  {icon}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="adm-field">
+            <span>{af.portrait}</span>
+            <input required maxLength={300} value={form.portrait} onChange={set("portrait")} placeholder="/assets/img/agents/…" />
+          </label>
+          <label className="adm-field">
+            <span>{af.heroPortrait}</span>
+            <input required maxLength={300} value={form.heroPortrait} onChange={set("heroPortrait")} placeholder="/assets/img/agents/…" />
+          </label>
+          <label className="adm-field">
+            <span>{af.task1}</span>
+            <input required maxLength={80} value={form.task1} onChange={set("task1")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.task2}</span>
+            <input required maxLength={80} value={form.task2} onChange={set("task2")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.task3}</span>
+            <input required maxLength={80} value={form.task3} onChange={set("task3")} />
+          </label>
+          <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+            <span>{af.action}</span>
+            <textarea maxLength={500} rows={2} value={form.action} onChange={set("action")} />
+          </label>
+          <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+            <span>{af.integrations}</span>
+            <input maxLength={300} value={form.integrations} onChange={set("integrations")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.demoClient}</span>
+            <input maxLength={280} value={form.demoClient} onChange={set("demoClient")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.demoAgent}</span>
+            <input maxLength={280} value={form.demoAgent} onChange={set("demoAgent")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.priceMonthly}</span>
+            <input inputMode="decimal" value={form.priceMonthly} onChange={set("priceMonthly")} />
+          </label>
+          <label className="adm-field">
+            <span>{af.setupFrom}</span>
+            <input inputMode="decimal" value={form.setupFrom} onChange={set("setupFrom")} />
+          </label>
+          <label className="adm-field" style={{ gridColumn: "1 / -1" }}>
+            <span className="adm-check">
+              <input type="checkbox" checked={form.published} onChange={set("published")} /> {af.published}
+            </span>
+          </label>
+        </div>
+        <div className="adm-modal-actions">
+          <button type="button" className="adm-btn is-ghost" onClick={() => dialogRef.current?.close()} disabled={pending}>
+            {t.common.cancel}
+          </button>
+          <button type="submit" className="adm-btn" disabled={pending}>
+            {pending ? t.common.saving : editing || !createMode ? af.save : af.create}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
+
+/** Catalogue & prix — create a full Agents IA service (lands on /agents-ia only). */
+export function NewAgentServiceButton() {
+  const { t } = useT();
+  const c = t.catalogue;
+  const dialog = useRef<HTMLDialogElement>(null);
+  const router = useRouter();
+  const [toast, toastNode] = useToast();
+  const [pending, start] = useTransition();
+  const [form, setForm] = useState<AgentServiceInput>(emptyAgentForm());
+
+  const submit = () =>
+    start(async () => {
+      try {
+        const res = await createAgentService(form);
+        if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+      } catch (cause) {
+        console.error("createAgentService failed:", cause);
+        return toast(t.errors.failed);
+      }
+      dialog.current?.close();
+      setForm(emptyAgentForm());
+      toast(c.agentForm.created);
+      router.refresh();
+    });
+
+  return (
+    <>
+      <button type="button" className="adm-btn" onClick={() => dialog.current?.showModal()}>
+        <Plus size={16} aria-hidden="true" />
+        {c.newAgent}
+      </button>
+      <AgentServiceDialog
+        dialogRef={dialog}
+        form={form}
+        setForm={setForm}
+        editing={false}
+        pending={pending}
+        createMode
+        onClose={() => setForm(emptyAgentForm())}
+        onSubmit={submit}
+      />
       {toastNode}
     </>
   );

@@ -6,47 +6,69 @@ export const PLAN = {
   features: ["Agents IA illimités", "Toutes les fonctionnalités", "Support prioritaire", "Mises à jour incluses"],
 };
 
-/** Offers shown on /agents-ia#tarifs (also read by the site chatbot). price/setupFrom null = on quote. */
+/**
+ * Offers shown on /agents-ia#tarifs (also read by the site chatbot + admin catalogue).
+ * price / setupFrom null = on quote. priceAnnual is the billed yearly package (HT).
+ */
 export const AGENT_TIERS = [
   {
     name: "Starter",
-    desc: "Pour bien commencer avec l'IA.",
-    price: 79,
-    setupFrom: 390,
-    features: ["1 agent IA au choix", "Tâches essentielles", "Support par email", "Idéal pour les petites entreprises"],
-  },
-  {
-    name: "Pro",
-    desc: "Pour accélérer votre croissance.",
-    price: 139,
-    setupFrom: 590,
-    popular: true,
+    desc: "Nora : jusqu'à 500 interactions support · Léa : jusqu'à 250 tâches d'assistant · Éva : jusqu'à 1 250 requêtes knowledge.",
+    price: 89,
+    priceAnnual: 890,
+    setupFrom: 290,
     features: [
-      "Jusqu'à 3 agents IA",
-      "Automatisation avancée",
-      "Intégrations (CRM, outils…)",
-      "Support prioritaire",
-      "Rapports de performance",
+      "Agents inclus : Nora, Léa, Éva",
+      "1 000 crédits / mois (partagés)",
+      "3 utilisateurs",
+      "Onboarding inclus dans la mise en place",
     ],
   },
   {
-    name: "Pro Business",
-    desc: "Pour les entreprises en pleine expansion.",
+    name: "Growth",
+    desc: "Adam : jusqu'à 200 prospects recherchés · Hugo : jusqu'à 250 suivis · Jade : jusqu'à 50 posts sociaux · Sacha : jusqu'à 25 tâches SEO.",
+    price: 169,
+    priceAnnual: 1690,
+    setupFrom: 490,
+    popular: true,
+    features: [
+      "Agents inclus : Adam, Hugo, Jade, Sacha",
+      "2 500 crédits / mois (partagés)",
+      "5 utilisateurs",
+      "Onboarding inclus dans la mise en place",
+    ],
+  },
+  {
+    name: "Business",
+    desc: "Nora : 500 interactions support · Léa : 250 tâches · Adam : 150 prospects · Hugo : 200 suivis · Inès : 100 candidatures · Noé : 200 factures · Éva : 1 000 requêtes knowledge.",
     price: 249,
+    priceAnnual: 2490,
+    setupFrom: 690,
+    features: [
+      "Agents inclus : Nora, Léa, Adam, Hugo, Inès, Noé, Éva",
+      "4 000 crédits / mois (partagés)",
+      "10 utilisateurs",
+      "Onboarding inclus dans la mise en place",
+    ],
+  },
+  {
+    name: "Enterprise",
+    desc: "8 000 crédits partagés sur les 11 agents, plus 400 minutes voix Milo. Caps indicatifs : 200 prospects, 50 tâches SEO, 50 documents juridiques et 400 minutes voix ; le reste est flexible.",
+    price: 499,
+    priceAnnual: 4990,
     setupFrom: 990,
     features: [
-      "Jusqu'à 5 agents IA",
-      "Solutions personnalisées",
-      "Intégrations avancées",
-      "Support dédié",
-      "Suivi et optimisation",
-      "Reporting avancé",
+      "Les 11 agents inclus",
+      "8 000 crédits / mois (partagés) + 400 min voix Milo",
+      "20 utilisateurs",
+      "Onboarding inclus dans la mise en place",
     ],
   },
   {
     name: "Sur devis",
     desc: "Pour les grandes équipes et projets spécifiques.",
     price: null,
+    priceAnnual: null,
     setupFrom: null,
     features: [
       "Agents IA illimités",

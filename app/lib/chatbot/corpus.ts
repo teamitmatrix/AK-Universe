@@ -1,5 +1,6 @@
 import "server-only";
-import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
+import { AGENT_CATEGORIES, AGENT_LANGUAGES, type Agent } from "@/config/agents";
+import { getSiteAgents } from "@/lib/agents-catalog";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
@@ -180,7 +181,7 @@ function marketingDocs(cfg: VideoConfig): Doc[] {
   ];
 }
 
-function agentDocs(pricing: AgentsPricing): Doc[] {
+function agentDocs(pricing: AgentsPricing, agents: Agent[]): Doc[] {
   return [
     {
       source: "agents",
@@ -205,7 +206,9 @@ function agentDocs(pricing: AgentsPricing): Doc[] {
       content: `Offres présentées sur /agents-ia#tarifs (prix HT) :\n${list(
         AGENT_TIERS.map((t) => {
           const live = pricing.tiers[t.name] ?? { price: t.price, setupFrom: t.setupFrom };
-          return `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${live.price === null ? "sur devis" : `${euros(live.price)} / mois`}, mise en place ${live.setupFrom === null ? "sur devis" : `à partir de ${euros(live.setupFrom)}`}. ${t.desc} Inclus : ${t.features.join(", ")}.`;
+          const annual =
+            "priceAnnual" in t && t.priceAnnual != null ? `, ${euros(t.priceAnnual)} / an` : "";
+          return `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${live.price === null ? "sur devis" : `${euros(live.price)} / mois${annual}`}, mise en place / onboarding ${live.setupFrom === null ? "sur devis" : euros(live.setupFrom)}. Mix d'usage : ${t.desc}. Inclus : ${t.features.join(", ")}.`;
         })
       )}\nSans engagement (annulation à tout moment), accès immédiat (commencez en quelques minutes), essai gratuit via /inscription. Offre Sur devis : nous contacter.`,
     },
@@ -348,18 +351,19 @@ export function splitPassages(text: string): { title: string; content: string }[
 }
 
 export async function buildCorpus(): Promise<Doc[]> {
-  const [cfg, settings, agentsPricing, websites] = await Promise.all([
+  const [cfg, settings, agentsPricing, websites, siteAgents] = await Promise.all([
     getVideoConfig(),
     getChatbotSettings(),
     getAgentsPricing(),
     getDigitalWebsites(),
+    getSiteAgents(),
   ]);
   return [
     OVERVIEW,
     ...cfg.services.map((s) => serviceDoc(cfg, s)),
     ...videoDocs(cfg),
     ...marketingDocs(cfg),
-    ...agentDocs(agentsPricing),
+    ...agentDocs(agentsPricing, siteAgents),
     ...digitalDocs(websites),
     ...faqDocs(cfg),
     ...[companyDoc()].filter((d): d is Doc => d !== null),

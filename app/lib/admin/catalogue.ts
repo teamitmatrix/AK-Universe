@@ -1,10 +1,11 @@
 import "server-only";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS, PLAN } from "@/config/pricing";
+import { getAgentsCatalog } from "@/lib/agents-catalog";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCatalogueCommercial, type CatalogueCommercialEntry } from "@/lib/catalogue-commercial";
-import { getDigitalWebsites } from "@/lib/digital-pricing";
-import { getVideoConfig, loadDefaultConfig } from "@/lib/video-config";
+import { applyDigitalOverrides, getDigitalPricingOverrides } from "@/lib/digital-pricing";
+import { applyOverrides, getPricingOverrides, loadDefaultConfig } from "@/lib/video-config";
 
 /**
  * One row per priced item sold on the site, with its current (merged) and default values.
@@ -34,9 +35,16 @@ export type CatalogueRow = {
   category: CatalogueCategory;
   name: string;
   detail: string;
+  /** Config defaults (before admin name/detail overrides). */
+  defaultName: string;
+  defaultDetail: string;
   fields: CatalogueField[];
   href?: string;
   commercial: CatalogueCommercial | null;
+  /** Soft-deleted in admin; still listed so it can be restored. */
+  hidden: boolean;
+  /** Name/detail may be edited (all rows). Soft-delete is blocked for pricing rules. */
+  canDelete: boolean;
 };
 
 function withCommercial(id: string, fields: CatalogueField[], meta: CatalogueCommercialEntry | undefined): CatalogueCommercial | null {
@@ -55,35 +63,98 @@ function withCommercial(id: string, fields: CatalogueField[], meta: CatalogueCom
 }
 
 function row(
-  base: Omit<CatalogueRow, "commercial">,
+  base: Omit<CatalogueRow, "commercial" | "defaultName" | "defaultDetail" | "hidden" | "canDelete">,
   meta: CatalogueCommercialEntry | undefined,
 ): CatalogueRow {
-  return { ...base, commercial: withCommercial(base.id, base.fields, meta) };
+  return {
+    ...base,
+    defaultName: base.name,
+    defaultDetail: base.detail,
+    name: meta?.name?.trim() || base.name,
+    detail: meta?.detail?.trim() || base.detail,
+    hidden: meta?.hidden === true,
+    canDelete: base.category !== "regles",
+    commercial: withCommercial(base.id, base.fields, meta),
+  };
 }
 
 export async function loadCatalogue() {
-  const [cfg, agents, websites, commercial] = await Promise.all([
-    getVideoConfig(),
+  // Use unfiltered catalogues so soft-deleted rows stay visible for restore in admin.
+  const [pricingOverrides, agents, digitalOverrides, commercial, customAgents] = await Promise.all([
+    getPricingOverrides(),
     getAgentsPricing(),
-    getDigitalWebsites(),
+    getDigitalPricingOverrides(),
     getCatalogueCommercial(),
+    getAgentsCatalog(),
   ]);
   const def = loadDefaultConfig();
+  const cfg = applyOverrides(loadDefaultConfig(), pricingOverrides);
+  const websites = applyDigitalOverrides(digitalOverrides);
   const rows: CatalogueRow[] = [];
   const meta = (id: string) => commercial[id];
+
+  // Admin-created Agents IA services (Catalogue + button) — always under Agents IA.
+  for (const agent of customAgents) {
+    const id = `agent:${agent.id}`;
+    const fields: CatalogueField[] = [];
+    if (agent.priceMonthly != null) {
+      fields.push({
+        key: `s:agent:${agent.id}:price`,
+        label: "monthly",
+        value: agent.priceMonthly,
+        default: agent.priceMonthly,
+        unit: "eurMonth",
+      });
+    }
+    if (agent.setupFrom != null) {
+      fields.push({
+        key: `s:agent:${agent.id}:setup`,
+        label: "setup",
+        value: agent.setupFrom,
+        default: agent.setupFrom,
+        unit: "eur",
+      });
+    }
+    if (!fields.length) {
+      fields.push({
+        key: `s:agent:${agent.id}:price`,
+        label: "monthly",
+        value: 0,
+        default: 0,
+        unit: "eurMonth",
+      });
+    }
+    const built = row(
+      {
+        id,
+        category: "agents",
+        name: `Agent IA — ${agent.name}`,
+        detail: agent.published ? `${agent.role} · Publié` : `${agent.role} · Brouillon`,
+        href: `/agents-ia/${agent.id}`,
+        fields,
+      },
+      meta(id),
+    );
+    if (!agent.published) built.hidden = true;
+    rows.push(built);
+  }
 
   // Agents IA offers (/agents-ia#tarifs). "Sur devis" stays on quote.
   for (const tier of AGENT_TIERS) {
     const cur = agents.tiers[tier.name];
     if (!cur || tier.price === null) continue;
     const id = `tier:${tier.name}`;
+    const annualNote =
+      "priceAnnual" in tier && tier.priceAnnual != null
+        ? ` · Annuel ${tier.priceAnnual.toLocaleString("fr-FR")} € HT`
+        : "";
     rows.push(
       row(
         {
           id,
           category: "agents",
           name: `Agents IA — ${tier.name}`,
-          detail: tier.desc,
+          detail: `${tier.features.slice(0, 3).join(" · ")}${annualNote}`,
           href: "/agents-ia#tarifs",
           fields: [
             { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
@@ -240,5 +311,5 @@ export async function loadCatalogue() {
     rows.push(row(base, undefined));
   }
 
-  return { rows };
+  return { rows, customAgents };
 }

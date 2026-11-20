@@ -38,5 +38,13 @@ export async function getDigitalPricingOverrides(): Promise<DigitalPricingOverri
 }
 
 export async function getDigitalWebsites() {
-  return applyDigitalOverrides(await getDigitalPricingOverrides());
+  const sites = applyDigitalOverrides(await getDigitalPricingOverrides());
+  try {
+    const { getCatalogueCommercial } = await import("@/lib/catalogue-commercial");
+    const commercial = await getCatalogueCommercial();
+    return sites.filter((s) => !commercial[`site:${s.id}`]?.hidden);
+  } catch (cause) {
+    console.error("Could not apply catalogue visibility (digital):", cause);
+    return sites;
+  }
 }
