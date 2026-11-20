@@ -56,6 +56,7 @@ jobs:
             fi
             cd "$APP_DIR"
             echo "Deploying in $(pwd)"
+            free -h || true
             git remote -v
             git fetch origin main
             git checkout main
@@ -63,6 +64,11 @@ jobs:
             # (e.g. a hand-edited docker-compose.yml). .env stays if untracked.
             git reset --hard origin/main
             echo "Server HEAD: $(git rev-parse HEAD) ($(git log -1 --oneline))"
-            docker compose up -d --build --remove-orphans
+            # Retry once: Next.js docker builds can OOM when the host has no swap / low free RAM.
+            if ! docker compose up -d --build --remove-orphans; then
+              echo "First compose failed — retrying after prune/cache relief"
+              docker builder prune -f || true
+              docker compose up -d --build --remove-orphans
+            fi
             docker compose ps
             docker image prune -f

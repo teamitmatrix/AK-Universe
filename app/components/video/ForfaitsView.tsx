@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
 import { quoteHref } from "@/lib/contact/quote";
@@ -101,6 +102,7 @@ function OfferFooter({ plan }: { plan: Plan }) {
 }
 
 export function ForfaitsView() {
+  const router = useRouter();
   const { config, toast } = useVideo();
   const marketing = config.marketing;
 
@@ -116,11 +118,11 @@ export function ForfaitsView() {
 
   const choose = (plan: Plan) => {
     if (plan.onQuote || plan.price == null) {
-      window.location.assign(quoteHref(`marketing:${plan.key}`));
+      router.push(quoteHref(`marketing:${plan.key}`));
       return;
     }
     saveForfait(config, plan.key);
-    window.location.assign("/projet");
+    router.push("/projet");
   };
 
   return (

@@ -11,6 +11,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Cap Node heap so the Next build fails clearly instead of getting OOM-killed mid-compile.
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # Public values are inlined at build time. Secrets stay runtime-only.
 ARG NEXT_PUBLIC_SUPABASE_URL
