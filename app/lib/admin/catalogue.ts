@@ -1,6 +1,6 @@
 import "server-only";
 import { DIGITAL_WEBSITES } from "@/config/digital";
-import { AGENT_TIERS, OPTIONS, PLAN } from "@/config/pricing";
+import { AGENT_TIERS, OPTIONS, PLAN, isRetiredOption } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCatalogueCommercial, type CatalogueCommercialEntry } from "@/lib/catalogue-commercial";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
@@ -118,7 +118,7 @@ export async function loadCatalogue() {
     ...OPTIONS.map((o) => ({
       id: `sub:opt:${o.id}`,
       category: "abonnement" as const,
-      name: `Option — ${o.label}`,
+      name: `Option — ${o.label}${isRetiredOption(o) ? " (plus proposée, abonnés existants)" : ""}`,
       detail: o.info,
       href: "/abonnement",
       fields: [{ key: `a:opt:${o.id}`, label: "monthly" as const, value: agents.options[o.id], default: o.price, unit: "eurMonth" as const }],

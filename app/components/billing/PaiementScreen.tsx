@@ -61,6 +61,7 @@ const TEXT = {
     note: "En vous abonnant, vous autorisez AK Universe à vous débiter conformément aux conditions d'utilisation jusqu'à résiliation.",
     errors: {
       not_configured: "Le paiement en ligne n'est pas encore configuré. Aucun montant n'a été débité.",
+      already_subscribed: "Vous avez déjà un abonnement actif. Modifiez-le depuis votre espace client (Mon offre). Aucun montant n'a été débité.",
       prepare_failed: "Impossible de préparer le paiement. Veuillez réessayer.",
       method_unavailable: "Ce moyen de paiement n'est pas disponible. Choisissez la carte bancaire.",
     },
@@ -112,6 +113,7 @@ const TEXT = {
     note: "By subscribing, you authorize AK Universe to charge you in accordance with the terms of use until you cancel.",
     errors: {
       not_configured: "Online payment is not configured yet. You have not been charged.",
+      already_subscribed: "You already have an active subscription. Change it from your client area (My plan). You have not been charged.",
       prepare_failed: "Unable to prepare the payment. Please try again.",
       method_unavailable: "This payment method is not available. Please choose a credit card.",
     },

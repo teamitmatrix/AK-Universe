@@ -14,6 +14,7 @@ const PROTECTED_ROUTES = [
   "/videaste",
   "/equipe",
   "/espace",
+  "/dashboard",
 ];
 
 /** Signed-in users are sent away from these. */

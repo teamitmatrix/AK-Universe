@@ -3,7 +3,7 @@ import { AGENT_CATEGORIES, AGENT_LANGUAGES, agents } from "@/config/agents";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
-import { AGENT_TIERS, MAX_EXTRA_USERS, OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
+import { AGENT_TIERS, MAX_EXTRA_USERS, OFFERED_OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";

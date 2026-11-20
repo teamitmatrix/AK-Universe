@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
-import { PLAN } from "@/config/pricing";
 import { PROJECT_STATUS } from "@/config/projects";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { openBillingPortal } from "@/lib/billing/actions";
+import { planInfo } from "@/lib/client/plans";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -43,7 +44,8 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
       .maybeSingle(),
     supabase
       .from("subscriptions")
-      .select("cycle, status, monthly_total_cents, current_period_end, stripe_customer_id")
+      // "*": plan + cancel_at_period_end (migration 016) when present — same data as the client space.
+      .select("*")
       .eq("user_id", user.id)
       .neq("status", "pending")
       .order("created_at", { ascending: false })
@@ -56,6 +58,9 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
       .order("created_at", { ascending: false })
       .limit(20),
   ]);
+  const pricing = await getAgentsPricing();
+  const planName = subscription ? planInfo(String(subscription.plan ?? "pro"), pricing).name : "";
+  const cancelScheduled = Boolean(subscription?.cancel_at_period_end) && subscription?.status === "active";
   const org = membership?.organizations as unknown as { name: string; sector: string; size: string } | null;
   const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
 
@@ -102,19 +107,19 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
                   <dl>
                     <dt>Formule</dt>
                     <dd>
-                      {PLAN.name} — {subscription.cycle}
+                      {planName} — {subscription.cycle}
                     </dd>
                     <dt>Statut</dt>
                     <dd>
                       <span className={`status status-${subscription.status}`}>
-                        {SUBSCRIPTION_STATUS[subscription.status] ?? subscription.status}
+                        {cancelScheduled ? "Résiliation programmée" : (SUBSCRIPTION_STATUS[subscription.status] ?? subscription.status)}
                       </span>
                     </dd>
                     <dt>Montant</dt>
                     <dd className="notranslate">{euros(subscription.monthly_total_cents)} HT / mois</dd>
                     {subscription.current_period_end && (
                       <>
-                        <dt>{subscription.status === "canceled" ? "Fin d'accès" : "Prochain renouvellement"}</dt>
+                        <dt>{subscription.status === "canceled" || cancelScheduled ? "Fin d'accès" : "Prochain renouvellement"}</dt>
                         <dd>{date(subscription.current_period_end)}</dd>
                       </>
                     )}
@@ -125,6 +130,9 @@ export default async function ComptePage({ searchParams }: { searchParams: Promi
                         Gérer mon abonnement <Icon name="arrow" />
                       </button>
                       <p className="account-hint">Changer de carte, télécharger vos factures ou résilier.</p>
+                      <p className="account-hint">
+                        <Link href="/dashboard">Ouvrir mon espace client</Link> pour changer d&apos;offre, d&apos;options ou de cycle de facturation.
+                      </p>
                     </form>
                   )}
                 </>

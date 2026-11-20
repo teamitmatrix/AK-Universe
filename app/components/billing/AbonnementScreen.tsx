@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   DEFAULT_AGENTS_PRICING,
   MAX_EXTRA_USERS,
+  OFFERED_OPTIONS,
   OPTIONS,
   PLAN,
   computeQuote,
@@ -58,11 +59,13 @@ const TEXT = {
     addUser: "Add a user",
     optionsTitle: "Additional options",
     options: {
-      telephonie: ["AI phone calls", "An AI agent answers your calls 24/7."],
+      telephonie: ["AI phone calls", "A smart voice agent that handles your calls, qualifies requests and answers 24/7."],
+      whatsapp: ["WhatsApp Business", "Automate your conversations and sales on WhatsApp."],
+      "marque-blanche": ["White label", "Use the solution under your own brand (logo, name, domain)."],
       "maj-premium": ["Premium updates", "Early access to new features."],
       "statut-premium": ["Premium status", "Premium badge and priority handling."],
-      generateur: ["Advanced content generator", "Advanced templates for text, visuals and videos."],
-      analyse: ["Advanced analytics", "Detailed dashboards and reports."],
+      generateur: ["Advanced content generation", "Automatically create content (posts, emails, product sheets…)."],
+      analyse: ["Advanced analytics & reports", "Track your performance with detailed reports and insights."],
     } as Record<string, readonly [string, string]>,
     summary: "Summary",
     total: "Monthly total excl. VAT",
@@ -184,7 +187,7 @@ export function AbonnementScreen({ pricing = DEFAULT_AGENTS_PRICING }: { pricing
                 </div>
               </div>
               <div className="options">
-                {OPTIONS.map((o) => (
+                {OFFERED_OPTIONS.map((o) => (
                   <label key={o.id} className="option">
                     <Icon name={o.icon} />
                     <span>

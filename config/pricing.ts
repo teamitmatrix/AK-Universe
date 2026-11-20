@@ -6,17 +6,27 @@ export const PLAN = {
   features: ["Agents IA illimités", "Toutes les fonctionnalités", "Support prioritaire", "Mises à jour incluses"],
 };
 
-/** Offers shown on /agents-ia#tarifs (also read by the site chatbot). price/setupFrom null = on quote. */
+/**
+ * Offers shown on /agents-ia#tarifs (also read by the site chatbot). price/setupFrom null = on quote.
+ * Also the plans a subscriber can switch between in the client space (/dashboard/mon-offre), in this order
+ * (lower → higher). `id` is stored in subscriptions.plan; `agents` = AI agents included (null = unlimited / on quote).
+ */
 export const AGENT_TIERS = [
   {
+    id: "starter",
     name: "Starter",
+    agents: 1,
+    automations: "Essentielles",
     desc: "Pour bien commencer avec l'IA.",
     price: 79,
     setupFrom: 390,
     features: ["1 agent IA au choix", "Tâches essentielles", "Support par email", "Idéal pour les petites entreprises"],
   },
   {
+    id: "pro",
     name: "Pro",
+    agents: 3,
+    automations: "Avancées",
     desc: "Pour accélérer votre croissance.",
     price: 139,
     setupFrom: 590,
@@ -30,7 +40,10 @@ export const AGENT_TIERS = [
     ],
   },
   {
+    id: "business",
     name: "Pro Business",
+    agents: 5,
+    automations: "Personnalisées",
     desc: "Pour les entreprises en pleine expansion.",
     price: 249,
     setupFrom: 990,
@@ -44,7 +57,10 @@ export const AGENT_TIERS = [
     ],
   },
   {
+    id: "devis",
     name: "Sur devis",
+    agents: null,
+    automations: "Sur mesure",
     desc: "Pour les grandes équipes et projets spécifiques.",
     price: null,
     setupFrom: null,
@@ -65,13 +81,26 @@ export const ANNUAL_DISCOUNT = 0.2;
 
 export type Cycle = "mensuel" | "annuel";
 
+/**
+ * Subscription options (client space "Options", /abonnement checkout, admin catalogue). Prices = defaults, editable
+ * in the admin catalogue (site_settings "agents_pricing"). `retired` options are no longer offered (not on
+ * /abonnement nor in the client space for new selection) but stay priced for the subscribers who already have
+ * them, until they remove them.
+ */
 export const OPTIONS = [
-  { id: "telephonie", label: "Téléphonie IA", icon: "phone", price: 49.9, info: "Un agent IA répond à vos appels 24h/24." },
-  { id: "maj-premium", label: "Mises à jour premium", icon: "refresh", price: 12.9, info: "Accès anticipé aux nouvelles fonctionnalités." },
-  { id: "statut-premium", label: "Statut premium", icon: "crown-o", price: 9.9, info: "Badge premium et priorité de traitement." },
-  { id: "generateur", label: "Générateur de contenu avancé", icon: "file", price: 14.9, info: "Modèles avancés pour textes, visuels et vidéos." },
-  { id: "analyse", label: "Analyse avancée", icon: "bars", price: 19.9, info: "Tableaux de bord et rapports détaillés." },
+  { id: "telephonie", label: "Téléphonie IA", icon: "phone", price: 49.9, info: "Un agent vocal intelligent pour gérer vos appels, qualifier vos demandes et répondre 24/7." },
+  { id: "whatsapp", label: "WhatsApp Business", icon: "chat", price: 29, info: "Automatisez vos échanges et vos ventes sur WhatsApp." },
+  { id: "marque-blanche", label: "Marque blanche", icon: "tag", price: 19, info: "Utilisez la solution à votre image (logo, nom, domaine)." },
+  { id: "generateur", label: "Génération de contenu avancée", icon: "file", price: 14.9, info: "Créez automatiquement des contenus (posts, emails, fiches produits…)." },
+  { id: "analyse", label: "Analyse avancée & rapports", icon: "bars", price: 19.9, info: "Suivez vos performances avec des rapports détaillés et des insights." },
+  { id: "maj-premium", label: "Mises à jour premium", icon: "refresh", price: 12.9, info: "Accès anticipé aux nouvelles fonctionnalités.", retired: true },
+  { id: "statut-premium", label: "Statut premium", icon: "crown-o", price: 9.9, info: "Badge premium et priorité de traitement.", retired: true },
 ] as const;
+
+export const isRetiredOption = (o: (typeof OPTIONS)[number]) => "retired" in o && o.retired === true;
+
+/** Options that can be newly chosen (checkout, client space, chatbot). */
+export const OFFERED_OPTIONS = OPTIONS.filter((o) => !isRetiredOption(o));
 
 export type OptionId = (typeof OPTIONS)[number]["id"];
 
@@ -126,12 +155,20 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
   return base;
 }
 
-/** Monthly amounts after the annual discount. Optional pricing keeps existing callers working. */
-export function computeQuote({ cycle, users, options }: Selection, pricing: AgentsPricing = DEFAULT_AGENTS_PRICING) {
+/**
+ * Monthly amounts after the annual discount. Optional pricing keeps existing callers working.
+ * `planMonthly` overrides the base plan price (client-space plan changes: a tier price, or the price locked on the
+ * subscription); by default the AK Universe Pro price sold on /abonnement.
+ */
+export function computeQuote(
+  { cycle, users, options }: Selection,
+  pricing: AgentsPricing = DEFAULT_AGENTS_PRICING,
+  planMonthly?: number
+) {
   const p = normalizeAgentsPricing(pricing);
   const k = cycle === "annuel" ? 1 - p.annualDiscount : 1;
   const chosen = OPTIONS.filter((o) => options.includes(o.id));
-  const plan = p.planMonthly * k;
+  const plan = (planMonthly ?? p.planMonthly) * k;
   const usersTotal = users * p.userPrice * k;
   const optionsTotal = chosen.reduce((sum, o) => sum + (p.options[o.id] ?? o.price), 0) * k;
   const monthly = plan + usersTotal + optionsTotal;
@@ -151,7 +188,8 @@ export function sanitizeSelection(input: Partial<Selection>): Selection {
   return {
     cycle: input.cycle === "annuel" ? "annuel" : "mensuel",
     users: Math.min(MAX_EXTRA_USERS, Math.max(0, users)),
-    options: OPTIONS.map((o) => o.id).filter((id) => input.options?.includes(id)),
+    // New subscriptions can only pick options still offered.
+    options: OFFERED_OPTIONS.map((o) => o.id).filter((id) => input.options?.includes(id)),
   };
 }
 

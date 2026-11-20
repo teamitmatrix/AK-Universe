@@ -166,6 +166,16 @@ export function ChatWidget() {
     setOpen(true);
   }
 
+  // Other parts of the site can open the assistant (client space "Discuter en direct").
+  useEffect(() => {
+    const onOpen = () => {
+      setNudgeVisible(false);
+      setOpen(true);
+    };
+    window.addEventListener("aku:open-chat", onOpen);
+    return () => window.removeEventListener("aku:open-chat", onOpen);
+  }, []);
+
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
