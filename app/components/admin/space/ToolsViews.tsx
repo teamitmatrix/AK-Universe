@@ -93,7 +93,7 @@ export function CatalogueView({
           <Note tone="info">
             {c.durationsNote} <Link href="/admin">→</Link> {c.onQuoteNote}
           </Note>
-          <CatalogueEditor rows={data.rows} customAgents={data.customAgents} />
+          <CatalogueEditor rows={data.rows} customAgents={data.customAgents} rates={rates.rates} />
         </section>
         <section className="adm-card" aria-labelledby="adm-rates">
           <CardHead Icon={Percent} title={c.rates.title} />
