@@ -27,6 +27,7 @@ function agentOfferOf(config: VideoConfig, key: string): AgentOffer | null {
     name: agent.name,
     price: def.price,
     priceAnnual: def.priceAnnual,
+    setupFrom: def.setupFrom,
     credits: def.credits,
     capacity: def.capacity,
   };
@@ -168,7 +169,12 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
     return plan?.price ?? 0;
   }
   if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.price ?? 0;
-  if (isAgent(item)) return agentOfferOf(config, item.key)?.price ?? 0;
+  if (isAgent(item)) {
+    const offer = agentOfferOf(config, item.key);
+    if (!offer) return 0;
+    // First-period estimate: monthly subscription + one-time onboarding.
+    return offer.price + offer.setupFrom;
+  }
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
 }
@@ -191,7 +197,7 @@ export function itemSummary(config: VideoConfig, item: CartItem) {
   if (isAgent(item)) {
     const offer = agentOfferOf(config, item.key);
     if (!offer) return "Abonnement mensuel Agent IA";
-    return `Abonnement mensuel • ${offer.credits} · ${offer.capacity}`;
+    return `Abonnement ${offer.price.toLocaleString("fr-FR")} € HT / mois + mise en place ${offer.setupFrom.toLocaleString("fr-FR")} € HT · ${offer.capacity}`;
   }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";

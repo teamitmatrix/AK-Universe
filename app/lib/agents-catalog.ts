@@ -181,6 +181,7 @@ export function catalogAgentToAgent(c: CatalogAgent): Agent {
     demo: c.demo,
     priceMonthly: priceMonthly ?? null,
     priceAnnual: priceMonthly != null ? Math.round(priceMonthly * 10 * 100) / 100 : null,
+    setupFrom: c.setupFrom ?? null,
     creditsLabel: undefined,
     capacityLabel: undefined,
   };
@@ -197,13 +198,18 @@ async function withSoloPrices(list: Agent[]): Promise<Agent[]> {
     const def = AGENT_SUBSCRIPTIONS[agent.id];
     if (!def) return agent;
     if (commercial[`solo:${agent.id}`]?.hidden) {
-      return { ...agent, priceMonthly: null, priceAnnual: null };
+      return { ...agent, priceMonthly: null, priceAnnual: null, setupFrom: null };
     }
-    const live = pricing.solo[agent.id] ?? { price: def.price, priceAnnual: def.priceAnnual };
+    const live = pricing.solo[agent.id] ?? {
+      price: def.price,
+      priceAnnual: def.priceAnnual,
+      setupFrom: def.setupFrom,
+    };
     return {
       ...agent,
       priceMonthly: live.price,
       priceAnnual: live.priceAnnual,
+      setupFrom: live.setupFrom,
       creditsLabel: def.credits,
       capacityLabel: def.capacity,
     };

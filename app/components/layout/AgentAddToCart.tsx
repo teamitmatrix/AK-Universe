@@ -12,12 +12,14 @@ export function AgentAddToCart({
   name,
   priceMonthly,
   priceAnnual,
+  setupFrom,
   capacityLabel,
 }: {
   agentId: string;
   name: string;
   priceMonthly: number;
   priceAnnual: number | null;
+  setupFrom?: number | null;
   capacityLabel?: string;
 }) {
   const [toast, toastNode] = useToast();
@@ -29,6 +31,9 @@ export function AgentAddToCart({
           <strong>{euros(priceMonthly)} €</strong>
           <span>HT / mois</span>
           {priceAnnual != null ? <span className="agent-profile-price-annual">soit {euros(priceAnnual)} € / an</span> : null}
+          {setupFrom != null ? (
+            <span className="agent-profile-capacity">Mise en place {euros(setupFrom)} € HT (une fois)</span>
+          ) : null}
           {capacityLabel ? <span className="agent-profile-capacity">{capacityLabel}</span> : null}
         </div>
         <button

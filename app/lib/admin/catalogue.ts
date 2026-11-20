@@ -99,7 +99,10 @@ export async function loadCatalogue() {
   for (const agent of staticAgents) {
     const def = AGENT_SUBSCRIPTIONS[agent.id];
     if (!def) continue;
-    const live = agents.solo[agent.id] ?? { price: def.price, priceAnnual: def.priceAnnual };
+    const stored = agents.solo[agent.id];
+    const livePrice = stored?.price ?? def.price;
+    const liveAnnual = stored?.priceAnnual ?? def.priceAnnual;
+    const liveSetup = stored?.setupFrom ?? def.setupFrom;
     const id = `solo:${agent.id}`;
     rows.push(
       row(
@@ -107,15 +110,22 @@ export async function loadCatalogue() {
           id,
           category: "agents",
           name: `Agent IA — ${agent.name}`,
-          detail: `${def.credits} · ${def.capacity} · Annuel ${live.priceAnnual.toLocaleString("fr-FR")} € HT`,
+          detail: `${def.credits} · ${def.capacity} · Annuel ${liveAnnual.toLocaleString("fr-FR")} € HT · Mise en place ${liveSetup.toLocaleString("fr-FR")} € HT`,
           href: `/agents-ia/${agent.id}`,
           fields: [
             {
               key: `a:solo:${agent.id}:price`,
               label: "monthly",
-              value: live.price,
+              value: livePrice,
               default: def.price,
               unit: "eurMonth",
+            },
+            {
+              key: `a:solo:${agent.id}:setup`,
+              label: "setup",
+              value: liveSetup,
+              default: def.setupFrom,
+              unit: "eur",
             },
           ],
         },
@@ -128,33 +138,22 @@ export async function loadCatalogue() {
   for (const agent of customAgents) {
     const id = `agent:${agent.id}`;
     const fields: CatalogueField[] = [];
-    if (agent.priceMonthly != null) {
-      fields.push({
-        key: `s:agent:${agent.id}:price`,
-        label: "monthly",
-        value: agent.priceMonthly,
-        default: agent.priceMonthly,
-        unit: "eurMonth",
-      });
-    }
-    if (agent.setupFrom != null) {
-      fields.push({
-        key: `s:agent:${agent.id}:setup`,
-        label: "setup",
-        value: agent.setupFrom,
-        default: agent.setupFrom,
-        unit: "eur",
-      });
-    }
-    if (!fields.length) {
-      fields.push({
-        key: `s:agent:${agent.id}:price`,
-        label: "monthly",
-        value: 0,
-        default: 0,
-        unit: "eurMonth",
-      });
-    }
+    const monthly = agent.priceMonthly ?? 0;
+    const setup = agent.setupFrom ?? 199;
+    fields.push({
+      key: `s:agent:${agent.id}:price`,
+      label: "monthly",
+      value: monthly,
+      default: monthly,
+      unit: "eurMonth",
+    });
+    fields.push({
+      key: `s:agent:${agent.id}:setup`,
+      label: "setup",
+      value: setup,
+      default: setup,
+      unit: "eur",
+    });
     const built = row(
       {
         id,
@@ -175,22 +174,24 @@ export async function loadCatalogue() {
     const cur = agents.tiers[tier.name];
     if (!cur || tier.price === null) continue;
     const id = `tier:${tier.name}`;
+    const setupValue = tier.setupFrom !== null ? (cur.setupFrom ?? tier.setupFrom) : null;
     const annualNote =
       "priceAnnual" in tier && tier.priceAnnual != null
         ? ` · Annuel ${tier.priceAnnual.toLocaleString("fr-FR")} € HT`
         : "";
+    const setupNote = setupValue != null ? ` · Mise en place ${setupValue.toLocaleString("fr-FR")} € HT` : "";
     rows.push(
       row(
         {
           id,
           category: "agents",
           name: `Agents IA — ${tier.name}`,
-          detail: `${tier.features.slice(0, 3).join(" · ")}${annualNote}`,
+          detail: `${tier.features.slice(0, 3).join(" · ")}${annualNote}${setupNote}`,
           href: "/agents-ia#tarifs",
           fields: [
             { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
-            ...(tier.setupFrom !== null
-              ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: cur.setupFrom ?? 0, default: tier.setupFrom, unit: "eur" as const }]
+            ...(setupValue != null
+              ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: setupValue, default: tier.setupFrom!, unit: "eur" as const }]
               : []),
           ],
         },
@@ -234,18 +235,21 @@ export async function loadCatalogue() {
     if (plan.price === null) continue;
     const d = def.marketing?.plans?.find((p) => p.key === plan.key);
     const id = `plan:${plan.key}`;
+    const setupPrice = plan.setupPrice ?? null;
+    const setupNote =
+      setupPrice != null ? ` · Mise en place ${setupPrice.toLocaleString("fr-FR")} € HT` : "";
     rows.push(
       row(
         {
           id,
           category: "marketing",
           name: `Forfait Marketing — ${plan.name}`,
-          detail: plan.tagline,
+          detail: `${plan.tagline}${setupNote}`,
           href: "/marketing/forfaits",
           fields: [
             { key: `v:plan:${plan.key}:price`, label: "monthly", value: plan.price, default: d?.price ?? plan.price, unit: "eurMonth" },
-            ...(plan.setupPrice != null
-              ? [{ key: `v:plan:${plan.key}:setup`, label: "setup" as const, value: plan.setupPrice, default: d?.setupPrice ?? plan.setupPrice, unit: "eur" as const }]
+            ...(setupPrice != null
+              ? [{ key: `v:plan:${plan.key}:setup`, label: "setup" as const, value: setupPrice, default: d?.setupPrice ?? setupPrice, unit: "eur" as const }]
               : []),
           ],
         },
@@ -301,7 +305,10 @@ export async function loadCatalogue() {
           id,
           category: "digital",
           name: site.name,
-          detail: site.runningFrom === null ? "Mise en place" : "Mise en place et frais de fonctionnement mensuels",
+          detail:
+            site.runningFrom === null
+              ? `Mise en place ${cur.price.toLocaleString("fr-FR")} € HT`
+              : `Mise en place ${cur.price.toLocaleString("fr-FR")} € HT · Fonctionnement dès ${(cur.runningFrom ?? site.runningFrom!).toLocaleString("fr-FR")} € HT / mois`,
           href: "/digital#sites",
           fields: [
             { key: `d:site:${site.id}:price`, label: "setup", value: cur.price, default: site.price, unit: "eur" },

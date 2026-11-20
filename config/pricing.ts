@@ -113,8 +113,8 @@ export type AgentsPricing = {
   options: Record<OptionId, number>;
   /** Tier name → monthly price and set-up fee (null = on quote). */
   tiers: Record<string, { price: number | null; setupFrom: number | null }>;
-  /** Per-agent solo subscription (monthly HT); annual = 10 × monthly. */
-  solo: Record<string, { price: number; priceAnnual: number }>;
+  /** Per-agent solo subscription (monthly HT); annual = 10 × monthly; setupFrom = onboarding. */
+  solo: Record<string, { price: number; priceAnnual: number; setupFrom: number }>;
 };
 
 export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
@@ -124,7 +124,10 @@ export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
   options: Object.fromEntries(OPTIONS.map((o) => [o.id, o.price])) as Record<OptionId, number>,
   tiers: Object.fromEntries(AGENT_TIERS.map((t) => [t.name, { price: t.price, setupFrom: t.setupFrom }])),
   solo: Object.fromEntries(
-    Object.entries(AGENT_SUBSCRIPTIONS).map(([id, s]) => [id, { price: s.price, priceAnnual: s.priceAnnual }]),
+    Object.entries(AGENT_SUBSCRIPTIONS).map(([id, s]) => [
+      id,
+      { price: s.price, priceAnnual: s.priceAnnual, setupFrom: s.setupFrom },
+    ]),
   ),
 };
 
@@ -154,7 +157,9 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
   }
   if (input.solo != null && typeof input.solo === "object") {
     for (const id of Object.keys(AGENT_SUBSCRIPTIONS)) {
-      const to = (input.solo as Record<string, { price?: unknown; priceAnnual?: unknown } | null | undefined>)[id];
+      const to = (
+        input.solo as Record<string, { price?: unknown; priceAnnual?: unknown; setupFrom?: unknown } | null | undefined>
+      )[id];
       const cur = base.solo[id];
       if (!to || !cur) continue;
       if (isPrice(to.price)) {
@@ -163,6 +168,7 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
       } else if (isPrice(to.priceAnnual)) {
         cur.priceAnnual = to.priceAnnual;
       }
+      if (isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
     }
   }
   return base;

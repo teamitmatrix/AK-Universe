@@ -18,8 +18,8 @@ export type AgentsPricingOverrides = {
   annualDiscountPercent?: number;
   options?: Record<string, number>;
   tiers?: Record<string, { price?: number; setupFrom?: number }>;
-  /** Per-agent solo monthly HT (annual derived as 10 × monthly). */
-  solo?: Record<string, { price?: number; priceAnnual?: number }>;
+  /** Per-agent solo monthly HT (annual derived as 10 × monthly) + onboarding. */
+  solo?: Record<string, { price?: number; priceAnnual?: number; setupFrom?: number }>;
 };
 
 const isPrice = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
@@ -51,6 +51,7 @@ export function applyAgentsOverrides(o: AgentsPricingOverrides | null | undefine
         cur.price = to.price;
         cur.priceAnnual = isPrice(to.priceAnnual) ? to.priceAnnual : agentAnnualFromMonthly(to.price);
       }
+      if (isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
     }
   }
   return p;

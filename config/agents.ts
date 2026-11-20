@@ -39,6 +39,8 @@ export type Agent = {
   /** Solo subscription (HT). Set by getSiteAgents from config + admin overrides. */
   priceMonthly?: number | null;
   priceAnnual?: number | null;
+  /** One-time onboarding / mise en place (HT). */
+  setupFrom?: number | null;
   creditsLabel?: string;
   capacityLabel?: string;
 };

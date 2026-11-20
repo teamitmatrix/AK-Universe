@@ -40,6 +40,12 @@ export function AgentCard({ agent }: { agent: Agent }) {
                 soit {euros(agent.priceAnnual)} € / an
               </>
             ) : null}
+            {agent.setupFrom != null ? (
+              <>
+                <br />
+                Mise en place {euros(agent.setupFrom)} € HT
+              </>
+            ) : null}
             {agent.capacityLabel ? (
               <>
                 <br />

@@ -723,7 +723,8 @@ export function CatalogueEditor({ rows, customAgents = [] }: { rows: CatalogueRo
                             value: f.value,
                             unitKey: (f.unit === "pct" || f.unit === "eurMonth" ? f.unit : "eur") as "eur" | "eurMonth" | "pct",
                             aria: `${r.name} — ${c.labels[f.label] ?? f.label}`,
-                            showLabel: r.fields.length > 1 || !!com,
+                            // Always label monthly vs set-up when both exist (onboarding must stay visible).
+                            showLabel: r.fields.length > 1 || f.label === "setup" || !!com,
                             defaultValue: f.default,
                             max: f.unit === "pct" ? 100 : undefined,
                           }),

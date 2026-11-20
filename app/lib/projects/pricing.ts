@@ -48,8 +48,8 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
       return [
         {
           service: `Agent IA — ${offer.name}`,
-          details: `Abonnement mensuel • ${offer.credits} · ${offer.capacity}`,
-          price: offer.price,
+          details: `Abonnement ${offer.price.toLocaleString("fr-FR")} € HT / mois + mise en place ${offer.setupFrom.toLocaleString("fr-FR")} € HT · ${offer.capacity}`,
+          price: offer.price + offer.setupFrom,
         },
       ];
     }

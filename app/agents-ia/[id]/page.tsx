@@ -60,6 +60,7 @@ export default async function Page({ params }: Props) {
                     name={agent.name}
                     priceMonthly={agent.priceMonthly}
                     priceAnnual={agent.priceAnnual ?? null}
+                    setupFrom={agent.setupFrom ?? null}
                     capacityLabel={agent.capacityLabel}
                   />
                 ) : null}
