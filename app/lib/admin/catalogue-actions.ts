@@ -3,6 +3,7 @@
 import { audit } from "./audit";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS } from "@/config/pricing";
 import { AGENTS_PRICING_KEY, getAgentsPricingOverrides, type AgentsPricingOverrides } from "@/lib/agents-pricing";
@@ -126,7 +127,12 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
       else if (kind === "opt" && OPTIONS.some((o) => o.id === id)) agents.options[id!] = v;
       else if (kind === "tier" && AGENT_TIERS.some((t) => t.name === id && t.price !== null) && (part === "price" || part === "setup"))
         agents.tiers[id!] = { ...agents.tiers[id!], [part === "price" ? "price" : "setupFrom"]: v };
-      else return { success: false, error: "invalid" };
+      else if (kind === "solo" && id && part === "price" && id in AGENT_SUBSCRIPTIONS) {
+        agents.solo = {
+          ...(agents.solo ?? {}),
+          [id]: { price: v, priceAnnual: agentAnnualFromMonthly(v) },
+        };
+      } else return { success: false, error: "invalid" };
     } else if (scope === "d") {
       digitalTouched = true;
       const site = DIGITAL_WEBSITES.find((s) => s.id === id);

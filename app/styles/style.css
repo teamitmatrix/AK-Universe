@@ -1615,6 +1615,35 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
   line-height: 1.55;
   max-width: 36rem;
 }
+.agent-profile-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-start;
+}
+.agent-profile-buy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+  align-items: center;
+}
+.agent-profile-price {
+  display: grid;
+  gap: 2px;
+  color: #d6cdbf;
+  font-size: .95rem;
+}
+.agent-profile-price strong {
+  color: var(--gold);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.agent-profile-price-annual,
+.agent-profile-capacity {
+  color: #bdb3a4;
+  font-size: .9rem;
+}
 .agent-profile-visual {
   border-radius: 18px;
   overflow: hidden;

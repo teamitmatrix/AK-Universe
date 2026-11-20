@@ -197,7 +197,11 @@ function agentDocs(pricing: AgentsPricing, agents: Agent[]): Doc[] {
       source: "agents",
       title: a.name,
       url: `/agents-ia/${a.id}`,
-      content: `${a.name} — ${a.description}\nFonctionnalités :\n${list(a.features)}\nCapacités :\n${list(a.capabilities)}\nIntégrations : ${a.integrations.join(", ")}.\nLangues : ${AGENT_LANGUAGES.join(", ")}.\nDisponible dans toutes les offres (voir /agents-ia#tarifs).`,
+      content: `${a.name} — ${a.description}\nFonctionnalités :\n${list(a.features)}\nCapacités :\n${list(a.capabilities)}\nIntégrations : ${a.integrations.join(", ")}.\nLangues : ${AGENT_LANGUAGES.join(", ")}.\n${
+        a.priceMonthly != null
+          ? `Abonnement solo : ${euros(a.priceMonthly)} HT / mois${a.priceAnnual != null ? ` (soit ${euros(a.priceAnnual)} / an)` : ""}${a.capacityLabel ? ` · ${a.capacityLabel}` : ""}.`
+          : "Disponible aussi dans les packs (voir /agents-ia#tarifs)."
+      }`,
     })),
     {
       source: "agents",

@@ -36,6 +36,11 @@ export type Agent = {
   integrations: string[];
   /** Sample exchange shown in the "Démos" section. */
   demo: { from: "client" | "agent"; text: string }[];
+  /** Solo subscription (HT). Set by getSiteAgents from config + admin overrides. */
+  priceMonthly?: number | null;
+  priceAnnual?: number | null;
+  creditsLabel?: string;
+  capacityLabel?: string;
 };
 
 export const AGENT_CATEGORIES: { id: AgentCategory; name: string; text: string; icon: string }[] = [

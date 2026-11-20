@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import type { AgentOffer } from "@/config/agent-subscriptions";
 import type { DigitalWebsite } from "@/config/digital";
 import { createPublicClient } from "@/lib/supabase/server";
 
@@ -89,6 +90,8 @@ export type VideoConfig = {
   services: Service[];
   /** Live digital website prices (defaults + admin catalogue overrides). */
   digitalWebsites?: DigitalWebsite[];
+  /** Solo Agents IA subscriptions for Mon projet cart. */
+  agentOffers?: AgentOffer[];
   [key: string]: unknown;
 };
 
@@ -177,6 +180,12 @@ export async function getVideoConfig() {
     }
   } catch (cause) {
     console.error("Could not apply catalogue visibility:", cause);
+  }
+  try {
+    const { getAgentOffers } = await import("@/lib/agent-offers");
+    config.agentOffers = await getAgentOffers();
+  } catch (cause) {
+    console.error("Could not load agent offers:", cause);
   }
   return config;
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AgentAddToCart } from "@/components/layout/AgentAddToCart";
 import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
@@ -49,9 +50,20 @@ export default async function Page({ params }: Props) {
               <h1>{agent.name}</h1>
               <p className="agent-profile-headline">{agent.headline}</p>
               <p className="agent-profile-lead">{agent.description}</p>
-              <a href="#en-action" className="btn btn-primary btn-lg">
-                Voir l&apos;agent en action <Icon name="arrow" />
-              </a>
+              <div className="agent-profile-ctas">
+                <a href="#en-action" className="btn btn-outline-gold btn-lg">
+                  Voir l&apos;agent en action <Icon name="arrow" />
+                </a>
+                {agent.priceMonthly != null && agent.priceMonthly > 0 ? (
+                  <AgentAddToCart
+                    agentId={agent.id}
+                    name={agent.name}
+                    priceMonthly={agent.priceMonthly}
+                    priceAnnual={agent.priceAnnual ?? null}
+                    capacityLabel={agent.capacityLabel}
+                  />
+                ) : null}
+              </div>
             </div>
             <div className="agent-profile-visual">
               <Image

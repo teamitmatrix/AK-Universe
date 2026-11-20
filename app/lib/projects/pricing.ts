@@ -1,5 +1,6 @@
 import "server-only";
 import { DIGITAL_WEBSITES, digitalWebsiteOf } from "@/config/digital";
+import { getAgentOffers } from "@/lib/agent-offers";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig } from "@/lib/video-config";
 import { durationsOf, qtyChoicesOf, resolvedOptions, videoPrice, videoSummary } from "@/lib/projects/quote-math";
@@ -20,7 +21,7 @@ export type ProjectItemInput = {
 
 /** Validates the client's cart items and prices them. Unknown items are dropped. */
 export async function priceProject(rawItems: ProjectItemInput[]) {
-  const [cfg, websites] = await Promise.all([getVideoConfig(), getDigitalWebsites()]);
+  const [cfg, websites, agentOffers] = await Promise.all([getVideoConfig(), getDigitalWebsites(), getAgentOffers()]);
   const plans = cfg.marketing?.plans ?? [];
   const digitalCatalog = websites.length ? websites : DIGITAL_WEBSITES;
 
@@ -39,6 +40,18 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
           ? `Mise en place HT • Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`
           : "Mise en place HT";
       return [{ service: site.name, details, price: site.price }];
+    }
+
+    if (item.type === "agent") {
+      const offer = item.key ? agentOffers.find((o) => o.id === item.key) : undefined;
+      if (!offer) return [];
+      return [
+        {
+          service: `Agent IA — ${offer.name}`,
+          details: `Abonnement mensuel • ${offer.credits} · ${offer.capacity}`,
+          price: offer.price,
+        },
+      ];
     }
 
     const s = cfg.services.find((x) => x.slug === item.slug);

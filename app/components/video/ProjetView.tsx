@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { signInBeforePayment } from "@/lib/auth/redirect";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart } from "./cart";
+import { isAgent, isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
 import { Mockup } from "./Mockup";
@@ -67,7 +67,9 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                   ? "/marketing/forfaits"
                   : isDigital(item)
                     ? `/digital#${item.key}`
-                    : `/services/${item.slug}`;
+                    : isAgent(item)
+                      ? `/agents-ia/${item.key}`
+                      : `/services/${item.slug}`;
                 return (
                   <li key={item.id} className="projet-item">
                     <Link href={href}>
@@ -75,6 +77,8 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                         <Mockup mockup={null} region="thumb" className="projet-thumb" emptyIcon="crown" />
                       ) : isDigital(item) ? (
                         <Mockup mockup={null} region="thumb" className="projet-thumb" emptyIcon="grid" />
+                      ) : isAgent(item) ? (
+                        <Mockup mockup={null} region="thumb" className="projet-thumb" emptyIcon="sparkle" />
                       ) : (
                         <Mockup mockup={serviceOf(config, item.slug)?.mockup} region="thumb" className="projet-thumb" />
                       )}
@@ -89,6 +93,7 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                           onClick={() => {
                             if (isForfait(item)) router.push("/marketing/forfaits");
                             else if (isDigital(item)) router.push(`/digital#${item.key}`);
+                            else if (isAgent(item)) router.push(`/agents-ia/${item.key}`);
                             else openConfig(item.slug, { editId: item.id });
                           }}
                         >

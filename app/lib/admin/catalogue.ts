@@ -1,4 +1,6 @@
 import "server-only";
+import { AGENT_SUBSCRIPTIONS } from "@/config/agent-subscriptions";
+import { agents as staticAgents } from "@/config/agents";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_TIERS, OPTIONS, PLAN } from "@/config/pricing";
 import { getAgentsCatalog } from "@/lib/agents-catalog";
@@ -92,6 +94,35 @@ export async function loadCatalogue() {
   const websites = applyDigitalOverrides(digitalOverrides);
   const rows: CatalogueRow[] = [];
   const meta = (id: string) => commercial[id];
+
+  // Solo Agents IA subscriptions (cards on /agents-ia).
+  for (const agent of staticAgents) {
+    const def = AGENT_SUBSCRIPTIONS[agent.id];
+    if (!def) continue;
+    const live = agents.solo[agent.id] ?? { price: def.price, priceAnnual: def.priceAnnual };
+    const id = `solo:${agent.id}`;
+    rows.push(
+      row(
+        {
+          id,
+          category: "agents",
+          name: `Agent IA — ${agent.name}`,
+          detail: `${def.credits} · ${def.capacity} · Annuel ${live.priceAnnual.toLocaleString("fr-FR")} € HT`,
+          href: `/agents-ia/${agent.id}`,
+          fields: [
+            {
+              key: `a:solo:${agent.id}:price`,
+              label: "monthly",
+              value: live.price,
+              default: def.price,
+              unit: "eurMonth",
+            },
+          ],
+        },
+        meta(id),
+      ),
+    );
+  }
 
   // Admin-created Agents IA services (Catalogue + button) — always under Agents IA.
   for (const agent of customAgents) {

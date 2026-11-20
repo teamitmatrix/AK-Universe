@@ -1,3 +1,5 @@
+import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
+
 /** Agents IA subscription pricing (from abonnement.html / main.js). Amounts are EUR excl. VAT. */
 export const PLAN = {
   id: "pro",
@@ -111,6 +113,8 @@ export type AgentsPricing = {
   options: Record<OptionId, number>;
   /** Tier name → monthly price and set-up fee (null = on quote). */
   tiers: Record<string, { price: number | null; setupFrom: number | null }>;
+  /** Per-agent solo subscription (monthly HT); annual = 10 × monthly. */
+  solo: Record<string, { price: number; priceAnnual: number }>;
 };
 
 export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
@@ -119,6 +123,9 @@ export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
   annualDiscount: ANNUAL_DISCOUNT,
   options: Object.fromEntries(OPTIONS.map((o) => [o.id, o.price])) as Record<OptionId, number>,
   tiers: Object.fromEntries(AGENT_TIERS.map((t) => [t.name, { price: t.price, setupFrom: t.setupFrom }])),
+  solo: Object.fromEntries(
+    Object.entries(AGENT_SUBSCRIPTIONS).map(([id, s]) => [id, { price: s.price, priceAnnual: s.priceAnnual }]),
+  ),
 };
 
 const isPrice = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
@@ -143,6 +150,19 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
       if (!to || !cur) continue;
       if (cur.price !== null && isPrice(to.price)) cur.price = to.price;
       if (cur.setupFrom !== null && isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
+    }
+  }
+  if (input.solo != null && typeof input.solo === "object") {
+    for (const id of Object.keys(AGENT_SUBSCRIPTIONS)) {
+      const to = (input.solo as Record<string, { price?: unknown; priceAnnual?: unknown } | null | undefined>)[id];
+      const cur = base.solo[id];
+      if (!to || !cur) continue;
+      if (isPrice(to.price)) {
+        cur.price = to.price;
+        cur.priceAnnual = isPrice(to.priceAnnual) ? to.priceAnnual : agentAnnualFromMonthly(to.price);
+      } else if (isPrice(to.priceAnnual)) {
+        cur.priceAnnual = to.priceAnnual;
+      }
     }
   }
   return base;

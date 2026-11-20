@@ -1,4 +1,5 @@
 import "server-only";
+import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { AGENT_TIERS, DEFAULT_AGENTS_PRICING, OPTIONS, type AgentsPricing } from "@/config/pricing";
 import { createPublicClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,8 @@ export type AgentsPricingOverrides = {
   annualDiscountPercent?: number;
   options?: Record<string, number>;
   tiers?: Record<string, { price?: number; setupFrom?: number }>;
+  /** Per-agent solo monthly HT (annual derived as 10 × monthly). */
+  solo?: Record<string, { price?: number; priceAnnual?: number }>;
 };
 
 const isPrice = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
@@ -38,6 +41,17 @@ export function applyAgentsOverrides(o: AgentsPricingOverrides | null | undefine
     // "Sur devis" tiers stay on quote.
     if (cur.price !== null && isPrice(to.price)) cur.price = to.price;
     if (cur.setupFrom !== null && isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
+  }
+  if (o.solo && typeof o.solo === "object") {
+    for (const id of Object.keys(AGENT_SUBSCRIPTIONS)) {
+      const to = o.solo[id];
+      const cur = p.solo[id];
+      if (!to || !cur) continue;
+      if (isPrice(to.price)) {
+        cur.price = to.price;
+        cur.priceAnnual = isPrice(to.priceAnnual) ? to.priceAnnual : agentAnnualFromMonthly(to.price);
+      }
+    }
   }
   return p;
 }

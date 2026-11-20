@@ -159,6 +159,7 @@ export async function getAgentsCatalog(): Promise<CatalogAgent[]> {
 }
 
 export function catalogAgentToAgent(c: CatalogAgent): Agent {
+  const priceMonthly = c.priceMonthly;
   return {
     id: c.id,
     name: c.name,
@@ -178,7 +179,35 @@ export function catalogAgentToAgent(c: CatalogAgent): Agent {
     capabilities: c.tasks.map((t) => t.label),
     integrations: c.integrations,
     demo: c.demo,
+    priceMonthly: priceMonthly ?? null,
+    priceAnnual: priceMonthly != null ? Math.round(priceMonthly * 10 * 100) / 100 : null,
+    creditsLabel: undefined,
+    capacityLabel: undefined,
   };
+}
+
+async function withSoloPrices(list: Agent[]): Promise<Agent[]> {
+  const [{ getAgentsPricing }, { AGENT_SUBSCRIPTIONS }, { getCatalogueCommercial }] = await Promise.all([
+    import("@/lib/agents-pricing"),
+    import("@/config/agent-subscriptions"),
+    import("@/lib/catalogue-commercial"),
+  ]);
+  const [pricing, commercial] = await Promise.all([getAgentsPricing(), getCatalogueCommercial()]);
+  return list.map((agent) => {
+    const def = AGENT_SUBSCRIPTIONS[agent.id];
+    if (!def) return agent;
+    if (commercial[`solo:${agent.id}`]?.hidden) {
+      return { ...agent, priceMonthly: null, priceAnnual: null };
+    }
+    const live = pricing.solo[agent.id] ?? { price: def.price, priceAnnual: def.priceAnnual };
+    return {
+      ...agent,
+      priceMonthly: live.price,
+      priceAnnual: live.priceAnnual,
+      creditsLabel: def.credits,
+      capacityLabel: def.capacity,
+    };
+  });
 }
 
 /** Static + published custom agents for the public AI section. */
@@ -192,7 +221,7 @@ export async function getSiteAgents(): Promise<Agent[]> {
     .filter((a) => a.published && !commercial[`agent:${a.id}`]?.hidden)
     .map(catalogAgentToAgent);
   const customIds = new Set(custom.map((a) => a.id));
-  return [...staticAgents.filter((a) => !customIds.has(a.id)), ...custom];
+  return withSoloPrices([...staticAgents.filter((a) => !customIds.has(a.id)), ...custom]);
 }
 
 export async function getSiteAgentById(id: string): Promise<Agent | null> {
@@ -203,9 +232,13 @@ export async function getSiteAgentById(id: string): Promise<Agent | null> {
     const { getCatalogueCommercial } = await import("@/lib/catalogue-commercial");
     const commercial = await getCatalogueCommercial();
     if (commercial[`agent:${custom.id}`]?.hidden) return null;
-    return catalogAgentToAgent(custom);
+    const [priced] = await withSoloPrices([catalogAgentToAgent(custom)]);
+    return priced ?? null;
   }
-  return staticAgents.find((a) => a.id === id) ?? null;
+  const found = staticAgents.find((a) => a.id === id);
+  if (!found) return null;
+  const [priced] = await withSoloPrices([found]);
+  return priced ?? null;
 }
 
 export function isStaticAgentId(id: string) {

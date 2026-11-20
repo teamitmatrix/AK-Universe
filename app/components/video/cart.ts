@@ -1,6 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { AGENT_SUBSCRIPTIONS, type AgentOffer } from "@/config/agent-subscriptions";
+import { agentById } from "@/config/agents";
 import { DIGITAL_WEBSITES, digitalWebsiteOf as defaultDigitalOf, type DigitalWebsite } from "@/config/digital";
 import { videoPrice, videoSummary } from "@/lib/projects/quote-math";
 import type { VideoConfig } from "@/lib/video-config";
@@ -14,6 +16,22 @@ function digitalWebsiteOf(config: VideoConfig, key: string) {
   return digitalSites(config).find((site) => site.id === key) ?? defaultDigitalOf(key);
 }
 
+function agentOfferOf(config: VideoConfig, key: string): AgentOffer | null {
+  const live = config.agentOffers?.find((o) => o.id === key);
+  if (live) return live;
+  const def = AGENT_SUBSCRIPTIONS[key];
+  const agent = agentById(key);
+  if (!def || !agent) return null;
+  return {
+    id: key,
+    name: agent.name,
+    price: def.price,
+    priceAnnual: def.priceAnnual,
+    credits: def.credits,
+    capacity: def.capacity,
+  };
+}
+
 const KEY = "aku-projet";
 const CLIENT_KEY = "aku-client";
 const LAST_KEY = "aku-derniere-demande";
@@ -21,7 +39,8 @@ const LAST_KEY = "aku-derniere-demande";
 export type CartService = { id: string; slug: string; qty: number; dur: number; opts: string[] };
 export type CartForfait = { id: string; type: "forfait"; key: string };
 export type CartDigital = { id: string; type: "digital"; key: string };
-export type CartItem = CartService | CartForfait | CartDigital;
+export type CartAgent = { id: string; type: "agent"; key: string };
+export type CartItem = CartService | CartForfait | CartDigital | CartAgent;
 
 export type ClientInfo = {
   prenom: string;
@@ -56,11 +75,15 @@ export function isDigital(item: CartItem): item is CartDigital {
   return "type" in item && item.type === "digital";
 }
 
+export function isAgent(item: CartItem): item is CartAgent {
+  return "type" in item && item.type === "agent";
+}
+
 function isStored(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
   if (typeof item.id !== "string") return false;
-  if (item.type === "forfait" || item.type === "digital") return typeof item.key === "string";
+  if (item.type === "forfait" || item.type === "digital" || item.type === "agent") return typeof item.key === "string";
   return (
     typeof item.slug === "string" &&
     typeof item.qty === "number" &&
@@ -134,6 +157,7 @@ export function visibleItems(config: VideoConfig, items: CartItem[]) {
   return items.filter((item) => {
     if (isForfait(item)) return !!planOf(config, item.key);
     if (isDigital(item)) return !!digitalWebsiteOf(config, item.key);
+    if (isAgent(item)) return !!agentOfferOf(config, item.key);
     return !!serviceOf(config, item.slug);
   });
 }
@@ -144,6 +168,7 @@ export function itemPrice(config: VideoConfig, item: CartItem) {
     return plan?.price ?? 0;
   }
   if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.price ?? 0;
+  if (isAgent(item)) return agentOfferOf(config, item.key)?.price ?? 0;
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
 }
@@ -163,6 +188,11 @@ export function itemSummary(config: VideoConfig, item: CartItem) {
     }
     return "Mise en place HT";
   }
+  if (isAgent(item)) {
+    const offer = agentOfferOf(config, item.key);
+    if (!offer) return "Abonnement mensuel Agent IA";
+    return `Abonnement mensuel • ${offer.credits} · ${offer.capacity}`;
+  }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";
 }
@@ -173,6 +203,10 @@ export function itemName(config: VideoConfig, item: CartItem) {
     return plan ? `Forfait ${plan.name}` : "Forfait";
   }
   if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.name ?? "Site internet";
+  if (isAgent(item)) {
+    const offer = agentOfferOf(config, item.key);
+    return offer ? `Agent IA — ${offer.name}` : "Agent IA";
+  }
   return serviceOf(config, item.slug)?.name ?? "";
 }
 
@@ -191,17 +225,23 @@ export function useCart(config: VideoConfig) {
     items,
     total,
     deposit: Math.round((total * config.depositPercent) / 100),
-    add(item: Omit<CartService, "id"> | Omit<CartForfait, "id"> | Omit<CartDigital, "id">) {
+    add(item: Omit<CartService, "id"> | Omit<CartForfait, "id"> | Omit<CartDigital, "id"> | Omit<CartAgent, "id">) {
       const current =
         "type" in item && item.type === "forfait"
           ? items.filter((entry) => !isForfait(entry))
           : "type" in item && item.type === "digital"
             ? items.filter((entry) => !(isDigital(entry) && entry.key === item.key))
-            : items;
+            : "type" in item && item.type === "agent"
+              ? items.filter((entry) => !(isAgent(entry) && entry.key === item.key))
+              : items;
       persist([...current, { ...item, id: newId() } as CartItem]);
     },
     update(id: string, patch: Partial<Omit<CartService, "id">>) {
-      persist(items.map((item) => (item.id === id && !isForfait(item) && !isDigital(item) ? { ...item, ...patch } : item)));
+      persist(
+        items.map((item) =>
+          item.id === id && !isForfait(item) && !isDigital(item) && !isAgent(item) ? { ...item, ...patch } : item,
+        ),
+      );
     },
     remove(id: string) {
       persist(items.filter((item) => item.id !== id));
@@ -291,6 +331,15 @@ export function saveDigitalWebsite(config: VideoConfig, key: string) {
   if (!digitalWebsiteOf(config, key)) return;
   const current = getSnapshot().filter((entry) => !(isDigital(entry) && entry.key === key));
   publish(visibleItems(config, [...current, { type: "digital", key, id: newId() }]));
+}
+
+/**
+ * Adds or replaces a solo Agents IA subscription in the project cart.
+ * Does not re-validate other cart lines (agents-ia pages may not have the full video catalogue).
+ */
+export function saveAgentSubscription(key: string) {
+  const current = getSnapshot().filter((entry) => !(isAgent(entry) && entry.key === key));
+  publish([...current, { type: "agent", key, id: newId() }]);
 }
 
 export function readLast(): LastRequest | null {
