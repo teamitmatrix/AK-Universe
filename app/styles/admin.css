@@ -1495,7 +1495,7 @@ td > .adm-badge:first-child {
 /* Catalogue */
 .adm-catalogue {
   table-layout: fixed;
-  min-width: 1380px;
+  min-width: 1320px;
 }
 .adm-catalogue th {
   white-space: normal;
@@ -1506,10 +1506,17 @@ td > .adm-badge:first-child {
 .adm-catalogue td:first-child {
   width: 200px;
 }
+.adm-catalogue th:nth-child(3),
+.adm-catalogue td:nth-child(3),
+.adm-catalogue th:nth-child(4),
+.adm-catalogue td:nth-child(4) {
+  width: 140px;
+  min-width: 140px;
+}
 .adm-catalogue th:nth-child(5),
 .adm-catalogue td:nth-child(5) {
-  width: 230px;
-  min-width: 230px;
+  width: 160px;
+  min-width: 160px;
 }
 .adm-catalogue td {
   padding-top: 16px;

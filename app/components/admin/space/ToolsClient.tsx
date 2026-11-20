@@ -646,9 +646,9 @@ export function CatalogueEditor({ rows, customAgents = [] }: { rows: CatalogueRo
               <tr>
                 <th scope="col">{c.cols.product}</th>
                 <th scope="col">{c.cols.category}</th>
-                <th scope="col">{c.cols.costMonthly}</th>
-                <th scope="col">{c.cols.costSetup}</th>
-                <th scope="col">{c.cols.price}</th>
+                <th scope="col">{c.cols.sellMonthly}</th>
+                <th scope="col">{c.cols.sellSetup}</th>
+                <th scope="col">{c.cols.costOfGoods}</th>
                 <th scope="col">{c.cols.marginEuro}</th>
                 <th scope="col">{c.cols.marginRate}</th>
                 <th scope="col">{c.cols.maxDiscount}</th>
@@ -660,6 +660,7 @@ export function CatalogueEditor({ rows, customAgents = [] }: { rows: CatalogueRo
                 const com = r.commercial;
                 const monthlyField = fieldOf(r, "monthly");
                 const setupField = fieldOf(r, "setup");
+                const rateFields = r.fields.filter((f) => f.label === "percent");
                 const sellMonthly = monthlyField ? live(monthlyField.key, monthlyField.value) : null;
                 const sellSetup = setupField ? live(setupField.key, setupField.value) : null;
                 const costM = com?.hasMonthly ? live(commercialKey(r.id, "costMonthly"), com.costMonthly) : null;
@@ -684,52 +685,84 @@ export function CatalogueEditor({ rows, customAgents = [] }: { rows: CatalogueRo
                     <td data-label={c.cols.category}>
                       <span className="adm-badge is-info">{c.categories[r.category]}</span>
                     </td>
-                    <td data-label={c.cols.costMonthly}>
-                      {com?.hasMonthly ? (
+                    <td data-label={c.cols.sellMonthly}>
+                      {monthlyField ? (
                         priceInput({
-                          key: commercialKey(r.id, "costMonthly"),
+                          key: monthlyField.key,
                           label: c.labels.monthly,
-                          value: com.costMonthly,
-                          unitKey: "eur",
-                          aria: `${r.name} — ${c.cols.costMonthly}`,
+                          value: monthlyField.value,
+                          unitKey: (monthlyField.unit === "pct" || monthlyField.unit === "eurMonth" ? monthlyField.unit : "eur") as
+                            | "eur"
+                            | "eurMonth"
+                            | "pct",
+                          aria: `${r.name} — ${c.cols.sellMonthly}`,
                           showLabel: false,
-                          allowEmpty: true,
+                          defaultValue: monthlyField.default,
                         })
+                      ) : rateFields.length ? (
+                        <span className="adm-price-fields">
+                          {rateFields.map((f) =>
+                            priceInput({
+                              key: f.key,
+                              label: c.labels.percent,
+                              value: f.value,
+                              unitKey: "pct",
+                              aria: `${r.name} — ${c.labels.percent}`,
+                              showLabel: false,
+                              defaultValue: f.default,
+                              max: 100,
+                            }),
+                          )}
+                        </span>
                       ) : (
                         <span className="adm-muted">—</span>
                       )}
                     </td>
-                    <td data-label={c.cols.costSetup}>
-                      {com?.hasSetup ? (
+                    <td data-label={c.cols.sellSetup}>
+                      {setupField ? (
                         priceInput({
-                          key: commercialKey(r.id, "costSetup"),
+                          key: setupField.key,
                           label: c.labels.setup,
-                          value: com.costSetup,
-                          unitKey: "eur",
-                          aria: `${r.name} — ${c.cols.costSetup}`,
+                          value: setupField.value,
+                          unitKey: (setupField.unit === "pct" || setupField.unit === "eurMonth" ? setupField.unit : "eur") as
+                            | "eur"
+                            | "eurMonth"
+                            | "pct",
+                          aria: `${r.name} — ${c.cols.sellSetup}`,
                           showLabel: false,
-                          allowEmpty: true,
+                          defaultValue: setupField.default,
                         })
                       ) : (
                         <span className="adm-muted">—</span>
                       )}
                     </td>
-                    <td data-label={c.cols.price}>
-                      <span className="adm-price-fields">
-                        {r.fields.map((f) =>
-                          priceInput({
-                            key: f.key,
-                            label: c.labels[f.label] ?? f.label,
-                            value: f.value,
-                            unitKey: (f.unit === "pct" || f.unit === "eurMonth" ? f.unit : "eur") as "eur" | "eurMonth" | "pct",
-                            aria: `${r.name} — ${c.labels[f.label] ?? f.label}`,
-                            // Always label monthly vs set-up when both exist (onboarding must stay visible).
-                            showLabel: r.fields.length > 1 || f.label === "setup" || !!com,
-                            defaultValue: f.default,
-                            max: f.unit === "pct" ? 100 : undefined,
-                          }),
-                        )}
-                      </span>
+                    <td data-label={c.cols.costOfGoods}>
+                      {com?.hasMonthly || com?.hasSetup ? (
+                        <span className="adm-price-fields">
+                          {com.hasMonthly &&
+                            priceInput({
+                              key: commercialKey(r.id, "costMonthly"),
+                              label: c.labels.costMonthly,
+                              value: com.costMonthly,
+                              unitKey: "eur",
+                              aria: `${r.name} — ${c.labels.costMonthly}`,
+                              showLabel: com.hasMonthly && com.hasSetup,
+                              allowEmpty: true,
+                            })}
+                          {com.hasSetup &&
+                            priceInput({
+                              key: commercialKey(r.id, "costSetup"),
+                              label: c.labels.costSetup,
+                              value: com.costSetup,
+                              unitKey: "eur",
+                              aria: `${r.name} — ${c.labels.costSetup}`,
+                              showLabel: com.hasMonthly && com.hasSetup,
+                              allowEmpty: true,
+                            })}
+                        </span>
+                      ) : (
+                        <span className="adm-muted">—</span>
+                      )}
                     </td>
                     <td data-label={c.cols.marginEuro}>
                       {com
