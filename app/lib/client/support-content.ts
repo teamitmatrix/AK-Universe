@@ -28,6 +28,7 @@ export const TICKET_STATUSES = {
   ferme: { label: "Fermé", tone: "muted" },
 } as const;
 export type TicketStatus = keyof typeof TICKET_STATUSES;
+export const isTicketStatus = (v: unknown): v is TicketStatus => typeof v === "string" && v in TICKET_STATUSES;
 
 export const SUPPORT_HOURS = "du lundi au vendredi, de 9h à 18h";
 
@@ -65,7 +66,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     id: "contacter",
     category: "demarrage",
     q: "Comment contacter le support ?",
-    a: `Créez une demande depuis la page Support : elle reçoit un numéro (SUP-…) et vous suivez son avancement dans « Mes demandes ». Notre équipe répond ${SUPPORT_HOURS}. Pour une question rapide, l'assistant « Discuter en direct » répond immédiatement.`,
+    a: `Créez une demande depuis la page Support : elle reçoit un numéro (SUP-…). La réponse de l'équipe apparaît dans cette demande, rubrique « Mes demandes ». Notre équipe répond ${SUPPORT_HOURS}. Pour une question rapide, l'assistant « Discuter en direct » répond immédiatement.`,
   },
   // Offre
   {

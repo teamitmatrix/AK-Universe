@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { longDate } from "@/components/client/format";
+import { RefreshOnFocus } from "@/components/client/RefreshOnFocus";
 import { TicketReply } from "@/components/client/SupportClient";
 import { TicketStatusBadge } from "@/components/client/SupportViews";
 import { requireClient } from "@/lib/client/session";
@@ -23,6 +24,7 @@ export default async function TicketPage({ params }: { params: Promise<{ referen
 
   return (
     <main className="cs-page">
+      <RefreshOnFocus />
       <header className="cs-hello">
         <p className="cs-eyebrow">
           Support · <span className="notranslate">N° {ticket.reference}</span>

@@ -12,6 +12,7 @@ import {
   Euro,
   Film,
   FolderOpen,
+  Headphones,
   LayoutDashboard,
   LogOut,
   Pencil,
@@ -39,6 +40,7 @@ type NavId =
   | "videastes"
   | "prospects"
   | "clients"
+  | "support"
   | "ventes"
   | "devisFactures"
   | "commissions"
@@ -60,6 +62,7 @@ const NAV: { id: NavId; href: string; Icon: typeof Bot }[] = [
   { id: "videastes", href: "/admin/videastes", Icon: Video },
   { id: "prospects", href: "/admin/prospects", Icon: UserPlus },
   { id: "clients", href: "/admin/clients", Icon: Building2 },
+  { id: "support", href: "/admin/support", Icon: Headphones },
   { id: "ventes", href: "/admin/ventes", Icon: ShoppingCart },
   { id: "devisFactures", href: "/admin/devis-factures", Icon: FileText },
   { id: "commissions", href: "/admin/commissions", Icon: Percent },

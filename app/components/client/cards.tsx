@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Calendar, Check, Info, RefreshCw } from "lucide-react";
 import type { ClientPlan, SubscriptionStatus } from "@/lib/client/dashboard";
 import { longDate, money } from "./format";
@@ -11,6 +12,26 @@ const STATUS: Record<SubscriptionStatus, { label: string; tone: string }> = {
   canceled: { label: "Résilié", tone: "muted" },
   incomplete: { label: "Paiement incomplet", tone: "warn" },
 };
+
+/**
+ * Failed-payment warning. The next step is Facturation (update the card, pay the open invoice).
+ * `openInvoiceId` adds the same "Régler la facture" link the billing page shows.
+ */
+export function PaymentFailedAlert({ openInvoiceId }: { openInvoiceId?: string | null }) {
+  const payable = openInvoiceId && /^in_[A-Za-z0-9]+$/.test(openInvoiceId) ? openInvoiceId : null;
+  return (
+    <p className="cs-alert" role="alert">
+      Votre dernier paiement n&apos;a pas abouti. <Link href="/dashboard/facturation">Mettez à jour votre moyen de paiement</Link>
+      {payable ? (
+        <>
+          {" "}
+          ou <a href={`/dashboard/facturation/facture/${payable}`} target="_blank" rel="noopener noreferrer">réglez la facture</a>
+        </>
+      ) : null}{" "}
+      pour conserver l&apos;accès à vos agents.
+    </p>
+  );
+}
 
 /** Dark "Votre offre actuelle" card. `activeLabel`: "Actif" (dashboard) / "Active" (Mon offre), as in each mockup. */
 export function OfferCard({ plan, activeLabel = "Actif", withCalendar = false }: { plan: ClientPlan | null; activeLabel?: string; withCalendar?: boolean }) {

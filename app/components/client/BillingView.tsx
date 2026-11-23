@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Calendar, CreditCard, Download, Eye, FileText, Layers } from "lucide-react";
 import { openClientPaymentMethodPortal } from "@/lib/billing/actions";
 import type { ClientBilling, InvoiceRow, InvoiceStatus } from "@/lib/client/billing";
+import type { ClientPlan } from "@/lib/client/dashboard";
 import { BillingInfoCard, CycleSwitch } from "./BillingClient";
+import { CancelPanel, type PlanState } from "./PlanManager";
 import { longDate, money, monthLabel, shortDate } from "./format";
 import { RefreshOnFocus } from "./RefreshOnFocus";
 import { Swoosh } from "./Swoosh";
@@ -17,6 +19,22 @@ const STATUS: Record<InvoiceStatus, { label: string; tone: string }> = {
 };
 
 const invoiceHref = (id: string, pdf = false) => `/dashboard/facturation/facture/${id}${pdf ? "?format=pdf" : ""}`;
+
+/** Same shape as "Mon offre", so Facturation can cancel or resume with the existing confirmation. */
+function cancelState(plan: ClientPlan): PlanState {
+  return {
+    planId: plan.planId,
+    name: plan.name,
+    optionIds: plan.optionIds,
+    features: plan.features,
+    changeable: plan.changeable,
+    cancelAtPeriodEnd: plan.cancelAtPeriodEnd,
+    periodEnd: plan.periodEnd,
+    basis: plan.basis,
+    cycle: plan.cycle,
+    pending: plan.pending && { kind: plan.pending.kind, planName: plan.pending.planName, monthlyCents: plan.pending.monthlyCents, effectiveAt: plan.pending.effectiveAt },
+  };
+}
 
 function periodLabel(row: InvoiceRow) {
   if (!row.periodStart) return "—";
@@ -293,6 +311,7 @@ export function BillingView({
           </section>
           <BillingInfoCard profile={data.profile} countries={countries} countryName={countryName} ready={data.profileReady} />
         </div>
+        {plan && plan.status !== "canceled" && plan.manageable && <CancelPanel state={cancelState(plan)} openInitially={false} />}
       </div>
     </main>
   );

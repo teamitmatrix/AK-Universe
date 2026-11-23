@@ -5,14 +5,16 @@ import { after } from "next/server";
 import { emailLayout, escapeHtml, sendEmail, teamAddresses } from "@/lib/email";
 import { providerOf } from "@/lib/videaste/storage";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { getSiteUrl } from "@/lib/supabase/env";
 import { getClientMe, type ClientMe } from "./session";
 import { TICKET_CATEGORIES, TICKET_PRIORITIES, isTicketCategory, isTicketPriority, type TicketCategory } from "./support-content";
 
 /*
  * Support requests (migration 019). Server actions = public endpoints: each re-checks the caller (active customer,
  * getClientMe) and only touches their own tickets (ownership read with their session, writes with the service key
- * scoped to that ticket). Every request and reply is e-mailed to the AK Universe team (EMAIL_NOTIFY_TO) with the
- * customer as reply-to, and the customer gets a confirmation with their reference.
+ * scoped to that ticket). Every request and reply is e-mailed to the AK Universe team (EMAIL_NOTIFY_TO).
+ * The team answers in the admin inbox (/admin/support): that reply is what the customer sees in the thread.
+ * The notification e-mail only points there. The customer gets a confirmation with their reference.
  * Files are not hosted: an optional link to a shared document (Drive, Dropbox, WeTransfer, Frame.io, OneDrive).
  */
 
@@ -35,18 +37,18 @@ function teamMail(kind: "new" | "reply", me: ClientMe, ref: string, subject: str
   }
   const head = kind === "new" ? `Nouvelle demande ${ref}` : `Nouvelle réponse client ${ref}`;
   const lines = [`Client : ${me.name} <${me.email}>`, `Sujet : ${subject}`, ...extra];
+  const inbox = `${getSiteUrl()}/admin/support/${encodeURIComponent(ref)}`;
   void sendEmail({
     to,
-    replyTo: me.email,
     subject: `[Support] ${head} — ${subject}`,
     html: emailLayout(
       escapeHtml(head),
       `${lines.map((l) => `<p style="margin:0 0 6px">${escapeHtml(l)}</p>`).join("")}
 <div style="margin:16px 0 0;padding:14px;border-radius:10px;background:#16110c;white-space:pre-wrap">${escapeHtml(body)}</div>
 ${link ? `<p style="margin:12px 0 0">Document partagé : <a href="${escapeHtml(link)}" style="color:#fdb942">${escapeHtml(link)}</a></p>` : ""}
-<p style="margin:16px 0 0;color:#a89c8e;font-size:13px">Répondez directement à cet e-mail pour écrire au client.</p>`
+<p style="margin:16px 0 0">Répondez dans l'espace admin pour que le client voie le message dans sa demande : <a href="${escapeHtml(inbox)}" style="color:#fdb942">Ouvrir ${escapeHtml(ref)}</a>.</p>`
     ),
-    text: `${head}\n${lines.join("\n")}\n\n${body}${link ? `\n\nDocument : ${link}` : ""}`,
+    text: `${head}\n${lines.join("\n")}\n\n${body}${link ? `\n\nDocument : ${link}` : ""}\n\nRépondez dans l'espace admin : ${inbox}`,
   });
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { RefreshOnFocus } from "@/components/client/RefreshOnFocus";
 import { TicketRows } from "@/components/client/SupportViews";
 import { requireClient } from "@/lib/client/session";
 import { listMyTickets } from "@/lib/client/support";
@@ -13,6 +14,7 @@ export default async function TicketsPage() {
   const { ready, tickets } = await listMyTickets(me, 200);
   return (
     <main className="cs-page">
+      <RefreshOnFocus />
       <header className="cs-hello">
         <p className="cs-eyebrow">Espace client · Support</p>
         <h1>Mes demandes</h1>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpFromLine, Check, Layers, Puzzle, Users } from "lucide-react";
 import type { ClientPlan } from "@/lib/client/dashboard";
-import { OfferCard, TermsCard } from "./cards";
+import { OfferCard, PaymentFailedAlert, TermsCard } from "./cards";
 import { CancelPanel, EvolveCard, OptionsCard, type OptionChoice, type PlanChoice, type PlanState } from "./PlanManager";
 import { RefreshOnFocus } from "./RefreshOnFocus";
 import { Swoosh } from "./Swoosh";
@@ -41,11 +41,7 @@ export function MyPlanView({
         <p>Consultez les détails de votre abonnement, faites évoluer votre offre et gérez vos options.</p>
       </header>
 
-      {plan?.status === "past_due" && (
-        <p className="cs-alert" role="alert">
-          Votre dernier paiement n&apos;a pas abouti. Mettez à jour votre moyen de paiement pour conserver l&apos;accès à vos agents.
-        </p>
-      )}
+      {plan?.status === "past_due" && <PaymentFailedAlert />}
 
       {!plan || !state || plan.status === "canceled" ? (
         <div className="cs-grid">

@@ -4,7 +4,7 @@ import { openClientBillingPortal } from "@/lib/billing/actions";
 import type { ClientDashboard, ClientPlan, HistoryRow, HistoryStatus } from "@/lib/client/dashboard";
 import { clientHref } from "@/lib/client/nav";
 import type { ClientMe } from "@/lib/client/session";
-import { OfferCard, TermsCard } from "./cards";
+import { OfferCard, PaymentFailedAlert, TermsCard } from "./cards";
 import { longDate, money, monthLabel } from "./format";
 import { RefreshOnFocus } from "./RefreshOnFocus";
 import { Swoosh } from "./Swoosh";
@@ -190,7 +190,7 @@ function DetailCard({ plan }: { plan: ClientPlan }) {
 function CancelCard({ plan }: { plan: ClientPlan }) {
   if (!plan.manageable || plan.status === "canceled") return null;
   const end = plan.periodEnd ? longDate(plan.periodEnd) : null;
-  // The cancellation flow (confirmation step, end date) lives on "Mon offre"; the Stripe portal while it is not built.
+  // Confirmation (end date, reactivate) lives on "Mon offre".
   const offre = clientHref("offre");
   return (
     <section className="cs-cancel" aria-labelledby="cs-cancel-title">
@@ -228,6 +228,7 @@ function CancelCard({ plan }: { plan: ClientPlan }) {
 
 export function ClientDashboardView({ me, data, portalUnavailable }: { me: ClientMe; data: ClientDashboard; portalUnavailable: boolean }) {
   const { plan, history } = data;
+  const openInvoiceId = history.find((row) => row.status === "open" && row.id.startsWith("in_"))?.id ?? null;
   return (
     <main className="cs-page">
       <RefreshOnFocus />
@@ -245,11 +246,7 @@ export function ClientDashboardView({ me, data, portalUnavailable }: { me: Clien
           La gestion de l&apos;abonnement est momentanément indisponible. Réessayez dans un instant ou <Link href="/contact">contactez-nous</Link>.
         </p>
       )}
-      {plan?.status === "past_due" && (
-        <p className="cs-alert" role="alert">
-          Votre dernier paiement n&apos;a pas abouti. Mettez à jour votre moyen de paiement pour conserver l&apos;accès à vos agents.
-        </p>
-      )}
+      {plan?.status === "past_due" && <PaymentFailedAlert openInvoiceId={openInvoiceId} />}
 
       <div className="cs-grid">
         <OfferCard plan={plan} />
