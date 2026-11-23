@@ -3,7 +3,7 @@ import type { Lang } from "@/config/languages";
 /** Texts of the admin tools (catalogue, promotions, documents, agenda, rapports, paramètres, staff page). */
 const TEXT = {
   fr: {
-    nav: { catalogue: "Catalogue & prix", prixVideo: "Prix des services vidéo", projets: "Projets vidéo", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Rapports & statistiques", parametres: "Paramètres" },
+    nav: { catalogue: "Catalogue & prix", prixVideo: "Prix des services vidéo", projets: "Projets vidéo", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Rapports & statistiques", parametres: "Paramètres", support: "Support clients" },
     create: { button: "Créer", task: "Nouvelle tâche", promotion: "Nouvelle promotion", member: "Ajouter un membre", menu: "Menu Créer" },
     me: { edit: "Modifier mon profil", logout: "Se déconnecter" },
     common: { save: "Enregistrer", saving: "Enregistrement…", saved: "Enregistré.", cancel: "Annuler", close: "Fermer", unavailable: "Indisponible", all: "Tous", search: "Rechercher…" },
@@ -71,6 +71,8 @@ const TEXT = {
         "commission.payee": "Commission payée",
         "commission.generate": "Commissions calculées",
         "payment.balance": "Solde encaissé",
+        "support.reply": "Réponse au support client",
+        "support.status": "Statut d'une demande modifié",
       } as Record<string, string>,
     },
     catalogue: {
@@ -444,7 +446,7 @@ const TEXT = {
     },
   },
   en: {
-    nav: { catalogue: "Catalogue & prices", prixVideo: "Video service prices", projets: "Video projects", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Reports & statistics", parametres: "Settings" },
+    nav: { catalogue: "Catalogue & prices", prixVideo: "Video service prices", projets: "Video projects", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Reports & statistics", parametres: "Settings", support: "Client support" },
     create: { button: "Create", task: "New task", promotion: "New promotion", member: "Add a member", menu: "Create menu" },
     me: { edit: "Edit my profile", logout: "Log out" },
     common: { save: "Save", saving: "Saving…", saved: "Saved.", cancel: "Cancel", close: "Close", unavailable: "Unavailable", all: "All", search: "Search…" },
@@ -512,6 +514,8 @@ const TEXT = {
         "commission.payee": "Commission paid",
         "commission.generate": "Commissions computed",
         "payment.balance": "Balance collected",
+        "support.reply": "Client support reply",
+        "support.status": "Support request status changed",
       } as Record<string, string>,
     },
     catalogue: {

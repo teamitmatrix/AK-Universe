@@ -2359,3 +2359,73 @@ a.adm-me:focus-visible .adm-me-edit {
     white-space: nowrap;
   }
 }
+
+/* Support inbox thread */
+.adm-thread {
+  list-style: none;
+  margin: 0;
+  padding: 0 18px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.adm-thread li {
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--adm-bg);
+}
+.adm-thread li.is-support {
+  background: var(--adm-accent-soft);
+  border-color: transparent;
+}
+.adm-thread-who {
+  margin: 0 0 6px;
+  color: var(--adm-muted);
+  font-size: 12px;
+}
+.adm-thread-body {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.adm-thread a {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--adm-accent);
+  font-size: 13px;
+}
+.adm-support-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 18px 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--adm-line);
+}
+.adm-support-form h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.adm-support-hint {
+  margin: 0;
+  color: var(--adm-muted);
+  font-size: 13px;
+}
+.adm-support-form .adm-field {
+  max-width: 640px;
+}
+.adm-stack-forms {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.6fr);
+  gap: 8px;
+  align-items: start;
+}
+.adm-support-error {
+  grid-column: 1 / -1;
+  margin: 12px 18px 0;
+}
+@media (max-width: 860px) {
+  .adm-stack-forms {
+    grid-template-columns: 1fr;
+  }
+}

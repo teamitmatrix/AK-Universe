@@ -6,6 +6,7 @@ import { PLAN, computeQuote, sanitizeSelection, toCents, type Selection } from "
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { ensureProfile } from "@/lib/auth/session";
+import { requireClient } from "@/lib/client/session";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
 
@@ -46,6 +47,16 @@ export async function startSubscriptionCheckout(input: {
   const selection = sanitizeSelection(input.selection);
   const quote = computeQuote(selection, await getAgentsPricing());
   const admin = createAdminClient();
+
+  // One running subscription per customer: a second checkout would charge twice. Plan / option / cycle changes
+  // go through the client space (/dashboard/mon-offre) instead.
+  const { data: running } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("user_id", auth.user.id)
+    .in("status", ["active", "past_due"])
+    .limit(1);
+  if (running?.length) return { success: false as const, code: "already_subscribed" as const };
 
   const { data: membership } = await admin
     .from("organization_members")
@@ -113,34 +124,76 @@ export async function startSubscriptionCheckout(input: {
   redirect(session.url!);
 }
 
-/** "Gérer mon abonnement" on compte.html: Stripe's customer portal (cancel, change card, invoices). */
-export async function openBillingPortal() {
+/**
+ * Stripe's customer portal for the signed-in user's own latest subscription. `returnPath` is a fixed path chosen
+ * by the calling action (never by the browser). `flow: "cancel"` opens the portal straight on the cancellation
+ * screen of that subscription; if the portal configuration refuses it, the regular portal opens instead.
+ */
+async function redirectToBillingPortal(returnPath: "/compte" | "/dashboard" | "/dashboard/facturation", flow?: "cancel" | "payment_method") {
+  // Client space: same gate as its pages (active customer, two-factor passed when enabled).
+  if (returnPath.startsWith("/dashboard")) await requireClient(returnPath);
   const stripe = getStripe();
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/connexion?redirectTo=/compte");
+  if (!auth.user) redirect(`/connexion?redirectTo=${returnPath}`);
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, stripe_subscription_id")
     .eq("user_id", auth.user.id)
     .not("stripe_customer_id", "is", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!stripe || !subscription?.stripe_customer_id) redirect("/compte?portal=unavailable");
+  if (!stripe || !subscription?.stripe_customer_id) redirect(`${returnPath}?portal=unavailable`);
 
+  const returnUrl = `${getSiteUrl()}${returnPath}`;
+  const base = { customer: subscription.stripe_customer_id, return_url: returnUrl, locale: "auto" as const };
   let url: string;
   try {
-    const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
-      return_url: `${getSiteUrl()}/compte`,
-      locale: "auto",
-    });
+    let session: Stripe.BillingPortal.Session | null = null;
+    const flowData: Stripe.BillingPortal.SessionCreateParams.FlowData | null =
+      flow === "cancel" && subscription.stripe_subscription_id
+        ? {
+            type: "subscription_cancel",
+            subscription_cancel: { subscription: subscription.stripe_subscription_id },
+            after_completion: { type: "redirect", redirect: { return_url: returnUrl } },
+          }
+        : flow === "payment_method"
+          ? { type: "payment_method_update", after_completion: { type: "redirect", redirect: { return_url: returnUrl } } }
+          : null;
+    if (flowData) {
+      session = await stripe.billingPortal.sessions.create({ ...base, flow_data: flowData }).catch((cause) => {
+        console.error(`Stripe portal flow "${flow}" unavailable, opening the regular portal:`, cause);
+        return null;
+      });
+    }
+    session ??= await stripe.billingPortal.sessions.create(base);
     url = session.url;
   } catch (cause) {
     console.error("Stripe billing portal failed:", cause);
-    redirect("/compte?portal=unavailable");
+    redirect(`${returnPath}?portal=unavailable`);
   }
   redirect(url);
+}
+
+/** "Gérer mon abonnement" on compte.html: Stripe's customer portal (cancel, change card, invoices). */
+export async function openBillingPortal() {
+  await redirectToBillingPortal("/compte");
+}
+
+/**
+ * "Moyen de paiement → Modifier" on /dashboard/facturation: Stripe's secure payment-method screen (add a card /
+ * SEPA mandate, replace it, make it the default). Card details never reach this application.
+ */
+export async function openClientPaymentMethodPortal() {
+  await redirectToBillingPortal("/dashboard/facturation", "payment_method");
+}
+
+/**
+ * Client dashboard (/dashboard) buttons: manage the plan, invoices (`flow` empty) or cancel (`flow=cancel`).
+ * Comes back to /dashboard, which re-reads the subscription from Stripe on every request.
+ */
+export async function openClientBillingPortal(formData: FormData) {
+  await redirectToBillingPortal("/dashboard", formData.get("flow") === "cancel" ? "cancel" : undefined);
 }
