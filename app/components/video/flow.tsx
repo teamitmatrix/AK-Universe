@@ -4,7 +4,18 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { euro, qtyWord } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isAgent, isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart, type CartItem } from "./cart";
+import {
+  isAgent,
+  isDigital,
+  isForfait,
+  itemName,
+  itemPriceLines,
+  itemSummary,
+  planOf,
+  serviceOf,
+  useCart,
+  type CartItem,
+} from "./cart";
 import { useVideo } from "./context";
 import { Mockup } from "./Mockup";
 
@@ -79,25 +90,48 @@ export function Summary({ editable = false }: { editable?: boolean }) {
               <strong>{itemName(config, item)}</strong>
               <small>{itemSummary(config, item)}</small>
             </div>
-            <b>{euro(itemPrice(config, item))}</b>
+            <div className="recap-price">
+              {itemPriceLines(config, item).map((line) => (
+                <b key={`${line.label}-${line.amount}`}>
+                  {line.label ? <span>{line.label}</span> : null}
+                  {euro(line.amount)}
+                  {line.suffix ? <small> {line.suffix}</small> : null}
+                </b>
+              ))}
+            </div>
           </li>
         ))}
       </ul>
       <div className="recap-total">
-        <span>Estimation totale</span>
+        <span>{cart.recurringMonthly > 0 ? "1er mois (mise en place + abonnement)" : "Estimation totale"}</span>
         <strong>
           {euro(cart.total)} <small>HT</small>
         </strong>
       </div>
-      <p className="muted-note">Prix indicatif, ajusté selon vos besoins.</p>
+      {cart.recurringMonthly > 0 ? (
+        <div className="recap-total is-renew">
+          <span>Puis chaque mois (abonnement seul)</span>
+          <strong>
+            {euro(cart.recurringMonthly)} <small>HT</small>
+          </strong>
+        </div>
+      ) : null}
+      <p className="muted-note">
+        {cart.recurringMonthly > 0
+          ? "Prix indicatif. La mise en place n'est payée qu'une fois."
+          : "Prix indicatif, ajusté selon vos besoins."}
+      </p>
     </>
   );
 }
 
 export function quantityLabel(item: CartItem, config: ReturnType<typeof useVideo>["config"]) {
-  if (isForfait(item)) return "Abonnement mensuel";
-  if (isDigital(item)) return "Mise en place";
-  if (isAgent(item)) return "Abonnement mensuel";
+  // Setup + subscription amounts are shown in the price column — keep qty for video services only.
+  if (isForfait(item)) {
+    const plan = planOf(config, item.key);
+    return plan?.setupPrice ? "" : "Abonnement mensuel";
+  }
+  if (isDigital(item) || isAgent(item)) return "";
   const service = serviceOf(config, item.slug);
   return service ? qtyWord(service, item.qty) : "";
 }

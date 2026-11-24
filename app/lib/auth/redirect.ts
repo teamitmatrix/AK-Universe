@@ -1,8 +1,4 @@
 /**
- * Only same-site paths are allowed after login. Rejects "//evil.com" and "/\evil.com"
- * (browsers read a backslash as a slash, which makes it an external URL).
- */
-/**
  * Guests who try to pay from My Projects return here after sign-in or sign-up.
  * Replace this path when the post-auth landing page is chosen.
  */
@@ -13,6 +9,22 @@ export function signInBeforePayment() {
   return `/connexion?redirectTo=${encodeURIComponent(PAYMENT_AUTH_RETURN)}`;
 }
 
+/**
+ * Where to finish a subscription the visitor started on the public site (/abonnement or /paiement).
+ * Any other path is ignored so registration cannot be sent off-site.
+ */
+export function subscriptionResumePath(value: string | null | undefined): string | null {
+  const path = safeRedirect(value, "");
+  if (!path || path === "/") return null;
+  const queryAt = path.indexOf("?");
+  const pathname = queryAt === -1 ? path : path.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : path.slice(queryAt);
+  if (pathname === "/abonnement" || pathname.startsWith("/abonnement/")) return path;
+  if (pathname === "/paiement" || pathname.startsWith("/paiement/")) return `/abonnement${search}`;
+  return null;
+}
+
+/** Same-site path only. Rejects "//evil.com" and "/\evil.com" (browsers treat a backslash as a slash). */
 export function safeRedirect(value: string | null | undefined, fallback = "/") {
   if (!value || !value.startsWith("/") || value.includes("\\")) return fallback;
   try {

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: { absolute: "Mes demandes — AK Univ
 
 /** Every support request of the customer, most recently updated first. */
 export default async function TicketsPage() {
-  const me = await requireClient("/dashboard/support/demandes");
+  const me = await requireClient("/client/dashboard/support/demandes");
   const { ready, tickets } = await listMyTickets(me, 200);
   return (
     <main className="cs-page">
@@ -29,10 +29,10 @@ export default async function TicketsPage() {
           <p className="cs-empty">Vous n&apos;avez encore aucune demande.</p>
         )}
         <div className="cs-modal-actions cs-start">
-          <Link href="/dashboard/support" className="cs-btn-outline">
+          <Link href="/client/dashboard/support" className="cs-btn-outline">
             <ArrowLeft size={16} aria-hidden="true" /> Retour au support
           </Link>
-          <Link href="/dashboard/support?demande=1" className="cs-act is-primary cs-act-fit">
+          <Link href="/client/dashboard/support?demande=1" className="cs-act is-primary cs-act-fit">
             <span>Créer une demande</span>
           </Link>
         </div>

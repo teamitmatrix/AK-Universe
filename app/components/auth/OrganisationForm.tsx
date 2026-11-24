@@ -8,7 +8,7 @@ import { textLang, useLang } from "@/components/ui/LangSwitch";
 
 const TEXT = {
   fr: {
-    steps: ["Compte", "Organisation", "Équipe", "Confirmation"],
+    steps: ["Compte", "Organisation"],
     stepsLabel: "Étapes",
     heading: ["Créez votre ", "organisation"],
     subtitle: "Créez une organisation pour organiser vos agents IA et collaborer avec votre équipe.",
@@ -28,7 +28,7 @@ const TEXT = {
     },
   },
   en: {
-    steps: ["Account", "Organization", "Team", "Confirmation"],
+    steps: ["Account", "Organization"],
     stepsLabel: "Steps",
     heading: ["Create your ", "organization"],
     subtitle: "Create an organization to organize your AI agents and collaborate with your team.",
@@ -49,7 +49,7 @@ const TEXT = {
   },
 };
 
-export function OrganisationForm() {
+export function OrganisationForm({ next }: { next?: string }) {
   const [lang] = useLang();
   const t = TEXT[textLang(lang)];
   const [name, setName] = useState("");
@@ -62,8 +62,7 @@ export function OrganisationForm() {
     event.preventDefault();
     setError("");
     startTransition(async () => {
-      // Redirects to /abonnement on success.
-      const result = await createOrganization({ name, sector, size });
+      const result = await createOrganization({ name, sector, size, next });
       if (result && !result.success) setError(result.code);
     });
   }

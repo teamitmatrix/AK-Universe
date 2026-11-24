@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: { absolute: "Mon offre — AK Univers
  * `?upgrade=1` / `?modifier=1` / `?resilier=1` open the matching dialog (dashboard buttons).
  */
 export default async function MyPlanPage({ searchParams }: { searchParams: Promise<{ upgrade?: string; modifier?: string; resilier?: string }> }) {
-  const me = await requireClient("/dashboard/mon-offre");
+  const me = await requireClient("/client/dashboard/mon-offre");
   const [params, { plan }, pricing] = await Promise.all([searchParams, loadClientSubscription(me, { history: false }), getAgentsPricing()]);
 
   const cycle = plan?.cycle ?? "mensuel";

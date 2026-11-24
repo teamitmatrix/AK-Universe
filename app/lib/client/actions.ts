@@ -12,7 +12,7 @@ import { getClientMe } from "./session";
 export async function getMyNotifications(): Promise<{ success: true; feed: Feed } | { success: false; error: "forbidden" }> {
   const me = await getClientMe();
   if (!me) return { success: false, error: "forbidden" };
-  return { success: true, feed: await loadMyNotifications(me, "/dashboard") };
+  return { success: true, feed: await loadMyNotifications(me, "/client/dashboard") };
 }
 
 export async function markNotificationsRead(ids: string[] | null) {

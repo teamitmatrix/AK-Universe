@@ -18,16 +18,16 @@ export const metadata: Metadata = { title: { absolute: "Contrat d'abonnement —
  * "save as PDF" from the browser. The billing rules stated here are the ones the client space applies.
  */
 export default async function ContractPage() {
-  const me = await requireClient("/dashboard/facturation/contrat");
+  const me = await requireClient("/client/dashboard/facturation/contrat");
   const [{ plan, profile, paymentMethod }, company] = await Promise.all([loadClientBilling(me), getCompany()]);
-  if (!plan) redirect("/dashboard/facturation");
+  if (!plan) redirect("/client/dashboard/facturation");
 
   const per = plan.interval === "year" ? "an" : "mois";
   const cityLine = [profile.postalCode, profile.city].filter(Boolean).join(" ");
   return (
     <main className="cs-page cs-contract-page">
       <div className="cs-doc-bar">
-        <Link href="/dashboard/facturation" className="cs-btn-outline">
+        <Link href="/client/dashboard/facturation" className="cs-btn-outline">
           <ArrowLeft size={16} aria-hidden="true" /> Retour à la facturation
         </Link>
         <PrintButton />

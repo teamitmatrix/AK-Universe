@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/server";
  *   endpoint  https://<domain>/api/stripe/webhook
  *   events    checkout.session.completed, customer.subscription.updated,
  *             customer.subscription.deleted, invoice.paid, invoice.payment_failed
- * invoice.paid also applies client-space plan changes waiting for a renewal or a prorated payment (/dashboard/mon-offre).
+ * invoice.paid also applies client-space plan changes waiting for a renewal or a prorated payment (/client/dashboard/mon-offre).
  */
 
 const SUBSCRIPTION_STATUS: Partial<Record<Stripe.Subscription.Status, string>> = {

@@ -34,7 +34,7 @@ export const AGENT_SUBSCRIPTIONS: Record<string, AgentSubscription> = {
     priceAnnual: 990,
     setupFrom: MILO_SETUP,
     credits: "800 crédits voix",
-    capacity: "400 minutes voix",
+    capacity: "350 minutes voix",
   },
   nora: {
     price: 39,

@@ -111,7 +111,7 @@ function TicketModal({ onClose, defaultCategory }: { onClose: () => void; defaul
             <button type="button" className="cs-btn-outline" onClick={onClose}>
               Fermer
             </button>
-            <Link href={`/dashboard/support/demandes/${created}`} className="cs-act is-primary cs-act-fit">
+            <Link href={`/client/dashboard/support/demandes/${created}`} className="cs-act is-primary cs-act-fit">
               <span>Suivre ma demande</span>
               <ArrowRight className="cs-act-arrow" size={18} aria-hidden="true" />
             </Link>
@@ -198,7 +198,7 @@ export function HelpSearch() {
       role="search"
       onSubmit={(e) => {
         e.preventDefault();
-        router.push(`/dashboard/support/aide${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
+        router.push(`/client/dashboard/support/aide${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
       }}
     >
       <Search size={20} aria-hidden="true" />
@@ -250,7 +250,7 @@ export function HelpCenter({ initialQuery, initialCategory }: { initialQuery: st
       ) : (
         <p className="cs-empty">
           Aucun article ne correspond à votre recherche.{" "}
-          <Link href="/dashboard/support?demande=1" className="cs-link-btn">
+          <Link href="/client/dashboard/support?demande=1" className="cs-link-btn">
             Posez votre question au support
           </Link>
         </p>

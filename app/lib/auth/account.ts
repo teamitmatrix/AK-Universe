@@ -34,15 +34,10 @@ export async function homePathFor(uid: string) {
     case "videaste":
       return "/videaste/dashboard";
   }
-  const { data } = await createAdminClient().from("organization_members").select("organization_id").eq("user_id", uid).limit(1);
-  return data?.length ? "/entreprise/dashboard" : "/dashboard";
+  return "/client/dashboard";
 }
 
-/** Default landing after sign-in when no redirectTo was requested: staff go to their space, clients to the home page. */
+/** Default landing after sign-in when no redirectTo was requested: each role opens its own space. */
 export async function landingPathFor(uid: string) {
-  const profile = await profileOf(uid);
-  if (profile?.active !== false && ["admin", "commercial", "videaste"].includes(profile?.role ?? "")) {
-    return (await homePathFor(uid)) ?? "/";
-  }
-  return "/";
+  return (await homePathFor(uid)) ?? "/";
 }

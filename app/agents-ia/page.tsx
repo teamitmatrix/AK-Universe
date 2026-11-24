@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AgentAddons } from "@/components/layout/AgentAddons";
 import { AgentCard, AgentDemo } from "@/components/layout/AgentCard";
 import { AgentPricing } from "@/components/layout/AgentPricing";
 import { AgentsSubnav } from "@/components/layout/AgentsSubnav";
@@ -112,6 +113,7 @@ export default async function Page() {
         </section>
 
         <AgentPricing pricing={pricing} hiddenIds={[...hidden]} />
+        <AgentAddons pricing={pricing} hiddenIds={[...hidden]} />
 
         <section className="section" id="faq">
           <div className="container agents-faq">

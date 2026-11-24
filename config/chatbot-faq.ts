@@ -93,7 +93,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
     entries: [
       {
         q: "Comment créer un compte et m'abonner aux agents IA ?",
-        a: "1) Créez votre compte sur /inscription (e-mail et mot de passe, ou Google). 2) Saisissez le code à 6 chiffres reçu par e-mail (il expire après 15 minutes). 3) Créez votre organisation (nom, secteur, taille). 4) Personnalisez votre abonnement sur /abonnement (période, utilisateurs, options). 5) Payez sur /paiement : l'activation est immédiate.",
+        a: "1) Créez votre compte sur /inscription (e-mail et mot de passe, ou Google). 2) Saisissez le code à 6 chiffres reçu par e-mail (il expire après 15 minutes). 3) Créez votre organisation (nom, secteur, taille). Vous arrivez ensuite dans votre espace client. Si vous aviez choisi une offre sur le site public, la page /abonnement s'ouvre pour terminer l'abonnement : vous pouvez aussi la quitter et payer plus tard. Le paiement se fait sur /paiement.",
         url: "/inscription",
       },
       {

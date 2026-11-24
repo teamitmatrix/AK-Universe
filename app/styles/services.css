@@ -225,7 +225,31 @@ body.modal-open { overflow: hidden; }
 .pi-info p { margin: 4px 0 6px; color: #bdb3a4; font-size: .92rem; }
 .pi-actions { display: flex; gap: 16px; }
 .pi-qty { color: #d6cdbf; font-size: .92rem; white-space: nowrap; }
-.pi-price { font-size: 1.3rem; white-space: nowrap; }
+.pi-price {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  text-align: right;
+  white-space: nowrap;
+}
+.pi-price-line { display: grid; gap: 2px; justify-items: end; }
+.pi-price-label { color: #bdb3a4; font-size: .78rem; font-weight: 600; }
+.pi-price-line strong { font-size: 1.15rem; font-weight: 800; color: #fff; }
+.pi-price-line strong small { font-size: .75rem; font-weight: 600; color: #d6cdbf; }
+.estimate-renew {
+  display: block;
+  margin-top: 6px;
+  font-style: normal;
+  font-size: .92rem;
+  font-weight: 600;
+  color: #d6cdbf;
+}
+.recap-price { display: grid; gap: 6px; justify-items: end; text-align: right; }
+.recap-price b { display: grid; gap: 1px; font-size: .95rem; font-weight: 700; }
+.recap-price b span { color: #a79d8f; font-size: .72rem; font-weight: 600; }
+.recap-price b small { font-weight: 600; color: #d6cdbf; }
+.recap-total.is-renew { padding-top: 6px; border-top: 0; }
+.recap-total.is-renew strong { font-size: 1.25rem; }
 .pi-x { width: 32px; height: 32px; border-radius: 50%; border: 0; background: none; color: #d6cdbf; font-size: 1.1rem; display: grid; place-items: center; }
 .pi-x:hover { background: rgba(255,255,255,.08); color: #fff; }
 .add-more { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 0; padding: 14px; border-radius: 12px; border: 1.5px dashed rgba(253,185,66,.45); color: var(--gold); font-weight: 600; }

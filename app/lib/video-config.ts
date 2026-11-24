@@ -92,6 +92,8 @@ export type VideoConfig = {
   digitalWebsites?: DigitalWebsite[];
   /** Solo Agents IA subscriptions for Mon projet cart. */
   agentOffers?: AgentOffer[];
+  /** Live AI add-on prices (id → EUR HT), from agents_pricing.addons. */
+  agentAddonPrices?: Record<string, number>;
   [key: string]: unknown;
 };
 
@@ -186,6 +188,12 @@ export async function getVideoConfig() {
     config.agentOffers = await getAgentOffers();
   } catch (cause) {
     console.error("Could not load agent offers:", cause);
+  }
+  try {
+    const { getAgentsPricing } = await import("@/lib/agents-pricing");
+    config.agentAddonPrices = (await getAgentsPricing()).addons;
+  } catch (cause) {
+    console.error("Could not load agent add-on prices:", cause);
   }
   return config;
 }

@@ -823,7 +823,7 @@ export function OtherActionsCard({ hasPassword, hasSubscription }: { hasPassword
         Autres actions
       </h2>
       <div className="cs-actions">
-        <a href="/dashboard/mon-compte/export" className="cs-act" download>
+        <a href="/client/dashboard/mon-compte/export" className="cs-act" download>
           <Download className="cs-act-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
           <span>Exporter mes données</span>
           <ArrowRight className="cs-act-arrow" size={20} aria-hidden="true" />

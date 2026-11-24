@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: { absolute: "Centre d'aide — AK Uni
 
 /** Help centre: searchable articles by category. `?q=` search, `?categorie=` filter. */
 export default async function HelpPage({ searchParams }: { searchParams: Promise<{ q?: string; categorie?: string }> }) {
-  await requireClient("/dashboard/support/aide");
+  await requireClient("/client/dashboard/support/aide");
   const { q, categorie } = await searchParams;
   return (
     <main className="cs-page">
@@ -21,11 +21,11 @@ export default async function HelpPage({ searchParams }: { searchParams: Promise
       <div className="cs-narrow">
         <HelpCenter initialQuery={typeof q === "string" ? q.slice(0, 80) : ""} initialCategory={isHelpCategory(categorie) ? categorie : null} />
         <p className="cs-back">
-          <Link href="/dashboard/support" className="cs-link-btn">
+          <Link href="/client/dashboard/support" className="cs-link-btn">
             <ArrowLeft size={14} aria-hidden="true" /> Retour au support
           </Link>
           {" · "}
-          <Link href="/dashboard/support?demande=1" className="cs-link-btn">
+          <Link href="/client/dashboard/support?demande=1" className="cs-link-btn">
             Contacter le support
           </Link>
         </p>

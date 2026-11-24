@@ -23,7 +23,7 @@ export function TicketRows({ tickets, showUpdated = false }: { tickets: TicketSu
         const done = t.status === "resolu" || t.status === "ferme";
         return (
           <li key={t.id}>
-            <Link href={`/dashboard/support/demandes/${t.reference}`} className="cs-ticket">
+            <Link href={`/client/dashboard/support/demandes/${t.reference}`} className="cs-ticket">
               <span className="cs-doc" aria-hidden="true">
                 {done ? <CircleCheck size={20} strokeWidth={1.7} /> : <MessageCircle size={20} strokeWidth={1.7} />}
               </span>
@@ -56,7 +56,7 @@ export function HelpLinks() {
     <ul className="cs-setting-list cs-help-links">
       {HELP_LINKS.map(({ cat, label, icon: Icon }) => (
         <li key={cat}>
-          <Link href={`/dashboard/support/aide?categorie=${cat}`} className="cs-setting-btn">
+          <Link href={`/client/dashboard/support/aide?categorie=${cat}`} className="cs-setting-btn">
             <Icon size={22} strokeWidth={1.7} aria-hidden="true" />
             <span>{label}</span>
             <ArrowRight size={20} aria-hidden="true" />

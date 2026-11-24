@@ -2,6 +2,7 @@ import "server-only";
 import { AGENT_SUBSCRIPTIONS } from "@/config/agent-subscriptions";
 import { agents as staticAgents } from "@/config/agents";
 import { DIGITAL_WEBSITES } from "@/config/digital";
+import { AGENT_ADDON_LIST, isAddonId } from "@/config/agent-addons";
 import { AGENT_TIERS, OPTIONS, PLAN, isRetiredOption } from "@/config/pricing";
 import { getAgentsCatalog } from "@/lib/agents-catalog";
 import { getAgentsPricing } from "@/lib/agents-pricing";
@@ -13,13 +14,13 @@ import { applyOverrides, getPricingOverrides, loadDefaultConfig } from "@/lib/vi
  * One row per priced item sold on the site, with its current (merged) and default values.
  * The prices themselves live where the site already reads them:
  *   video services, options, deposit, quantity discounts, marketing packages → site_settings "video_pricing"
- *   Agents IA tiers, subscription, extra user, annual discount, options      → site_settings "agents_pricing"
+ *   Agents IA tiers, solo, add-ons, subscription, options, annual discount → site_settings "agents_pricing"
  *   website setup and monthly running fees                                   → site_settings "digital_pricing"
  * Cost prices + max authorized discounts                                    → site_settings "catalogue_commercial"
  * Field keys are stable ids understood by saveCatalogue() (catalogue-actions.ts).
  */
 
-export type CatalogueCategory = "agents" | "abonnement" | "marketing" | "videos" | "options" | "digital" | "regles";
+export type CatalogueCategory = "agents" | "addons" | "abonnement" | "marketing" | "videos" | "options" | "digital" | "regles";
 export type CatalogueField = { key: string; label: "price" | "setup" | "percent" | "monthly"; value: number; default: number; unit: "eur" | "eurMonth" | "pct" };
 
 /** Cost + discount caps for rows that sell in € (not percent rules). */
@@ -193,6 +194,38 @@ export async function loadCatalogue() {
             ...(setupValue != null
               ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: setupValue, default: tier.setupFrom!, unit: "eur" as const }]
               : []),
+          ],
+        },
+        meta(id),
+      ),
+    );
+  }
+
+  // Pay-as-you-go packs + monthly AI add-ons (solo plans and packages).
+  for (const addon of AGENT_ADDON_LIST) {
+    const id = `addon:${addon.id}`;
+    const live = (isAddonId(addon.id) ? agents.addons[addon.id] : undefined) ?? addon.price;
+    const rangeNote =
+      addon.priceMax != null && addon.priceMax > live
+        ? ` · Fourchette jusqu'à ${addon.priceMax.toLocaleString("fr-FR")} € HT`
+        : "";
+    const monthly = addon.billing === "month";
+    rows.push(
+      row(
+        {
+          id,
+          category: "addons",
+          name: `Add-on — ${addon.label}`,
+          detail: `${addon.detail}${rangeNote}`,
+          href: "/agents-ia#addons",
+          fields: [
+            {
+              key: `a:addon:${addon.id}`,
+              label: monthly ? "monthly" : "price",
+              value: live,
+              default: addon.price,
+              unit: monthly ? "eurMonth" : "eur",
+            },
           ],
         },
         meta(id),

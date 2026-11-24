@@ -17,7 +17,7 @@ const time = (iso: string) => new Date(iso).toLocaleString("fr-FR", { day: "nume
 /** One support request: details, conversation, reply. Only the owner can open it (404 otherwise). */
 export default async function TicketPage({ params }: { params: Promise<{ reference: string }> }) {
   const { reference } = await params;
-  const me = await requireClient(`/dashboard/support/demandes/${reference}`);
+  const me = await requireClient(`/client/dashboard/support/demandes/${reference}`);
   const found = await getMyTicket(me, reference);
   if (!found) notFound();
   const { ticket, messages } = found;
@@ -68,7 +68,7 @@ export default async function TicketPage({ params }: { params: Promise<{ referen
         </ol>
         <TicketReply reference={ticket.reference} status={ticket.status} />
         <p className="cs-back">
-          <Link href="/dashboard/support/demandes" className="cs-link-btn">
+          <Link href="/client/dashboard/support/demandes" className="cs-link-btn">
             <ArrowLeft size={14} aria-hidden="true" /> Toutes mes demandes
           </Link>
         </p>

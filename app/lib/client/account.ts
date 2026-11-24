@@ -5,7 +5,7 @@ import { parsePrefs, type NotificationPrefs } from "./notification-prefs";
 import type { ClientMe } from "./session";
 
 /*
- * Data of "Mon compte" (/dashboard/mon-compte). Everything is read with the customer's own session (RLS) except
+ * Data of "Mon compte" (/client/dashboard/mon-compte). Everything is read with the customer's own session (RLS) except
  * the pending e-mail change, a server-only table read with the service key for the caller's own id.
  */
 

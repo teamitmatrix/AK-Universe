@@ -9,7 +9,9 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Icon } from "@/components/ui/Icon";
 import { agents } from "@/config/agents";
 import { getSiteAgentById } from "@/lib/agents-catalog";
+import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getHiddenCatalogueIds } from "@/lib/catalogue-commercial";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -32,7 +34,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const agent = await getSiteAgentById((await params).id);
   if (!agent) notFound();
-  const user = await getCurrentUser();
+  const [user, pricing, hidden] = await Promise.all([
+    getCurrentUser(),
+    getAgentsPricing(),
+    getHiddenCatalogueIds(),
+  ]);
 
   return (
     <>
@@ -62,6 +68,8 @@ export default async function Page({ params }: Props) {
                     priceAnnual={agent.priceAnnual ?? null}
                     setupFrom={agent.setupFrom ?? null}
                     capacityLabel={agent.capacityLabel}
+                    addonPrices={pricing.addons}
+                    hiddenAddonIds={[...hidden]}
                   />
                 ) : null}
               </div>

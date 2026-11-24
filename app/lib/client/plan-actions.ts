@@ -15,8 +15,8 @@ import { planProduct } from "./stripe-products";
 import { CLEARED_PENDING } from "./subscription-sync";
 
 /*
- * Plan / option / billing-cycle changes and cancellation, from "Mon offre" (/dashboard/mon-offre) and
- * "Facturation" (/dashboard/facturation, monthly ↔ annual).
+ * Plan / option / billing-cycle changes and cancellation, from "Mon offre" (/client/dashboard/mon-offre) and
+ * "Facturation" (/client/dashboard/facturation, monthly ↔ annual).
  * Server actions are public endpoints, so every call:
  *   - re-checks the caller (active, non-staff customer) and reads THEIR subscription with their own session (RLS);
  *   - recomputes every amount here (catalogue prices + computeQuote) — the browser only sends a plan id and option
@@ -239,7 +239,7 @@ async function unlock(db: ReturnType<typeof createAdminClient>, row: Row) {
 }
 
 function done() {
-  revalidatePath("/dashboard", "layout");
+  revalidatePath("/client/dashboard", "layout");
 }
 
 const eurFr = (cents: number) => (cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 }) + " €";

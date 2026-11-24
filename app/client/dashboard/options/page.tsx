@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: { absolute: "Options — AK Universe"
  * change is re-priced, prorated and applied by the plan-change server actions after the customer confirms.
  */
 export default async function OptionsPage() {
-  const me = await requireClient("/dashboard/options");
+  const me = await requireClient("/client/dashboard/options");
   const [{ plan }, pricing] = await Promise.all([loadClientSubscription(me, { history: false }), getAgentsPricing()]);
   const active = plan && plan.status !== "canceled";
   const state: PlanState | null = active

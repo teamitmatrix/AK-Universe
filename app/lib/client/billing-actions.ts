@@ -8,7 +8,7 @@ import { isCountry, taxTypeFor } from "./countries";
 import { getClientMe } from "./session";
 
 /*
- * "Informations de facturation" (/dashboard/facturation). Server action = public endpoint: it re-checks the caller,
+ * "Informations de facturation" (/client/dashboard/facturation). Server action = public endpoint: it re-checks the caller,
  * validates every field, writes ONLY the caller's own billing_profiles row (service role, user_id from the verified
  * session) and mirrors the details to their Stripe customer, so the next invoices carry them.
  * Order: Stripe first (it validates the VAT number), then the database — a refused VAT number saves nothing.
@@ -125,6 +125,6 @@ export async function saveBillingProfile(input: BillingInput): Promise<{ success
     return { success: false, error: "failed" };
   }
   // Shown on Facturation and Mon compte (same record).
-  revalidatePath("/dashboard", "layout");
+  revalidatePath("/client/dashboard", "layout");
   return { success: true };
 }

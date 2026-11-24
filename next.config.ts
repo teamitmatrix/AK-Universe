@@ -44,6 +44,11 @@ const nextConfig: NextConfig = {
         destination: "/services/video-recrutement-marque-employeur",
         permanent: true,
       },
+      // Old public account page. Customers use the client portal.
+      { source: "/compte", destination: "/client/dashboard", permanent: false },
+      // Client portal moved from /dashboard to /client/dashboard.
+      { source: "/dashboard", destination: "/client/dashboard", permanent: false },
+      { source: "/dashboard/:path*", destination: "/client/dashboard/:path*", permanent: false },
       // Admin-space legacy entry points (handoff).
       { source: "/admin-commerciaux.html", destination: "/admin/commerciaux", permanent: true },
       { source: "/admin-commerciaux", destination: "/admin/commerciaux", permanent: true },

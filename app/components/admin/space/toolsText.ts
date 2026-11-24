@@ -79,7 +79,7 @@ const TEXT = {
       title: "Catalogue & prix",
       subtitle: "Les prix réels de tout ce que vend AK Universe. Ils sont lus par le site, les devis, le paiement et le chatbot.",
       list: "Tous les produits & services",
-      categories: { "": "Toutes les catégories", agents: "Agents IA", abonnement: "Abonnement en ligne", marketing: "Forfaits marketing", videos: "Services vidéo", options: "Options vidéo", digital: "Sites web", regles: "Règles tarifaires" } as Record<string, string>,
+      categories: { "": "Toutes les catégories", agents: "Agents IA", addons: "Add-ons Agents IA", abonnement: "Abonnement en ligne", marketing: "Forfaits marketing", videos: "Services vidéo", options: "Options vidéo", digital: "Sites web", regles: "Règles tarifaires" } as Record<string, string>,
       cols: {
         product: "Produit",
         category: "Catégorie",
@@ -126,7 +126,7 @@ const TEXT = {
       hideHidden: "Masquer les produits retirés",
       actions: "Actions",
       durationsNote: "Les suppléments par durée des vidéos se règlent dans l'onglet « Prix des services vidéo ».",
-      onQuoteNote: "Prix de revient = coût interne (optionnel). Prix vente HT = prix client. Commission = taux du type de produit (réglable plus bas). Les offres « Sur devis » n'apparaissent pas ici.",
+      onQuoteNote: "Marge = prix vente après remise max − prix de revient − commission commerciale. Commission = taux du type de produit (réglable plus bas). Les offres « Sur devis » n'apparaissent pas ici.",
       newAgent: "Nouveau service IA",
       agentForm: {
         intro: "Le service est publié dans la section Agents IA (carte + page détail « Découvrir »). Pas de marketing ni digital.",
@@ -522,7 +522,7 @@ const TEXT = {
       title: "Catalogue & prices",
       subtitle: "The real prices of everything AK Universe sells. Read by the site, quotes, checkout and the chatbot.",
       list: "All products & services",
-      categories: { "": "All categories", agents: "AI agents", abonnement: "Online subscription", marketing: "Marketing packages", videos: "Video services", options: "Video options", digital: "Websites", regles: "Pricing rules" } as Record<string, string>,
+      categories: { "": "All categories", agents: "AI agents", addons: "AI agent add-ons", abonnement: "Online subscription", marketing: "Marketing packages", videos: "Video services", options: "Video options", digital: "Websites", regles: "Pricing rules" } as Record<string, string>,
       cols: {
         product: "Product",
         category: "Category",
@@ -569,7 +569,7 @@ const TEXT = {
       hideHidden: "Hide removed products",
       actions: "Actions",
       durationsNote: "Video duration supplements are set in the “Video service prices” tab.",
-      onQuoteNote: "Cost price = internal cost (optional). Selling price = customer price. Commission = product-type rate (editable below). “On quote” offers are not listed.",
+      onQuoteNote: "Margin = selling price after max discount − cost price − sales commission. Commission = product-type rate (editable below). “On quote” offers are not listed.",
       newAgent: "New AI service",
       agentForm: {
         intro: "The service is published in the AI Agents section (card + detail page via Discover). Not marketing or digital.",

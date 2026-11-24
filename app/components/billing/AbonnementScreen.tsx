@@ -40,7 +40,9 @@ function persistCycle(next: Cycle) {
 
 const TEXT = {
   fr: {
-    back: "Retour",
+    site: "Site public",
+    dashboard: "Mon espace",
+    later: "Compléter plus tard",
     heading: ["Personnalisez votre ", "abonnement"],
     subtitle: "Choisissez la formule et les options qui correspondent aux besoins de votre organisation.",
     cycleLabel: "Période de facturation",
@@ -63,7 +65,9 @@ const TEXT = {
     secure: "Paiement sécurisé",
   },
   en: {
-    back: "Back",
+    site: "Public site",
+    dashboard: "My space",
+    later: "Complete later",
     heading: ["Customize your ", "subscription"],
     subtitle: "Choose the plan and options that match your organization's needs.",
     cycleLabel: "Billing period",
@@ -140,9 +144,14 @@ export function AbonnementScreen({
     <div className="theme-light" translate={nativeTranslate(lang)}>
       <div className="container" id="abonnement">
         <div className="light-top">
-          <Link href="/organisation" className="back">
-            <Icon name="arrow-left" /> {t.back}
-          </Link>
+          <div className="leave">
+            <Link href="/" className="back">
+              <Icon name="arrow-left" /> {t.site}
+            </Link>
+            <Link href="/client/dashboard" className="back">
+              {t.dashboard}
+            </Link>
+          </div>
           <LangSwitch lang={lang} onChange={setLang} />
         </div>
 
@@ -286,6 +295,9 @@ export function AbonnementScreen({
             <button type="button" className="btn btn-light-primary btn-block" onClick={goToPayment}>
               {t.continue} <Icon name="arrow" />
             </button>
+            <Link href="/client/dashboard" className="back later">
+              {t.later}
+            </Link>
             <p className="secure">
               <Icon name="lock" /> {t.secure}
             </p>

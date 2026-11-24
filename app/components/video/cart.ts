@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { AGENT_ADDON_LIST, isAddonId, type AgentAddon } from "@/config/agent-addons";
 import { AGENT_SUBSCRIPTIONS, type AgentOffer } from "@/config/agent-subscriptions";
 import { agentById } from "@/config/agents";
 import { DIGITAL_WEBSITES, digitalWebsiteOf as defaultDigitalOf, type DigitalWebsite } from "@/config/digital";
@@ -33,6 +34,16 @@ function agentOfferOf(config: VideoConfig, key: string): AgentOffer | null {
   };
 }
 
+function addonPriceOf(config: VideoConfig, addon: AgentAddon): number {
+  const live = config.agentAddonPrices?.[addon.id];
+  return typeof live === "number" && Number.isFinite(live) ? live : addon.price;
+}
+
+function selectedAgentAddons(_config: VideoConfig, item: CartAgent): AgentAddon[] {
+  const ids = new Set((item.addons ?? []).filter(isAddonId));
+  return AGENT_ADDON_LIST.filter((a) => isAddonId(a.id) && ids.has(a.id));
+}
+
 const KEY = "aku-projet";
 const CLIENT_KEY = "aku-client";
 const LAST_KEY = "aku-derniere-demande";
@@ -40,7 +51,7 @@ const LAST_KEY = "aku-derniere-demande";
 export type CartService = { id: string; slug: string; qty: number; dur: number; opts: string[] };
 export type CartForfait = { id: string; type: "forfait"; key: string };
 export type CartDigital = { id: string; type: "digital"; key: string };
-export type CartAgent = { id: string; type: "agent"; key: string };
+export type CartAgent = { id: string; type: "agent"; key: string; addons?: string[] };
 export type CartItem = CartService | CartForfait | CartDigital | CartAgent;
 
 export type ClientInfo = {
@@ -84,7 +95,13 @@ function isStored(value: unknown): value is CartItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
   if (typeof item.id !== "string") return false;
-  if (item.type === "forfait" || item.type === "digital" || item.type === "agent") return typeof item.key === "string";
+  if (item.type === "forfait" || item.type === "digital") return typeof item.key === "string";
+  if (item.type === "agent") {
+    return (
+      typeof item.key === "string" &&
+      (item.addons === undefined || (Array.isArray(item.addons) && item.addons.every((id) => typeof id === "string")))
+    );
+  }
   return (
     typeof item.slug === "string" &&
     typeof item.qty === "number" &&
@@ -163,20 +180,82 @@ export function visibleItems(config: VideoConfig, items: CartItem[]) {
   });
 }
 
+/** One display line: setup once vs recurring subscription (never summed into a single misleading label). */
+export type CartPriceLine = { label: string; amount: number; suffix?: string };
+
+/** Breakdown shown in the cart. First-period total still uses itemPrice(). */
+export function itemPriceLines(config: VideoConfig, item: CartItem): CartPriceLine[] {
+  if (isForfait(item)) {
+    const plan = planOf(config, item.key);
+    if (!plan || plan.onQuote || plan.price == null) return [];
+    const lines: CartPriceLine[] = [];
+    if (plan.setupPrice != null && plan.setupPrice > 0) {
+      lines.push({ label: "Mise en place (une fois)", amount: plan.setupPrice });
+    }
+    lines.push({ label: "Abonnement", amount: plan.price, suffix: "/ mois" });
+    return lines;
+  }
+  if (isDigital(item)) {
+    const site = digitalWebsiteOf(config, item.key);
+    if (!site) return [];
+    const lines: CartPriceLine[] = [{ label: "Mise en place (une fois)", amount: site.price }];
+    if (site.runningFrom != null) {
+      lines.push({ label: "Fonctionnement dès", amount: site.runningFrom, suffix: "/ mois" });
+    }
+    return lines;
+  }
+  if (isAgent(item)) {
+    const offer = agentOfferOf(config, item.key);
+    if (!offer) return [];
+    const lines: CartPriceLine[] = [
+      { label: "Mise en place (une fois)", amount: offer.setupFrom },
+      { label: "Abonnement", amount: offer.price, suffix: "/ mois" },
+    ];
+    for (const addon of selectedAgentAddons(config, item)) {
+      const amount = addonPriceOf(config, addon);
+      lines.push({
+        label: addon.label,
+        amount,
+        suffix: addon.billing === "month" ? "/ mois" : undefined,
+      });
+    }
+    return lines;
+  }
+  const service = serviceOf(config, item.slug);
+  const amount = service ? videoPrice(config, service, item) : 0;
+  return amount > 0 ? [{ label: "", amount }] : [];
+}
+
+/** First-period estimate (one-time setup + first subscription month when both apply). Renewals = subscription only. */
 export function itemPrice(config: VideoConfig, item: CartItem) {
   if (isForfait(item)) {
     const plan = planOf(config, item.key);
-    return plan?.price ?? 0;
+    if (!plan || plan.price == null) return 0;
+    return plan.price + (plan.setupPrice ?? 0);
   }
   if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.price ?? 0;
   if (isAgent(item)) {
     const offer = agentOfferOf(config, item.key);
     if (!offer) return 0;
-    // First-period estimate: monthly subscription + one-time onboarding.
-    return offer.price + offer.setupFrom;
+    const addonsTotal = selectedAgentAddons(config, item).reduce((sum, a) => sum + addonPriceOf(config, a), 0);
+    return offer.price + offer.setupFrom + addonsTotal;
   }
   const service = serviceOf(config, item.slug);
   return service ? videoPrice(config, service, item) : 0;
+}
+
+/** Recurring monthly amount only (what the customer pays after the first period). */
+export function itemRecurringMonthly(config: VideoConfig, item: CartItem) {
+  if (isForfait(item)) return planOf(config, item.key)?.price ?? 0;
+  if (isAgent(item)) {
+    const base = agentOfferOf(config, item.key)?.price ?? 0;
+    const monthlyAddons = selectedAgentAddons(config, item)
+      .filter((a) => a.billing === "month")
+      .reduce((sum, a) => sum + addonPriceOf(config, a), 0);
+    return base + monthlyAddons;
+  }
+  if (isDigital(item)) return digitalWebsiteOf(config, item.key)?.runningFrom ?? 0;
+  return 0;
 }
 
 export function itemSummary(config: VideoConfig, item: CartItem) {
@@ -184,20 +263,18 @@ export function itemSummary(config: VideoConfig, item: CartItem) {
     const plan = planOf(config, item.key);
     if (!plan) return "Abonnement mensuel";
     if (plan.onQuote || plan.price == null) return `Sur devis • ${plan.tagline}`;
-    return `Abonnement mensuel • ${plan.tagline}`;
+    return plan.tagline;
   }
   if (isDigital(item)) {
     const site = digitalWebsiteOf(config, item.key);
     if (!site) return "Site internet";
-    if (site.runningFrom != null) {
-      return `Mise en place HT • Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`;
-    }
-    return "Mise en place HT";
+    return site.runningFrom != null ? "Mise en place + fonctionnement mensuel" : "Mise en place";
   }
   if (isAgent(item)) {
     const offer = agentOfferOf(config, item.key);
-    if (!offer) return "Abonnement mensuel Agent IA";
-    return `Abonnement ${offer.price.toLocaleString("fr-FR")} € HT / mois + mise en place ${offer.setupFrom.toLocaleString("fr-FR")} € HT · ${offer.capacity}`;
+    if (!offer) return "Abonnement Agent IA";
+    const n = item.addons?.length ?? 0;
+    return n > 0 ? `${offer.capacity} · ${n} add-on${n > 1 ? "s" : ""}` : offer.capacity;
   }
   const service = serviceOf(config, item.slug);
   return service ? videoSummary(config, service, item) : "";
@@ -224,12 +301,15 @@ export function useCart(config: VideoConfig) {
   const raw = useSyncExternalStore(subscribe, getSnapshot, () => SERVER_ITEMS);
   const items = visibleItems(config, raw);
   const total = items.reduce((sum, item) => sum + itemPrice(config, item), 0);
+  const recurringMonthly = items.reduce((sum, item) => sum + itemRecurringMonthly(config, item), 0);
 
   const persist = (next: CartItem[]) => publish(visibleItems(config, next));
 
   return {
     items,
     total,
+    /** Sum of monthly subscriptions only (renewals after setup). */
+    recurringMonthly,
     deposit: Math.round((total * config.depositPercent) / 100),
     add(item: Omit<CartService, "id"> | Omit<CartForfait, "id"> | Omit<CartDigital, "id"> | Omit<CartAgent, "id">) {
       const current =
@@ -343,9 +423,18 @@ export function saveDigitalWebsite(config: VideoConfig, key: string) {
  * Adds or replaces a solo Agents IA subscription in the project cart.
  * Does not re-validate other cart lines (agents-ia pages may not have the full video catalogue).
  */
-export function saveAgentSubscription(key: string) {
+export function saveAgentSubscription(key: string, addons: string[] = []) {
   const current = getSnapshot().filter((entry) => !(isAgent(entry) && entry.key === key));
-  publish([...current, { type: "agent", key, id: newId() }]);
+  const clean = addons.filter(isAddonId);
+  publish([...current, { type: "agent", key, id: newId(), addons: clean }]);
+}
+
+/** Updates add-ons on an existing agent cart line (Mon projet → Modifier). */
+export function updateAgentAddons(id: string, addons: string[]) {
+  const clean = addons.filter(isAddonId);
+  publish(
+    getSnapshot().map((entry) => (isAgent(entry) && entry.id === id ? { ...entry, addons: clean } : entry)),
+  );
 }
 
 export function readLast(): LastRequest | null {

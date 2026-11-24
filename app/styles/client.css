@@ -1018,7 +1018,7 @@ a.cs-row-main:hover strong {
 }
 
 /* =========================================================
-   Mon offre (/dashboard/mon-offre)
+   Mon offre (/client/dashboard/mon-offre)
    ========================================================= */
 .cs-row3 {
   grid-column: 1 / -1;
@@ -1430,7 +1430,7 @@ a.cs-row-main:hover strong {
 }
 
 /* =========================================================
-   Facturation (/dashboard/facturation) + contract
+   Facturation (/client/dashboard/facturation) + contract
    ========================================================= */
 .cs-muted {
   color: var(--cs-muted);
@@ -1980,7 +1980,7 @@ a.cs-icon-btn:hover {
 }
 
 /* =========================================================
-   Options (/dashboard/options)
+   Options (/client/dashboard/options)
    ========================================================= */
 .cs-offer-wide {
   display: flex;
@@ -2243,7 +2243,7 @@ a.cs-icon-btn:hover {
 }
 
 /* =========================================================
-   Mon compte (/dashboard/mon-compte) + 2FA sign-in step
+   Mon compte (/client/dashboard/mon-compte) + 2FA sign-in step
    ========================================================= */
 .cs-account {
   display: grid;
@@ -2590,7 +2590,7 @@ a.cs-icon-btn:hover {
 }
 
 /* =========================================================
-   Support (/dashboard/support, demandes, aide)
+   Support (/client/dashboard/support, demandes, aide)
    ========================================================= */
 .cs-grid-support {
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);

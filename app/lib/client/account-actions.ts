@@ -69,7 +69,7 @@ async function reauthenticate(password: unknown): Promise<"ok" | "password_inval
 }
 
 function done() {
-  revalidatePath("/dashboard", "layout");
+  revalidatePath("/client/dashboard", "layout");
 }
 
 /* ---------------- Profile ---------------- */

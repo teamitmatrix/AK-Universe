@@ -1,3 +1,4 @@
+import { AGENT_ADDONS, type AddonId } from "@/config/agent-addons";
 import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 
 /** Agents IA subscription pricing (from abonnement.html / main.js). Amounts are EUR excl. VAT. */
@@ -11,7 +12,7 @@ export const PLAN = {
 /**
  * Offers shown on /agents-ia#tarifs (also read by the site chatbot + admin catalogue).
  * price / setupFrom null = on quote. priceAnnual is the billed yearly package (HT).
- * The client space (/dashboard/mon-offre) switches between these plans, lower → higher.
+ * The client space (/client/dashboard/mon-offre) switches between these plans, lower → higher.
  * `id` is stored in subscriptions.plan; `agents` = AI agents included (null = unlimited / on quote).
  */
 export const AGENT_TIERS = [
@@ -69,13 +70,13 @@ export const AGENT_TIERS = [
     name: "Enterprise",
     agents: 11,
     automations: "Complètes",
-    desc: "8 000 crédits partagés sur les 11 agents, plus 400 minutes voix Milo. Caps indicatifs : 200 prospects, 50 tâches SEO, 50 documents juridiques et 400 minutes voix ; le reste est flexible.",
+    desc: "8 000 crédits partagés sur les 11 agents, plus 350 minutes voix Milo. Caps indicatifs : 200 prospects, 50 tâches SEO, 50 documents juridiques et 350 minutes voix ; le reste est flexible.",
     price: 499,
     priceAnnual: 4990,
     setupFrom: 990,
     features: [
       "Les 11 agents inclus",
-      "8 000 crédits / mois (partagés) + 400 min voix Milo",
+      "8 000 crédits / mois (partagés) + 350 min voix Milo",
       "20 utilisateurs",
       "Onboarding inclus dans la mise en place",
     ],
@@ -141,6 +142,8 @@ export type AgentsPricing = {
   /** 0.2 = -20 % on the annual cycle. */
   annualDiscount: number;
   options: Record<OptionId, number>;
+  /** Pay-as-you-go packs + monthly AI add-ons (see config/agent-addons.ts). */
+  addons: Record<AddonId, number>;
   /** Tier name → monthly price and set-up fee (null = on quote). */
   tiers: Record<string, { price: number | null; setupFrom: number | null }>;
   /** Per-agent solo subscription (monthly HT); annual = 10 × monthly; setupFrom = onboarding. */
@@ -152,6 +155,7 @@ export const DEFAULT_AGENTS_PRICING: AgentsPricing = {
   userPrice: USER_PRICE,
   annualDiscount: ANNUAL_DISCOUNT,
   options: Object.fromEntries(OPTIONS.map((o) => [o.id, o.price])) as Record<OptionId, number>,
+  addons: Object.fromEntries(AGENT_ADDONS.map((a) => [a.id, a.price])) as Record<AddonId, number>,
   tiers: Object.fromEntries(AGENT_TIERS.map((t) => [t.name, { price: t.price, setupFrom: t.setupFrom }])),
   solo: Object.fromEntries(
     Object.entries(AGENT_SUBSCRIPTIONS).map(([id, s]) => [
@@ -174,6 +178,12 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
     for (const opt of OPTIONS) {
       const v = (input.options as Record<string, unknown>)[opt.id];
       if (isPrice(v)) base.options[opt.id] = v;
+    }
+  }
+  if (input.addons != null && typeof input.addons === "object") {
+    for (const addon of AGENT_ADDONS) {
+      const v = (input.addons as Record<string, unknown>)[addon.id];
+      if (isPrice(v)) base.addons[addon.id] = v;
     }
   }
   if (input.tiers != null && typeof input.tiers === "object") {

@@ -49,7 +49,7 @@ export async function startSubscriptionCheckout(input: {
   const admin = createAdminClient();
 
   // One running subscription per customer: a second checkout would charge twice. Plan / option / cycle changes
-  // go through the client space (/dashboard/mon-offre) instead.
+  // go through the client space (/client/dashboard/mon-offre) instead.
   const { data: running } = await admin
     .from("subscriptions")
     .select("id")
@@ -129,9 +129,9 @@ export async function startSubscriptionCheckout(input: {
  * by the calling action (never by the browser). `flow: "cancel"` opens the portal straight on the cancellation
  * screen of that subscription; if the portal configuration refuses it, the regular portal opens instead.
  */
-async function redirectToBillingPortal(returnPath: "/compte" | "/dashboard" | "/dashboard/facturation", flow?: "cancel" | "payment_method") {
+async function redirectToBillingPortal(returnPath: "/compte" | "/client/dashboard" | "/client/dashboard/facturation", flow?: "cancel" | "payment_method") {
   // Client space: same gate as its pages (active customer, two-factor passed when enabled).
-  if (returnPath.startsWith("/dashboard")) await requireClient(returnPath);
+  if (returnPath.startsWith("/client/dashboard")) await requireClient(returnPath);
   const stripe = getStripe();
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -183,17 +183,17 @@ export async function openBillingPortal() {
 }
 
 /**
- * "Moyen de paiement → Modifier" on /dashboard/facturation: Stripe's secure payment-method screen (add a card /
+ * "Moyen de paiement → Modifier" on /client/dashboard/facturation: Stripe's secure payment-method screen (add a card /
  * SEPA mandate, replace it, make it the default). Card details never reach this application.
  */
 export async function openClientPaymentMethodPortal() {
-  await redirectToBillingPortal("/dashboard/facturation", "payment_method");
+  await redirectToBillingPortal("/client/dashboard/facturation", "payment_method");
 }
 
 /**
- * Client dashboard (/dashboard) buttons: manage the plan, invoices (`flow` empty) or cancel (`flow=cancel`).
- * Comes back to /dashboard, which re-reads the subscription from Stripe on every request.
+ * Client dashboard (/client/dashboard) buttons: manage the plan, invoices (`flow` empty) or cancel (`flow=cancel`).
+ * Comes back to /client/dashboard, which re-reads the subscription from Stripe on every request.
  */
 export async function openClientBillingPortal(formData: FormData) {
-  await redirectToBillingPortal("/dashboard", formData.get("flow") === "cancel" ? "cancel" : undefined);
+  await redirectToBillingPortal("/client/dashboard", formData.get("flow") === "cancel" ? "cancel" : undefined);
 }

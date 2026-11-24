@@ -9,7 +9,7 @@ import type { ClientMe } from "./session";
 import { applyPendingChange, clearPendingChange } from "./subscription-sync";
 
 /*
- * Subscription data of the client space (/dashboard, /dashboard/mon-offre). Two sources, nothing hard-coded:
+ * Subscription data of the client space (/client/dashboard, /client/dashboard/mon-offre). Two sources, nothing hard-coded:
  *   1. Supabase `subscriptions` / `payments`, read with the customer's own session (RLS "read own") and filtered
  *      on their id — the rows the checkout, the plan-change actions and the Stripe webhook keep in sync;
  *   2. Stripe itself (subscription, upcoming invoice, invoices), looked up from the ids stored on that row, so
@@ -307,7 +307,7 @@ export async function loadClientSubscription(me: ClientMe, opts: { history: bool
   return { plan, history: history.slice(0, HISTORY_SIZE + 1), live: Boolean(live) };
 }
 
-/** Dashboard (/dashboard): subscription + billing history. */
+/** Dashboard (/client/dashboard): subscription + billing history. */
 export function loadClientDashboard(me: ClientMe) {
   return loadClientSubscription(me, { history: true });
 }

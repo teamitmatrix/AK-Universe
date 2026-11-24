@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { DIGITAL_WEBSITES } from "@/config/digital";
+import { AGENT_ADDONS } from "@/config/agent-addons";
 import { AGENT_TIERS, OPTIONS } from "@/config/pricing";
 import { AGENTS_PRICING_KEY, getAgentsPricingOverrides, type AgentsPricingOverrides } from "@/lib/agents-pricing";
 import { AGENTS_CATALOG_KEY } from "@/config/agents-catalog";
@@ -62,6 +63,7 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
   };
   const agents: AgentsPricingOverrides = { ...((await getAgentsPricingOverrides()) ?? {}) };
   agents.options = { ...(agents.options ?? {}) };
+  agents.addons = { ...(agents.addons ?? {}) };
   agents.tiers = { ...(agents.tiers ?? {}) };
   const digital: DigitalPricingOverrides = { websites: { ...((await getDigitalPricingOverrides())?.websites ?? {}) } };
   const commercial: CatalogueCommercialMap = { ...(await getCatalogueCommercial()) };
@@ -125,6 +127,7 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
       else if (kind === "user") agents.userPrice = v;
       else if (kind === "annual") agents.annualDiscountPercent = Math.min(90, v);
       else if (kind === "opt" && OPTIONS.some((o) => o.id === id)) agents.options[id!] = v;
+      else if (kind === "addon" && AGENT_ADDONS.some((a) => a.id === id)) agents.addons![id!] = v;
       else if (kind === "tier" && AGENT_TIERS.some((t) => t.name === id && t.price !== null) && (part === "price" || part === "setup"))
         agents.tiers[id!] = { ...agents.tiers[id!], [part === "price" ? "price" : "setupFrom"]: v };
       else if (kind === "solo" && id && (part === "price" || part === "setup") && id in AGENT_SUBSCRIPTIONS) {

@@ -49,10 +49,10 @@ async function ownTicket(reference: unknown): Promise<{ fail: Fail["error"] } | 
 function done(reference: string) {
   revalidatePath("/admin/support");
   revalidatePath(`/admin/support/${reference}`);
-  revalidatePath("/dashboard/support", "layout");
+  revalidatePath("/client/dashboard/support", "layout");
 }
 
-const ticketHref = (reference: string) => `${getSiteUrl()}/dashboard/support/demandes/${encodeURIComponent(reference)}`;
+const ticketHref = (reference: string) => `${getSiteUrl()}/client/dashboard/support/demandes/${encodeURIComponent(reference)}`;
 
 async function customerOf(userId: string) {
   const { data } = await createAdminClient().from("profiles").select("email, first_name").eq("id", userId).maybeSingle();

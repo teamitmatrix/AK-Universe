@@ -31,10 +31,10 @@ export function ClientUserMenu({ name, initials }: { name: string; initials: str
       </button>
       {open && (
         <div className="cs-menu" role="menu">
-          <Link href="/dashboard/mon-compte" role="menuitem" onClick={() => setOpen(false)}>
+          <Link href="/client/dashboard/mon-compte" role="menuitem" onClick={() => setOpen(false)}>
             <User size={16} aria-hidden="true" /> Mon compte
           </Link>
-          <Link href="/dashboard/support" role="menuitem" onClick={() => setOpen(false)}>
+          <Link href="/client/dashboard/support" role="menuitem" onClick={() => setOpen(false)}>
             <Headphones size={16} aria-hidden="true" /> Support
           </Link>
           <form action="/auth/signout" method="post">

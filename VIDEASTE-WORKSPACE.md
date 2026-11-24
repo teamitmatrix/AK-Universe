@@ -31,7 +31,7 @@ Same site, same sign-in page, same session: the videographer is one more role, n
 
 | Role | After sign-in | Can access |
 |---|---|---|
-| Client | `/dashboard` | Own account |
+| Client | `/client/dashboard` | Own account |
 | Entreprise | `/entreprise/dashboard` | Organisation account |
 | Commercial | `/commercial/dashboard` | Own sales and commissions |
 | **Vidéaste** | **`/videaste/dashboard`** | **Only their own assigned projects, files, tasks, client feedback** |

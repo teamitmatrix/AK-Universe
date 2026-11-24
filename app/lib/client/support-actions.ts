@@ -116,7 +116,7 @@ export async function createSupportTicket(input: {
     teamMail("new", me, ref, subject, description, [`Catégorie : ${TICKET_CATEGORIES[category]}`, `Priorité : ${TICKET_PRIORITIES[priority]}`], link.url);
     customerMail(me, ref, subject);
   });
-  revalidatePath("/dashboard/support", "layout");
+  revalidatePath("/client/dashboard/support", "layout");
   return { success: true, reference: ref };
 }
 
@@ -149,7 +149,7 @@ export async function replyToTicket(input: { reference?: string; body?: string; 
   const status = ticket.status === "resolu" || ticket.status === "en_attente" ? "ouvert" : ticket.status;
   await admin.from("support_tickets").update({ status, last_activity_at: new Date().toISOString() }).eq("id", ticket.id);
   after(() => teamMail("reply", me, ticket.reference, ticket.subject, body, [], link.url));
-  revalidatePath("/dashboard/support", "layout");
+  revalidatePath("/client/dashboard/support", "layout");
   return { success: true };
 }
 
@@ -160,6 +160,6 @@ export async function markTicketResolved(input: { reference?: string }): Promise
   if (!ticket) return { success: false, error: "notFound" };
   if (ticket.status === "ferme" || ticket.status === "resolu") return { success: true };
   await createAdminClient().from("support_tickets").update({ status: "resolu", last_activity_at: new Date().toISOString() }).eq("id", ticket.id);
-  revalidatePath("/dashboard/support", "layout");
+  revalidatePath("/client/dashboard/support", "layout");
   return { success: true };
 }

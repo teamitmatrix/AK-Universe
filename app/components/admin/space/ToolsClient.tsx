@@ -368,13 +368,35 @@ const fieldOf = (r: CatalogueRow, kind: "monthly" | "setup") =>
   r.fields.find((f) => (kind === "monthly" ? f.label === "monthly" : f.label === "setup" || f.label === "price"));
 const commercialKey = (rowId: string, part: string) => `c:${rowId}:${part}`;
 
-function marginEuro(sell: number, cost: number | null): number | null {
+/**
+ * Protected margin after max authorized discount and sales commission:
+ *   netSell = sell × (1 − discount%)
+ *   margin € = netSell − cost − (netSell × commission%)
+ *   margin % = margin € / cost
+ */
+function marginEuro(
+  sell: number,
+  cost: number | null,
+  maxDiscountPct = 0,
+  commissionPct = 0,
+): number | null {
   if (cost == null || !Number.isFinite(cost) || !Number.isFinite(sell)) return null;
-  return Math.round((sell - cost) * 100) / 100;
+  const discount = Math.min(100, Math.max(0, maxDiscountPct)) / 100;
+  const commission = Math.min(100, Math.max(0, commissionPct)) / 100;
+  const netSell = sell * (1 - discount);
+  const margin = netSell - cost - netSell * commission;
+  return Math.round(margin * 100) / 100;
 }
-function marginPct(sell: number, cost: number | null): number | null {
+function marginPct(
+  sell: number,
+  cost: number | null,
+  maxDiscountPct = 0,
+  commissionPct = 0,
+): number | null {
   if (cost == null || !(cost > 0) || !Number.isFinite(sell)) return null;
-  return Math.round(((sell - cost) / cost) * 10000) / 100;
+  const margin = marginEuro(sell, cost, maxDiscountPct, commissionPct);
+  if (margin == null) return null;
+  return Math.round((margin / cost) * 10000) / 100;
 }
 
 /** Same mapping as sales catalogue: monthly AI → abonnements, setup AI → agents, etc. */
@@ -382,6 +404,7 @@ function productTypeFor(category: string, monthly: boolean): ProductType | null 
   if (category === "regles") return null;
   if (category === "agents") return monthly ? "abonnements" : "agents";
   if (category === "abonnement") return "abonnements";
+  if (category === "addons") return monthly ? "abonnements" : "options";
   if (category === "marketing") return "marketing";
   if (category === "videos") return "videos";
   return "options";
@@ -684,6 +707,12 @@ export function CatalogueEditor({
                 const sellSetup = setupField ? live(setupField.key, setupField.value) : null;
                 const costM = com?.hasMonthly ? live(commercialKey(r.id, "costMonthly"), com.costMonthly) : null;
                 const costS = com?.hasSetup ? live(commercialKey(r.id, "costSetup"), com.costSetup) : null;
+                const discountM = com?.hasMonthly
+                  ? (live(commercialKey(r.id, "maxDiscountMonthly"), com.maxDiscountMonthly) ?? 0)
+                  : 0;
+                const discountS = com?.hasSetup
+                  ? (live(commercialKey(r.id, "maxDiscountSetup"), com.maxDiscountSetup) ?? 0)
+                  : 0;
                 const showMonthly = !!(com?.hasMonthly || monthlyField);
                 const showSetup = !!(com?.hasSetup || setupField);
                 const typeMonthly = productTypeFor(r.category, true);
@@ -826,8 +855,12 @@ export function CatalogueEditor({
                     <td data-label={c.cols.marginEuro}>
                       {com
                         ? readOnlyStack(
-                            sellMonthly != null ? marginEuro(sellMonthly, costM) : null,
-                            sellSetup != null ? marginEuro(sellSetup, costS) : null,
+                            sellMonthly != null
+                              ? marginEuro(sellMonthly, costM, discountM, commissionMonthly ?? 0)
+                              : null,
+                            sellSetup != null
+                              ? marginEuro(sellSetup, costS, discountS, commissionSetup ?? 0)
+                              : null,
                             fmtEuro,
                             !!com.hasMonthly,
                             !!com.hasSetup,
@@ -839,8 +872,12 @@ export function CatalogueEditor({
                     <td data-label={c.cols.marginRate}>
                       {com
                         ? readOnlyStack(
-                            sellMonthly != null ? marginPct(sellMonthly, costM) : null,
-                            sellSetup != null ? marginPct(sellSetup, costS) : null,
+                            sellMonthly != null
+                              ? marginPct(sellMonthly, costM, discountM, commissionMonthly ?? 0)
+                              : null,
+                            sellSetup != null
+                              ? marginPct(sellSetup, costS, discountS, commissionSetup ?? 0)
+                              : null,
                             fmtPct,
                             !!com.hasMonthly,
                             !!com.hasSetup,

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
-import { safeRedirect } from "@/lib/auth/redirect";
+import { subscriptionResumePath } from "@/lib/auth/redirect";
 import { signUp } from "@/lib/auth/signup";
 import { PASSWORD_RULES, isStrongPassword } from "@/lib/auth/password";
 import { createClient } from "@/lib/supabase/client";
@@ -98,8 +98,11 @@ const ERROR_KEYS: Record<string, ErrorKey> = {
 export function SignupForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const requestedReturn = params.get("redirectTo");
-  const afterAuth = requestedReturn ? safeRedirect(requestedReturn) : "/organisation";
+  const requestedReturn = params.get("redirectTo") ?? params.get("next");
+  // Account setup always continues through the organisation step. A subscription started on the public
+  // site is remembered and opened afterwards; a plain sign-up ends on the client dashboard.
+  const resume = subscriptionResumePath(requestedReturn);
+  const afterAuth = resume ? `/organisation?next=${encodeURIComponent(resume)}` : "/organisation";
   const [toast, toastNode] = useToast();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);

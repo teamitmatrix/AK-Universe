@@ -4,7 +4,6 @@ import { updateSession } from "@/lib/supabase/proxy";
 
 /** Pages that require a signed-in user. */
 const PROTECTED_ROUTES = [
-  "/compte",
   "/organisation",
   "/abonnement",
   "/paiement",
@@ -14,7 +13,7 @@ const PROTECTED_ROUTES = [
   "/videaste",
   "/equipe",
   "/espace",
-  "/dashboard",
+  "/client/dashboard",
 ];
 
 /** Signed-in users are sent away from these. */
@@ -45,8 +44,8 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && GUEST_ONLY_ROUTES.includes(pathname)) {
-    // Keep main's guest redirect for clients; staff land via /espace after they open it.
-    return redirectToPath("/", 307);
+    // Already signed in: /espace sends each role to its own space (clients → /client/dashboard).
+    return redirectToPath("/espace", 307);
   }
 
   return response;

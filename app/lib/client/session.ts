@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 
 /*
- * Access control of the Client space (/dashboard/*) — same pattern as the Commercial and Videographer spaces.
+ * Access control of the Client space (/client/dashboard/*) — same pattern as the Commercial and Videographer spaces.
  * Every page, loader and server action calls this itself (layouts do not re-run on client-side navigation):
  *   - the user comes from the verified Supabase session (getUser), never from the browser;
  *   - staff accounts (admin / commercial / vidéaste) and deactivated accounts are refused;
@@ -49,10 +49,10 @@ export const getClientMe = cache(async (): Promise<ClientMe | null> => {
 });
 
 /** For pages: logged out → sign-in; 2FA not passed → code step; staff or deactivated → /espace (routes or signs out). */
-export async function requireClient(returnTo = "/dashboard") {
+export async function requireClient(returnTo = "/client/dashboard") {
   const me = await getClientMe();
   if (me) return me;
   if (!(await getCurrentUser())) redirect(`/connexion?redirectTo=${encodeURIComponent(returnTo)}`);
-  if (await mfaPending()) redirect(`/dashboard/verification?redirectTo=${encodeURIComponent(returnTo)}`);
+  if (await mfaPending()) redirect(`/client/dashboard/verification?redirectTo=${encodeURIComponent(returnTo)}`);
   redirect("/espace");
 }

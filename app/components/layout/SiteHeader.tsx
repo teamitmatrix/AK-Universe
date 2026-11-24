@@ -197,7 +197,7 @@ export function SiteHeader({ active = "home", signedIn = false }: Props) {
               </Link>
             )}
             {signedIn ? (
-              <Link href="/compte" className="btn btn-primary">
+              <Link href="/client/dashboard" className="btn btn-primary">
                 Mon compte <Icon name="arrow" />
               </Link>
             ) : (

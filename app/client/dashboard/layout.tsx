@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Frame of every /dashboard/* page (Client space). This layout only DISPLAYS the customer's name; it is not the
+ * Frame of every /client/dashboard/* page (Client space). This layout only DISPLAYS the customer's name; it is not the
  * access check — each page and server action calls requireClient()/getClientMe() itself.
  */
 export default async function ClientLayout({ children }: { children: React.ReactNode }) {

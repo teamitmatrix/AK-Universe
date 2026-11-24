@@ -17,7 +17,7 @@ const strip = (row: Record<string, unknown>) => Object.fromEntries(Object.entrie
 
 export async function GET() {
   const me = await getClientMe();
-  if (!me) return redirectToPath("/connexion?redirectTo=/dashboard/mon-compte", 303);
+  if (!me) return redirectToPath("/connexion?redirectTo=/client/dashboard/mon-compte", 303);
 
   const supabase = await createClient();
   const [{ data: auth }, profile, billing, memberships, subscriptions, payments, projects, notifications] = await Promise.all([

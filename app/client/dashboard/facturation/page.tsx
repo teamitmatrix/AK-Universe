@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: { absolute: "Facturation — AK Unive
  * details. `?avant=<invoice id>` = older invoices. `?portal=unavailable` = the Stripe portal could not open.
  */
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ avant?: string; portal?: string }> }) {
-  const me = await requireClient("/dashboard/facturation");
+  const me = await requireClient("/client/dashboard/facturation");
   const { avant, portal } = await searchParams;
   const [data, pricing] = await Promise.all([loadClientBilling(me, { before: avant }), getAgentsPricing()]);
   const discount = Math.round(pricing.annualDiscount * 100);

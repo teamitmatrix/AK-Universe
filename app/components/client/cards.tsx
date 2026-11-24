@@ -21,11 +21,11 @@ export function PaymentFailedAlert({ openInvoiceId }: { openInvoiceId?: string |
   const payable = openInvoiceId && /^in_[A-Za-z0-9]+$/.test(openInvoiceId) ? openInvoiceId : null;
   return (
     <p className="cs-alert" role="alert">
-      Votre dernier paiement n&apos;a pas abouti. <Link href="/dashboard/facturation">Mettez à jour votre moyen de paiement</Link>
+      Votre dernier paiement n&apos;a pas abouti. <Link href="/client/dashboard/facturation">Mettez à jour votre moyen de paiement</Link>
       {payable ? (
         <>
           {" "}
-          ou <a href={`/dashboard/facturation/facture/${payable}`} target="_blank" rel="noopener noreferrer">réglez la facture</a>
+          ou <a href={`/client/dashboard/facturation/facture/${payable}`} target="_blank" rel="noopener noreferrer">réglez la facture</a>
         </>
       ) : null}{" "}
       pour conserver l&apos;accès à vos agents.

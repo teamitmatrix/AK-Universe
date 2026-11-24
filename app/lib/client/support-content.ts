@@ -53,14 +53,14 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "demarrage",
     q: "À quoi sert mon espace client ?",
     a: "Votre espace client regroupe votre abonnement Agents IA : l'accueil résume votre offre et vos prochains prélèvements, « Mon offre » permet de la faire évoluer, « Facturation » réunit vos factures et votre moyen de paiement, « Options » vos fonctionnalités supplémentaires, et « Mon compte » vos informations et votre sécurité.",
-    link: { href: "/dashboard", label: "Aller à l'accueil" },
+    link: { href: "/client/dashboard", label: "Aller à l'accueil" },
   },
   {
     id: "premiers-pas",
     category: "demarrage",
     q: "Quelles sont les premières étapes après ma souscription ?",
     a: "1. Vérifiez vos informations de facturation (Facturation → Informations de facturation) pour qu'elles figurent sur vos factures. 2. Activez la double authentification (Mon compte → Sécurité). 3. Ajoutez les options utiles à votre activité (Options). 4. Pour la configuration de vos agents, créez une demande au support : notre équipe vous accompagne.",
-    link: { href: "/dashboard/mon-compte", label: "Ouvrir Mon compte" },
+    link: { href: "/client/dashboard/mon-compte", label: "Ouvrir Mon compte" },
   },
   {
     id: "contacter",
@@ -74,21 +74,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "offre",
     q: "Comment passer à une offre supérieure ?",
     a: "Dans « Mon offre », cliquez sur « Améliorer mon offre » et choisissez la nouvelle offre. Le changement est immédiat : seule la différence, calculée au prorata de la période en cours, est prélevée. Le montant exact vous est indiqué avant confirmation.",
-    link: { href: "/dashboard/mon-offre", label: "Ouvrir Mon offre" },
+    link: { href: "/client/dashboard/mon-offre", label: "Ouvrir Mon offre" },
   },
   {
     id: "offre-inferieure",
     category: "offre",
     q: "Que se passe-t-il si je passe à une offre inférieure ?",
     a: "Le changement est programmé pour votre prochaine échéance : vous conservez votre offre actuelle jusqu'à cette date, sans remboursement de la période en cours. Vous pouvez annuler un changement programmé à tout moment avant son application.",
-    link: { href: "/dashboard/mon-offre", label: "Ouvrir Mon offre" },
+    link: { href: "/client/dashboard/mon-offre", label: "Ouvrir Mon offre" },
   },
   {
     id: "resilier",
     category: "offre",
     q: "Comment résilier mon abonnement ?",
     a: "Dans « Mon offre », cliquez sur « Résilier mon abonnement » puis confirmez. Votre accès reste actif jusqu'à la fin de la période déjà payée et aucun nouveau prélèvement n'est effectué. Vous pouvez réactiver votre abonnement avant cette date.",
-    link: { href: "/dashboard/mon-offre?resilier=1", label: "Résilier" },
+    link: { href: "/client/dashboard/mon-offre?resilier=1", label: "Résilier" },
   },
   // Facturation
   {
@@ -96,35 +96,35 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "facturation",
     q: "Où trouver mes factures ?",
     a: "Toutes vos factures sont dans « Facturation » → Historique des factures : l'icône œil les affiche, l'icône de téléchargement fournit le PDF.",
-    link: { href: "/dashboard/facturation", label: "Ouvrir Facturation" },
+    link: { href: "/client/dashboard/facturation", label: "Ouvrir Facturation" },
   },
   {
     id: "moyen-paiement",
     category: "facturation",
     q: "Comment changer de carte ou de moyen de paiement ?",
     a: "Dans « Facturation », cliquez sur « Modifier » dans la carte Moyen de paiement. Vous êtes redirigé vers la page sécurisée de notre prestataire de paiement : AK Universe ne voit ni ne conserve vos numéros de carte.",
-    link: { href: "/dashboard/facturation", label: "Ouvrir Facturation" },
+    link: { href: "/client/dashboard/facturation", label: "Ouvrir Facturation" },
   },
   {
     id: "annuel",
     category: "facturation",
     q: "Puis-je passer à la facturation annuelle ?",
     a: "Oui, depuis la carte Montant de la page Facturation. La remise annuelle s'applique, une nouvelle période commence le jour du changement et le temps non utilisé de la période en cours est déduit. Le montant à régler (ou le crédit) est affiché avant confirmation.",
-    link: { href: "/dashboard/facturation", label: "Ouvrir Facturation" },
+    link: { href: "/client/dashboard/facturation", label: "Ouvrir Facturation" },
   },
   {
     id: "echec-paiement",
     category: "facturation",
     q: "Mon paiement a échoué, que faire ?",
     a: "Mettez à jour votre moyen de paiement (Facturation → Moyen de paiement → Modifier), puis réglez la facture en attente depuis le lien « Régler la facture » affiché en haut de la page Facturation.",
-    link: { href: "/dashboard/facturation", label: "Ouvrir Facturation" },
+    link: { href: "/client/dashboard/facturation", label: "Ouvrir Facturation" },
   },
   {
     id: "infos-facture",
     category: "facturation",
     q: "Comment modifier le nom, l'adresse ou le numéro de TVA de mes factures ?",
     a: "Dans « Facturation » ou « Mon compte », section Informations de facturation, cliquez sur « Modifier ». Les changements s'appliquent à vos prochaines factures ; les factures déjà émises ne sont pas modifiées.",
-    link: { href: "/dashboard/facturation", label: "Ouvrir Facturation" },
+    link: { href: "/client/dashboard/facturation", label: "Ouvrir Facturation" },
   },
   // Options
   {
@@ -132,14 +132,14 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "options",
     q: "Comment ajouter une option ?",
     a: "Dans « Options », cliquez sur « Ajouter » à côté de l'option, vérifiez le nouveau total puis « Mettre à jour mon abonnement ». L'option est active immédiatement ; seul le prorata de la période en cours est facturé.",
-    link: { href: "/dashboard/options", label: "Ouvrir Options" },
+    link: { href: "/client/dashboard/options", label: "Ouvrir Options" },
   },
   {
     id: "retirer-option",
     category: "options",
     q: "Comment retirer une option ?",
     a: "Désactivez l'option dans « Options » puis confirmez. Le retrait prend effet à votre prochaine échéance : l'option reste disponible jusque-là.",
-    link: { href: "/dashboard/options", label: "Ouvrir Options" },
+    link: { href: "/client/dashboard/options", label: "Ouvrir Options" },
   },
   // Compte
   {
@@ -147,14 +147,14 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "compte",
     q: "Comment activer la double authentification ?",
     a: "Dans « Mon compte » → Sécurité, activez « Authentification à deux facteurs », scannez le QR code avec une application d'authentification (Google Authenticator, Microsoft Authenticator…) et saisissez le code affiché. Il vous sera demandé à chaque connexion.",
-    link: { href: "/dashboard/mon-compte", label: "Ouvrir Mon compte" },
+    link: { href: "/client/dashboard/mon-compte", label: "Ouvrir Mon compte" },
   },
   {
     id: "email",
     category: "compte",
     q: "Comment changer mon adresse e-mail ?",
     a: "Dans « Mon compte », cliquez sur « Modifier » puis « Changer d'adresse e-mail ». Un code est envoyé à la nouvelle adresse : votre adresse ne change qu'une fois ce code saisi.",
-    link: { href: "/dashboard/mon-compte", label: "Ouvrir Mon compte" },
+    link: { href: "/client/dashboard/mon-compte", label: "Ouvrir Mon compte" },
   },
   {
     id: "mot-de-passe",
@@ -168,7 +168,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     category: "compte",
     q: "Comment récupérer ou supprimer mes données ?",
     a: "Dans « Mon compte » → Autres actions : « Exporter mes données » télécharge l'ensemble de vos informations ; « Supprimer mon compte » supprime définitivement votre compte (après confirmation) et résilie votre abonnement.",
-    link: { href: "/dashboard/mon-compte", label: "Ouvrir Mon compte" },
+    link: { href: "/client/dashboard/mon-compte", label: "Ouvrir Mon compte" },
   },
 ];
 
@@ -183,7 +183,7 @@ export function searchHelp(query: string, category?: HelpCategory | null) {
 
 /** "Ressources et guides". `href: null` = not published yet (shown as "Bientôt"). */
 export const RESOURCES: { id: string; title: string; desc: string; href: string | null; icon: "doc" | "play" | "bulb" }[] = [
-  { id: "guide", title: "Guide de démarrage", desc: "Configurez rapidement votre environnement.", href: "/dashboard/support/aide?categorie=demarrage", icon: "doc" },
+  { id: "guide", title: "Guide de démarrage", desc: "Configurez rapidement votre environnement.", href: "/client/dashboard/support/aide?categorie=demarrage", icon: "doc" },
   { id: "webinaires", title: "Webinaires et formations", desc: "Découvrez les bonnes pratiques en vidéo.", href: null, icon: "play" },
   { id: "nouveautes", title: "Nouveautés produit", desc: "Toutes les dernières mises à jour et améliorations.", href: null, icon: "bulb" },
 ];

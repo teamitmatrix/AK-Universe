@@ -15,7 +15,7 @@ const PREVIEW = 3;
 
 /** Support home (approved mockup). `?demande=1&categorie=<cat>` opens the request form, prefilled. */
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ demande?: string; categorie?: string }> }) {
-  const me = await requireClient("/dashboard/support");
+  const me = await requireClient("/client/dashboard/support");
   const [{ demande, categorie }, { ready, tickets }] = await Promise.all([searchParams, listMyTickets(me, PREVIEW + 1)]);
 
   return (
@@ -53,7 +53,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             <p className="cs-empty">Vous n&apos;avez encore aucune demande. Utilisez « Créer une demande » pour contacter notre équipe.</p>
           )}
           {ready && tickets.length > 0 && (
-            <Link href="/dashboard/support/demandes" className="cs-btn-outline cs-more">
+            <Link href="/client/dashboard/support/demandes" className="cs-btn-outline cs-more">
               Voir toutes mes demandes <ArrowRight size={18} aria-hidden="true" />
             </Link>
           )}

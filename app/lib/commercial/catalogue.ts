@@ -38,11 +38,15 @@ export async function loadSalesCatalogue(): Promise<SalesCatalogueItem[]> {
             : "agents"
           : row.category === "abonnement"
             ? "abonnements"
-            : row.category === "marketing"
-              ? "marketing"
-              : row.category === "videos"
-                ? "videos"
-                : "options";
+            : row.category === "addons"
+              ? monthly
+                ? "abonnements"
+                : "options"
+              : row.category === "marketing"
+                ? "marketing"
+                : row.category === "videos"
+                  ? "videos"
+                  : "options";
       const suffix = row.fields.length > 1 || row.category === "agents" ? (monthly ? " — abonnement mensuel" : " — mise en place") : "";
       const maxDiscountPercent = monthly
         ? (row.commercial?.maxDiscountMonthly ?? 0)

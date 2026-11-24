@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { signInBeforePayment } from "@/lib/auth/redirect";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isAgent, isDigital, isForfait, itemName, itemPrice, itemSummary, serviceOf, useCart } from "./cart";
+import { isAgent, isDigital, isForfait, itemName, itemPriceLines, itemSummary, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
 import { Mockup } from "./Mockup";
@@ -114,7 +114,17 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                     <div className="pi-qty" aria-label="Quantité">
                       {quantityLabel(item, config)}
                     </div>
-                    <strong className="pi-price">{euro(itemPrice(config, item))}</strong>
+                    <div className="pi-price">
+                      {itemPriceLines(config, item).map((line) => (
+                        <div key={`${line.label}-${line.amount}`} className="pi-price-line">
+                          {line.label ? <span className="pi-price-label">{line.label}</span> : null}
+                          <strong>
+                            {euro(line.amount)}
+                            {line.suffix ? <small> {line.suffix}</small> : null}
+                          </strong>
+                        </div>
+                      ))}
+                    </div>
                     <button
                       type="button"
                       className="pi-x"
@@ -137,8 +147,13 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
               <div className="estimate-row">
                 <h2>Estimation de votre projet</h2>
                 <div className="estimate-price">
-                  <span>À partir de</span>
+                  <span>{cart.recurringMonthly > 0 ? "1er mois (mise en place + abonnement)" : "À partir de"}</span>
                   <strong>{euro(cart.total)}</strong> <small>HT</small>
+                  {cart.recurringMonthly > 0 ? (
+                    <em className="estimate-renew">
+                      Puis {euro(cart.recurringMonthly)} HT / mois (abonnement seul)
+                    </em>
+                  ) : null}
                 </div>
               </div>
               <ul className="estimate-badges">
@@ -153,6 +168,9 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                 </li>
               </ul>
               <p className="muted-note">
+                {cart.recurringMonthly > 0
+                  ? "La mise en place est facturée une seule fois. Les renouvellements ne comprennent que l'abonnement. "
+                  : ""}
                 Cette estimation n&apos;est pas un devis définitif : le prix final est confirmé après étude de votre projet.
               </p>
               <div className="cta-row">

@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: { absolute: "Mon compte — AK Univer
 
 /** "Mon compte": personal and company details, billing details, security (password, 2FA), notifications, data. */
 export default async function AccountPage() {
-  const me = await requireClient("/dashboard/mon-compte");
+  const me = await requireClient("/client/dashboard/mon-compte");
   const [account, { plan }] = await Promise.all([loadClientAccount(me), loadClientSubscription(me, { history: false })]);
   const hasSubscription = Boolean(plan && plan.status !== "canceled");
 

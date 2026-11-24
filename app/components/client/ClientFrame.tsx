@@ -15,7 +15,7 @@ export function ClientFrame({ me, children }: { me: ClientMe; children: React.Re
     <ClientShell
       sidebar={
         <>
-          <Link href="/dashboard" className="cs-brand notranslate" aria-label="AK Universe — Accueil de l'espace client">
+          <Link href="/client/dashboard" className="cs-brand notranslate" aria-label="AK Universe — Accueil de l'espace client">
             AK<span className="cs-brand-dot" aria-hidden="true" />
             Universe
           </Link>

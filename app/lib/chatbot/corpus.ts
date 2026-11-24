@@ -4,6 +4,7 @@ import { getSiteAgents } from "@/lib/agents-catalog";
 import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
+import { AGENT_ADDON_LIST, formatAddonPrice, isAddonId } from "@/config/agent-addons";
 import { AGENT_TIERS, MAX_EXTRA_USERS, OFFERED_OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
@@ -215,6 +216,18 @@ function agentDocs(pricing: AgentsPricing, agents: Agent[]): Doc[] {
           return `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${live.price === null ? "sur devis" : `${euros(live.price)} / mois${annual}`}, mise en place / onboarding ${live.setupFrom === null ? "sur devis" : euros(live.setupFrom)}. Mix d'usage : ${t.desc}. Inclus : ${t.features.join(", ")}.`;
         })
       )}\nSans engagement (annulation à tout moment), accès immédiat (commencez en quelques minutes), essai gratuit via /inscription. Offre Sur devis : nous contacter.`,
+    },
+    {
+      source: "agents",
+      title: "Add-ons Agents IA (usage et options)",
+      url: "/agents-ia#addons",
+      content: `Add-ons pour forfaits packages et abonnements solo (prix HT, réglables dans le catalogue admin) :\n${list(
+        AGENT_ADDON_LIST.map((a) => {
+          const live = (isAddonId(a.id) ? pricing.addons[a.id] : undefined) ?? a.price;
+          const unit = a.billing === "month" ? " / mois" : "";
+          return `${a.label} : ${formatAddonPrice(a, live)} HT${unit} — ${a.detail}`;
+        })
+      )}`,
     },
     {
       source: "agents",

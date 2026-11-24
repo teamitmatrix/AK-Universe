@@ -5,7 +5,7 @@ import { getStripe } from "@/lib/stripe";
 import { redirectToPath } from "@/lib/supabase/env";
 
 /*
- * Invoice preview / download for the client space: /dashboard/facturation/facture/<stripe invoice id>?format=pdf
+ * Invoice preview / download for the client space: /client/dashboard/facturation/facture/<stripe invoice id>?format=pdf
  * The invoice is fetched from Stripe on the server and served only if it belongs to one of the signed-in
  * customer's own Stripe customers (subscriptions rows read with their session, RLS). Anyone else gets a 404 —
  * the same answer as for an id that does not exist, so ids cannot be probed.
@@ -14,14 +14,14 @@ import { redirectToPath } from "@/lib/supabase/env";
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const me = await getClientMe();
-  if (!me) return redirectToPath("/connexion?redirectTo=/dashboard/facturation", 303);
+  if (!me) return redirectToPath("/connexion?redirectTo=/client/dashboard/facturation", 303);
 
   const { id } = await params;
   const notFound = () => new NextResponse("Facture introuvable.", { status: 404, headers: { "Cache-Control": "no-store" } });
   if (!/^in_[A-Za-z0-9]{8,64}$/.test(id)) return notFound();
 
   const stripe = getStripe();
-  if (!stripe) return redirectToPath("/dashboard/facturation?portal=unavailable", 303);
+  if (!stripe) return redirectToPath("/client/dashboard/facturation?portal=unavailable", 303);
 
   let invoice;
   try {

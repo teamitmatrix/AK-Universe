@@ -141,7 +141,7 @@ export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPrici
                 ))}
               </ul>
               <Link
-                href={plan.href ?? "/inscription"}
+                href={plan.href ?? `/inscription?next=${encodeURIComponent("/abonnement")}`}
                 className={plan.ctaClass}
                 onClick={() => writeAgentsCycle(cycle)}
               >

@@ -1,5 +1,6 @@
 import "server-only";
 import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
+import { AGENT_ADDONS } from "@/config/agent-addons";
 import { AGENT_TIERS, DEFAULT_AGENTS_PRICING, OPTIONS, type AgentsPricing } from "@/config/pricing";
 import { createPublicClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,8 @@ export type AgentsPricingOverrides = {
   /** Percent (20 = -20 %). */
   annualDiscountPercent?: number;
   options?: Record<string, number>;
+  /** Pay-as-you-go + monthly AI add-ons (config/agent-addons.ts). */
+  addons?: Record<string, number>;
   tiers?: Record<string, { price?: number; setupFrom?: number }>;
   /** Per-agent solo monthly HT (annual derived as 10 × monthly) + onboarding. */
   solo?: Record<string, { price?: number; priceAnnual?: number; setupFrom?: number }>;
@@ -33,6 +36,10 @@ export function applyAgentsOverrides(o: AgentsPricingOverrides | null | undefine
   for (const opt of OPTIONS) {
     const v = o.options?.[opt.id];
     if (isPrice(v)) p.options[opt.id] = v;
+  }
+  for (const addon of AGENT_ADDONS) {
+    const v = o.addons?.[addon.id];
+    if (isPrice(v)) p.addons[addon.id] = v;
   }
   for (const tier of AGENT_TIERS) {
     const to = o.tiers?.[tier.name];

@@ -28,6 +28,7 @@ const AGENT_LINKS = [
   { id: "categories", href: "/agents-ia#categories", label: "Catégories" },
   { id: "demos", href: "/agents-ia#demos", label: "Démos" },
   { id: "tarifs", href: "/agents-ia#tarifs", label: "Tarifs" },
+  { id: "addons", href: "/agents-ia#addons", label: "Add-ons" },
   { id: "faq", href: "/agents-ia#faq", label: "FAQ" },
 ] as const;
 

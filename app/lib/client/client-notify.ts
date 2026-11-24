@@ -25,7 +25,7 @@ export async function notifyClient(userId: string, category: NotificationCategor
       .filter(Boolean)
       .map((l) => `<p style="margin:0 0 10px">${escapeHtml(l)}</p>`)
       .join("");
-    const link = `${getSiteUrl()}/dashboard`;
+    const link = `${getSiteUrl()}/client/dashboard`;
     const footer = `<p style="margin:20px 0 0"><a href="${escapeHtml(link)}" style="color:#fdb942">Accéder à mon espace client</a></p>
 <p style="margin:16px 0 0;color:#a89c8e;font-size:12px">Vous recevez cet e-mail car les alertes « ${category === "billing" ? "Factures et paiements" : category === "subscription" ? "Alertes sur mon abonnement" : "Actualités et nouveautés"} » sont activées dans votre espace client (Mon compte → Notifications).</p>`;
     return await sendEmail({

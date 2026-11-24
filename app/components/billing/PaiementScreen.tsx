@@ -68,7 +68,8 @@ const TEXT = {
     success: {
       heading: ["Merci, votre abonnement est ", "confirmé"],
       text: "Un reçu vous a été envoyé par e-mail. Vos agents IA sont activés dès la confirmation du paiement.",
-      home: "Retour à l'accueil",
+      space: "Accéder à mon espace",
+      home: "Retour au site",
     },
   },
   en: {
@@ -120,7 +121,8 @@ const TEXT = {
     success: {
       heading: ["Thank you, your subscription is ", "confirmed"],
       text: "A receipt has been sent to you by email. Your AI agents are activated as soon as the payment is confirmed.",
-      home: "Back to home",
+      space: "Go to my space",
+      home: "Back to the site",
     },
   },
 };
@@ -385,9 +387,14 @@ export function PaiementSuccess() {
           <span className="text-grad">{t.heading[1]}</span>
         </h1>
         <p style={{ color: "var(--l-muted)", margin: "16px 0 28px" }}>{t.text}</p>
-        <Link href="/" className="btn btn-light-primary">
-          {t.home} <Icon name="arrow" />
+        <Link href="/client/dashboard" className="btn btn-light-primary">
+          {t.space} <Icon name="arrow" />
         </Link>
+        <p style={{ marginTop: 18 }}>
+          <Link href="/" className="back">
+            {t.home}
+          </Link>
+        </p>
       </div>
     </div>
   );

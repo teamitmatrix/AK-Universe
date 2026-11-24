@@ -18,7 +18,7 @@ const STATUS: Record<InvoiceStatus, { label: string; tone: string }> = {
   uncollectible: { label: "Impayée", tone: "danger" },
 };
 
-const invoiceHref = (id: string, pdf = false) => `/dashboard/facturation/facture/${id}${pdf ? "?format=pdf" : ""}`;
+const invoiceHref = (id: string, pdf = false) => `/client/dashboard/facturation/facture/${id}${pdf ? "?format=pdf" : ""}`;
 
 /** Same shape as "Mon offre", so Facturation can cancel or resume with the existing confirmation. */
 function cancelState(plan: ClientPlan): PlanState {
@@ -247,14 +247,14 @@ export function BillingView({
           {(before || data.hasMore) && (
             <nav className="cs-pager" aria-label="Pages de factures">
               {before ? (
-                <Link href="/dashboard/facturation" className="cs-link-btn">
+                <Link href="/client/dashboard/facturation" className="cs-link-btn">
                   <ArrowLeft size={16} aria-hidden="true" /> Factures récentes
                 </Link>
               ) : (
                 <span />
               )}
               {data.hasMore && invoices.at(-1)?.id && (
-                <Link href={`/dashboard/facturation?avant=${invoices.at(-1)!.id}`} className="cs-link-btn">
+                <Link href={`/client/dashboard/facturation?avant=${invoices.at(-1)!.id}`} className="cs-link-btn">
                   Factures plus anciennes <ArrowRight size={16} aria-hidden="true" />
                 </Link>
               )}
@@ -290,7 +290,7 @@ export function BillingView({
                 </span>
               )}
               {plan ? (
-                <Link href="/dashboard/facturation/contrat" className="cs-act">
+                <Link href="/client/dashboard/facturation/contrat" className="cs-act">
                   <Download className="cs-act-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
                   <span>
                     Contrat d&apos;abonnement

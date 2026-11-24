@@ -6,9 +6,9 @@ import { loadClientSubscription, type ClientPlan } from "./dashboard";
 import type { ClientMe } from "./session";
 
 /*
- * Data of "Facturation" (/dashboard/facturation). Invoices, payment method and customer details come from Stripe,
+ * Data of "Facturation" (/client/dashboard/facturation). Invoices, payment method and customer details come from Stripe,
  * looked up from the Stripe customer stored on the caller's own subscription row (read with their session, RLS).
- * Invoice documents are never linked directly: the page links to /dashboard/facturation/facture/<id>, which
+ * Invoice documents are never linked directly: the page links to /client/dashboard/facturation/facture/<id>, which
  * re-checks that the invoice belongs to the signed-in customer before redirecting to Stripe's document.
  * No card data is stored or handled here: only the brand / last digits Stripe returns for display.
  */

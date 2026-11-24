@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: { absolute: "Vérification en deux é
  */
 export default async function MfaVerificationPage({ searchParams }: { searchParams: Promise<{ redirectTo?: string }> }) {
   const { redirectTo } = await searchParams;
-  const target = safeRedirect(redirectTo, "/dashboard");
+  const target = safeRedirect(redirectTo, "/client/dashboard");
   if (!(await getCurrentUser())) redirect(`/connexion?redirectTo=${encodeURIComponent(target)}`);
   if (!(await mfaPending())) redirect(target);
   return (
