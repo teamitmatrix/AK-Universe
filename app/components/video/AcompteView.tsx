@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { EARLY_START_CONSENT, EARLY_START_HINT } from "@/config/withdrawal";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
@@ -30,6 +31,8 @@ export function AcompteView() {
   const [notice, setNotice] = useState("Le formulaire de paiement sécurisé Stripe s'affichera ici.");
   const [alert, setAlert] = useState(false);
   const [earlyStart, setEarlyStart] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const client = mounted ? readClient() : null;
 
   useEffect(() => {
@@ -94,11 +97,17 @@ export function AcompteView() {
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
+                  if (!termsAccepted) {
+                    setTermsError(true);
+                    return;
+                  }
+                  setTermsError(false);
                   if (!event.currentTarget.reportValidity()) return;
                   setSending(true);
                   const payment = method === "virement" ? "virement" : undefined;
                   submitProject(config, "acompte", cart.items, client, payment, {
                     earlyStartAccepted: earlyStart,
+                    termsAccepted: true,
                   })
                     .then((data) => {
                       if (payment === "virement") {
@@ -157,15 +166,28 @@ export function AcompteView() {
                 </label>
                 {!earlyStart ? <p className="withdrawal-hint">{EARLY_START_HINT}</p> : null}
                 <label className="cgv">
-                  <input type="checkbox" required />{" "}
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => {
+                      setTermsAccepted(e.target.checked);
+                      if (e.target.checked) setTermsError(false);
+                    }}
+                    aria-required="true"
+                  />{" "}
                   <span>
-                    J&apos;accepte les{" "}
-                    <a href="/cgv" target="_blank" rel="noopener">
-                      conditions générales de vente
-                    </a>{" "}
-                    et je comprends que l&apos;acompte réserve ma date.
+                    {TERMS_CHECKBOX.fr.before}
+                    <a href={TERMS.href} target="_blank" rel="noopener noreferrer">
+                      {TERMS_CHECKBOX.fr.link}
+                    </a>
+                    {TERMS_CHECKBOX.fr.after}
                   </span>
                 </label>
+                {termsError ? (
+                  <p className="terms-accept-error" role="alert">
+                    {TERMS_CHECKBOX.fr.required}
+                  </p>
+                ) : null}
                 <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={sending}>
                   {sending ? (
                     "Paiement en cours…"

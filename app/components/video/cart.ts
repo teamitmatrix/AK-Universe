@@ -470,9 +470,10 @@ export async function submitProject(
   items: CartItem[],
   client: ClientInfo,
   payment?: string,
-  options?: { earlyStartAccepted?: boolean }
+  options?: { earlyStartAccepted?: boolean; termsAccepted?: boolean }
 ) {
   const earlyStartAccepted = options?.earlyStartAccepted === true;
+  const termsAccepted = options?.termsAccepted === true;
   const res = await fetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -482,7 +483,7 @@ export async function submitProject(
       client,
       items,
       lang: siteLang(),
-      ...(kind === "acompte" ? { earlyStartAccepted } : {}),
+      ...(kind === "acompte" ? { earlyStartAccepted, termsAccepted } : {}),
     }),
   });
   const data = (await res.json().catch(() => ({}))) as {

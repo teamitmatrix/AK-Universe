@@ -29,7 +29,10 @@ import type {
   loadQuotes,
 } from "@/lib/admin/crm";
 import { LEDGER_PERIODS, UNASSIGNED } from "@/lib/admin/crm";
+import type { SalesCatalogueItem } from "@/lib/commercial/catalogue";
+import type { DocKind, ProductType } from "@/lib/commercial/commission-rules";
 import { AdmShell } from "./AdmShell";
+import { AdminSalesDocComposer } from "./AdminSalesDocComposer";
 import { CommissionBoardTable, FilterBar, GenerateCommissionsButton, RecordBalanceButton, SubscriptionAssign } from "./CrmClient";
 import { dashTextFor, type DashText } from "./dashText";
 import { Kpi, MigrationNote, PageHead, formatters } from "./ui";
@@ -407,14 +410,47 @@ export function VentesView({ lang, admin, data, filter }: { lang: Lang; admin: A
 
 // ---------- Quotes & invoices ----------
 
-export function DevisFacturesView({ lang, admin, data, filter }: { lang: Lang; admin: Admin; data: Awaited<ReturnType<typeof loadQuotes>>; filter: QuoteFilter }) {
+export function DevisFacturesView({
+  lang,
+  admin,
+  data,
+  filter,
+  catalogue = [],
+  rates = {} as Record<ProductType, number>,
+  clients = [],
+  initialNew = null,
+}: {
+  lang: Lang;
+  admin: Admin;
+  data: Awaited<ReturnType<typeof loadQuotes>>;
+  filter: QuoteFilter;
+  catalogue?: SalesCatalogueItem[];
+  rates?: Record<ProductType, number>;
+  clients?: { id: string; name: string; email: string }[];
+  initialNew?: DocKind | null;
+}) {
   const t = dashTextFor(lang);
   const q = t.crm.quotes;
   const f = formatters(localeOf(lang));
   return (
     <AdmShell t={t} active="devisFactures" admin={admin}>
       <div className="adm-content">
-        <PageHead title={q.title} subtitle={q.subtitle} />
+        <PageHead title={q.title} subtitle={q.subtitle}>
+          {data.ready ? (
+            <AdminSalesDocComposer
+              catalogue={catalogue}
+              rates={rates}
+              reps={data.reps}
+              clients={clients}
+              initialNew={initialNew}
+              labels={{
+                newQuote: q.newQuote,
+                newInvoice: q.newInvoice,
+                noReps: q.noReps,
+              }}
+            />
+          ) : null}
+        </PageHead>
         {!data.ready ? (
           <p className="adm-note">
             <Info size={15} aria-hidden="true" />

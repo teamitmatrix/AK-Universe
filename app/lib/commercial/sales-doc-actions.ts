@@ -51,7 +51,8 @@ const text = (v: unknown, max: number) => {
 };
 const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
-async function parse(input: DocInput) {
+/** Shared validation for commercial and admin document writes. */
+export async function parseSalesDocInput(input: DocInput) {
   if (input.kind !== "devis" && input.kind !== "facture") return null;
   // A new / edited document is a draft or issued; "accepté", "payée"… are set with the status buttons.
   if (input.status !== "brouillon" && input.status !== "en_attente") return null;
@@ -133,7 +134,7 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   const me = await getCommercial();
   if (!me) return fail("forbidden");
   if (id !== null && !isUuid(id)) return fail("invalid");
-  const row = await parse(input);
+  const row = await parseSalesDocInput(input);
   if (!row) return fail("invalid");
   const supabase = await createClient();
   const customer_id = await customerFor(me, row.client_email);

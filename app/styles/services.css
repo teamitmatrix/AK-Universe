@@ -319,7 +319,20 @@ body.modal-open { overflow: hidden; }
 .stripe-slot { display: flex; align-items: center; gap: 12px; padding: 18px; border-radius: 12px; border: 1px dashed rgba(255,255,255,.2); color: #a79d8f; margin-bottom: 16px; font-size: .92rem; }
 .stripe-slot p { margin: 0; }
 .cgv { display: flex; gap: 10px; align-items: flex-start; font-size: .9rem; color: #d6cdbf; margin-bottom: 14px; }
-.cgv input { accent-color: var(--gold); width: 18px; height: 18px; margin-top: 2px; flex: none; }
+.cgv input { accent-color: var(--gold); width: 16px; height: 16px; margin-top: 3px; flex: none; }
+.cgv a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.cgv a:hover { color: var(--gold, #f7ac2c); }
+.terms-accept-error {
+  margin: -6px 0 12px;
+  color: #f97066;
+  font-size: .88rem;
+  line-height: 1.35;
+}
 .withdrawal-note {
   margin: 0 0 14px;
   color: #a79d8f;

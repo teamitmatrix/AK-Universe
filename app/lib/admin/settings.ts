@@ -3,18 +3,20 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getCompany } from "@/lib/company";
 import { emailConfigured, teamAddresses } from "@/lib/email";
 import { getTeamNotifications } from "@/lib/notifications";
+import { getTerms } from "@/lib/terms";
 import { loadAuditLog } from "./audit";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "./team";
 
-/** Everything the 5 tabs of /admin/parametres show, read live. */
+/** Everything the Paramètres tabs show, read live. */
 export async function loadSettings() {
   const supabase = await createClient();
   const me = await getCurrentUser();
-  const [{ data: profile }, company, notifications, { data: team }, ...checks] = await Promise.all([
+  const [{ data: profile }, company, terms, notifications, { data: team }, ...checks] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", me?.id ?? "").maybeSingle(),
     getCompany(),
+    getTerms(),
     getTeamNotifications(),
     supabase.from("profiles").select("*").in("role", ["admin", "commercial", "videaste"]).order("role").order("first_name"),
     // Which admin-space migrations are applied (each probe is a harmless empty read).
@@ -38,6 +40,13 @@ export async function loadSettings() {
       lastSignIn: me?.last_sign_in_at ?? null,
     },
     company,
+    terms: {
+      version: terms.version,
+      label: terms.label,
+      title: terms.title,
+      bodyHtml: terms.bodyHtml,
+      href: terms.href,
+    },
     notifications,
     team: (team ?? []).map((p) => ({
       id: p.id as string,

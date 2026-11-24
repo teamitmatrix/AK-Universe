@@ -929,6 +929,36 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 .m-logo { width: 38px; height: 34px; display: grid; place-items: center; flex: none; }
 .cards-logos { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .pay-note { text-align: center; color: var(--l-muted); font-size: .9rem; margin-top: 16px; line-height: 1.4; }
+.terms-accept {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 22px;
+  color: #2a241c;
+  font-size: .92rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.terms-accept input {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  flex: none;
+  accent-color: var(--orange, #f7ac2c);
+}
+.terms-accept a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.terms-accept a:hover { color: var(--orange, #f7ac2c); }
+.terms-accept-error {
+  margin: 8px 0 0;
+  color: #b42318;
+  font-size: .88rem;
+  line-height: 1.35;
+}
 .toast { position: fixed; left: 50%; bottom: 28px; translate: -50% 20px; background: #111; color: #fff; padding: 14px 22px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.3); opacity: 0; pointer-events: none; transition: opacity .25s, translate .25s; z-index: 100; max-width: calc(100vw - 32px); }
 .toast.show { opacity: 1; translate: -50% 0; }
 

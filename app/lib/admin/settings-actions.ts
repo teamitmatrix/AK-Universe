@@ -5,8 +5,10 @@ import { revalidatePath } from "next/cache";
 import { sendAuthEmail } from "@/lib/auth/emails";
 import { isStrongPassword } from "@/lib/auth/password";
 import { getCurrentUser, isAdmin } from "@/lib/auth/session";
+import { formatTermsLabel, sanitizeTermsHtml, TERMS_KEY, todayTermsVersion } from "@/config/terms";
 import { COMPANY_FIELDS, COMPANY_KEY, type CompanyField } from "@/lib/company";
 import { NOTIFICATIONS_KEY, NOTIFICATION_IDS, type TeamNotifications } from "@/lib/notifications";
+import { getTerms } from "@/lib/terms";
 import { createAdminClient, createClient, createPublicClient } from "@/lib/supabase/server";
 
 /** Paramètres writes. Each action re-checks the admin role; every value is validated here. */
@@ -97,6 +99,56 @@ export async function saveCompany(input: Partial<Record<CompanyField, string>>):
   for (const path of ["/admin/parametres", "/mentions-legales", "/confidentialite", "/cgv", "/contact"]) revalidatePath(path);
   await audit("company.save", "company", value);
   return { success: true };
+}
+
+const MAX_TERMS_HTML = 200_000;
+const VERSION_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Paramètres → CGV: editable legal text + version used as acceptance proof on checkout. */
+export async function saveTerms(input: {
+  title: string;
+  bodyHtml: string;
+  /** ISO date YYYY-MM-DD — becomes the machine version id and drives the public label. */
+  versionDate?: string;
+  /** When true (default), always stamp a new version date even if content is unchanged. */
+  bumpVersion?: boolean;
+}): Promise<{ success: true; version: string; label: string } | Fail> {
+  if (!(await isAdmin())) return fail("forbidden");
+  const title = String(input.title ?? "").trim();
+  const bodyHtml = sanitizeTermsHtml(String(input.bodyHtml ?? "").trim());
+  if (!title || title.length > 200 || !bodyHtml || bodyHtml.length > MAX_TERMS_HTML) return fail("invalid");
+
+  const current = await getTerms();
+  const contentChanged = title !== current.title || bodyHtml !== current.bodyHtml;
+  const bump = input.bumpVersion !== false || contentChanged;
+  const versionDate = String(input.versionDate ?? "").trim() || todayTermsVersion();
+  if (!VERSION_RE.test(versionDate)) return fail("invalid");
+
+  const version = bump ? versionDate : current.version;
+  const label = bump ? formatTermsLabel(version) : current.label;
+  const value = {
+    version,
+    label,
+    title,
+    bodyHtml,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const supabase = await createClient();
+  const me = await getCurrentUser();
+  const { error } = await supabase.from("site_settings").upsert({
+    key: TERMS_KEY,
+    value,
+    updated_at: value.updatedAt,
+    updated_by: me?.id,
+  });
+  if (error) {
+    console.error("saveTerms failed:", error.message);
+    return fail("failed");
+  }
+  for (const path of ["/admin/parametres", "/cgv", "/paiement", "/acompte"]) revalidatePath(path);
+  await audit("terms.save", TERMS_KEY, { version, label, titleLength: title.length, bodyLength: bodyHtml.length });
+  return { success: true, version, label };
 }
 
 /** Notifications: which team e-mails are sent (read by lib/projects/emails.ts). */

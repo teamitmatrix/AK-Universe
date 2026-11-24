@@ -4,7 +4,7 @@ import type { Lang } from "@/config/languages";
 const TEXT = {
   fr: {
     nav: { catalogue: "Catalogue & prix", prixVideo: "Prix des services vidéo", projets: "Projets vidéo", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Rapports & statistiques", parametres: "Paramètres", support: "Support clients" },
-    create: { button: "Créer", task: "Nouvelle tâche", promotion: "Nouvelle promotion", member: "Ajouter un membre", menu: "Menu Créer" },
+    create: { button: "Créer", task: "Nouvelle tâche", promotion: "Nouvelle promotion", member: "Ajouter un membre", quote: "Nouveau devis", invoice: "Nouvelle facture", menu: "Menu Créer" },
     me: { edit: "Modifier mon profil", logout: "Se déconnecter" },
     common: { save: "Enregistrer", saving: "Enregistrement…", saved: "Enregistré.", cancel: "Annuler", close: "Fermer", unavailable: "Indisponible", all: "Tous", search: "Rechercher…" },
     errors: {
@@ -323,8 +323,8 @@ const TEXT = {
     },
     parametres: {
       title: "Paramètres",
-      subtitle: "Profil, entreprise, équipe, notifications et sécurité.",
-      tabs: { profil: "Mon profil", entreprise: "Entreprise", equipe: "Équipe & rôles", notifications: "Notifications", securite: "Sécurité" } as Record<string, string>,
+      subtitle: "Profil, entreprise, CGV, équipe, notifications et sécurité.",
+      tabs: { profil: "Mon profil", entreprise: "Entreprise", cgv: "CGV", equipe: "Équipe & rôles", notifications: "Notifications", securite: "Sécurité" } as Record<string, string>,
       profil: {
         title: "Mon profil",
         first: "Prénom",
@@ -367,6 +367,22 @@ const TEXT = {
         } as Record<string, string>,
         invalidField: (f: string) => `Format invalide : ${f}.`,
         saved: "Informations enregistrées : les pages légales sont à jour.",
+      },
+      cgv: {
+        title: "Conditions Générales de Vente et d'Utilisation",
+        intro:
+          "Texte publié sur /cgv et version enregistrée comme preuve lors de chaque acceptation au checkout. Les clients déjà abonnés gardent la version qu'ils ont acceptée ; seuls les nouveaux contrats utilisent la version enregistrée ici.",
+        currentVersion: "Version actuelle",
+        versionDate: "Date de version",
+        versionHint: "Format AAAA-MM-JJ. À l'enregistrement, le libellé public est régénéré (ex. Version 21/11/2026).",
+        bump: "Créer une nouvelle version à l'enregistrement",
+        bumpHint: "Cochez cette case (recommandé) dès que le texte change, pour que les prochaines acceptations portent un nouvel identifiant.",
+        titleField: "Titre de la page",
+        body: "Contenu HTML",
+        placeholders:
+          "Placeholders disponibles : {{legalName}}, {{address}}, {{siren}}, {{email}}, {{phone}}, {{phoneHref}}, {{website}}, {{websiteHost}}, {{year}} — remplacés avec les infos Entreprise.",
+        preview: "Voir la page publique",
+        saved: (label: string) => `CGV enregistrées — ${label}`,
       },
       equipe: {
         title: "Équipe & rôles",
@@ -447,7 +463,7 @@ const TEXT = {
   },
   en: {
     nav: { catalogue: "Catalogue & prices", prixVideo: "Video service prices", projets: "Video projects", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Reports & statistics", parametres: "Settings", support: "Client support" },
-    create: { button: "Create", task: "New task", promotion: "New promotion", member: "Add a member", menu: "Create menu" },
+    create: { button: "Create", task: "New task", promotion: "New promotion", member: "Add a member", quote: "New quote", invoice: "New invoice", menu: "Create menu" },
     me: { edit: "Edit my profile", logout: "Log out" },
     common: { save: "Save", saving: "Saving…", saved: "Saved.", cancel: "Cancel", close: "Close", unavailable: "Unavailable", all: "All", search: "Search…" },
     errors: {
@@ -766,8 +782,8 @@ const TEXT = {
     },
     parametres: {
       title: "Settings",
-      subtitle: "Profile, company, team, notifications and security.",
-      tabs: { profil: "My profile", entreprise: "Company", equipe: "Team & roles", notifications: "Notifications", securite: "Security" } as Record<string, string>,
+      subtitle: "Profile, company, terms, team, notifications and security.",
+      tabs: { profil: "My profile", entreprise: "Company", cgv: "Terms", equipe: "Team & roles", notifications: "Notifications", securite: "Security" } as Record<string, string>,
       profil: {
         title: "My profile",
         first: "First name",
@@ -810,6 +826,22 @@ const TEXT = {
         } as Record<string, string>,
         invalidField: (f: string) => `Invalid format: ${f}.`,
         saved: "Information saved: the legal pages are up to date.",
+      },
+      cgv: {
+        title: "Terms and Conditions of Sale and Use",
+        intro:
+          "Text published on /cgv and version stored as proof each time a customer accepts at checkout. Existing subscribers keep the version they accepted; only new contracts use the version saved here.",
+        currentVersion: "Current version",
+        versionDate: "Version date",
+        versionHint: "Format YYYY-MM-DD. On save, the public label is regenerated (e.g. Version 21/11/2026).",
+        bump: "Create a new version on save",
+        bumpHint: "Keep this checked (recommended) whenever the text changes, so future acceptances get a new version id.",
+        titleField: "Page title",
+        body: "HTML content",
+        placeholders:
+          "Available placeholders: {{legalName}}, {{address}}, {{siren}}, {{email}}, {{phone}}, {{phoneHref}}, {{website}}, {{websiteHost}}, {{year}} — filled from Company settings.",
+        preview: "Open public page",
+        saved: (label: string) => `Terms saved — ${label}`,
       },
       equipe: {
         title: "Team & roles",

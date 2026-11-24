@@ -21,7 +21,8 @@ import type { AgentCategory } from "@/config/agents";
 import { DEFAULT_RATES, PRODUCT_TYPES, type ProductType } from "@/lib/commercial/commission-rules";
 import { PERSON_NOTIFICATION_IDS, TEAM_NOTIFICATION_IDS, type TeamNotifications } from "@/lib/notification-ids";
 import { createPromotion, setPromotionActive, type NewPromotion } from "@/lib/admin/promotions-actions";
-import { changeMyPassword, saveCompany, saveNotifications, updateMyProfile } from "@/lib/admin/settings-actions";
+import { changeMyPassword, saveCompany, saveNotifications, saveTerms, updateMyProfile } from "@/lib/admin/settings-actions";
+import { todayTermsVersion } from "@/config/terms";
 import { createTask, deleteTask, setTaskDone } from "@/lib/admin/tasks-actions";
 import { toolsTextFor } from "./toolsText";
 
@@ -126,6 +127,12 @@ export function CreateMenu({ options }: { options: TaskOptions | null }) {
           </button>
           <Link role="menuitem" href="/admin/promotions?nouveau=1" onClick={() => setOpen(false)}>
             {t.create.promotion}
+          </Link>
+          <Link role="menuitem" href="/admin/devis-factures?nouveau=devis" onClick={() => setOpen(false)}>
+            {t.create.quote}
+          </Link>
+          <Link role="menuitem" href="/admin/devis-factures?nouveau=facture" onClick={() => setOpen(false)}>
+            {t.create.invoice}
           </Link>
           <Link role="menuitem" href="/admin/parametres?onglet=equipe" onClick={() => setOpen(false)}>
             {t.create.member}
@@ -1630,6 +1637,108 @@ export function PasswordForm() {
         <button type="submit" className="adm-btn" disabled={pending}>
           <Check size={15} aria-hidden="true" />
           {pending ? t.common.saving : p.submit}
+        </button>
+      </div>
+      {toastNode}
+    </form>
+  );
+}
+
+export function TermsForm({
+  version,
+  label,
+  title,
+  bodyHtml,
+  href,
+}: {
+  version: string;
+  label: string;
+  title: string;
+  bodyHtml: string;
+  href: string;
+}) {
+  const { t } = useT();
+  const c = t.parametres.cgv;
+  const router = useRouter();
+  const [toast, toastNode] = useToast();
+  const [pending, start] = useTransition();
+  const [form, setForm] = useState({ title, bodyHtml, versionDate: todayTermsVersion(), bumpVersion: true });
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, title, bodyHtml }));
+  }, [title, bodyHtml, version, label]);
+
+  return (
+    <form
+      className="adm-form-grid"
+      onSubmit={(ev) => {
+        ev.preventDefault();
+        start(async () => {
+          const res = await saveTerms(form);
+          if (!res.success) return toast(t.errors[res.error] ?? t.errors.failed);
+          toast(c.saved(res.label));
+          router.refresh();
+        });
+      }}
+    >
+      <div className="adm-field is-wide">
+        <span>{c.currentVersion}</span>
+        <p className="adm-note is-info" style={{ margin: 0 }}>
+          <strong>{version}</strong>
+          <br />
+          {label}
+        </p>
+      </div>
+      <label className="adm-field">
+        <span>{c.versionDate}</span>
+        <input
+          type="date"
+          required
+          value={form.versionDate}
+          onChange={(ev) => setForm({ ...form, versionDate: ev.target.value })}
+        />
+        <small className="adm-muted">{c.versionHint}</small>
+      </label>
+      <label className="adm-field" style={{ alignSelf: "end" }}>
+        <span className="adm-check">
+          <input
+            type="checkbox"
+            checked={form.bumpVersion}
+            onChange={(ev) => setForm({ ...form, bumpVersion: ev.target.checked })}
+          />{" "}
+          {c.bump}
+        </span>
+        <small className="adm-muted">{c.bumpHint}</small>
+      </label>
+      <label className="adm-field is-wide">
+        <span>{c.titleField}</span>
+        <input
+          value={form.title}
+          maxLength={200}
+          required
+          onChange={(ev) => setForm({ ...form, title: ev.target.value })}
+        />
+      </label>
+      <label className="adm-field is-wide">
+        <span>{c.body}</span>
+        <textarea
+          className="adm-terms-body"
+          value={form.bodyHtml}
+          required
+          rows={22}
+          spellCheck
+          onChange={(ev) => setForm({ ...form, bodyHtml: ev.target.value })}
+        />
+        <small className="adm-muted">{c.placeholders}</small>
+      </label>
+      <div className="adm-form-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <a className="adm-btn is-ghost" href={href} target="_blank" rel="noopener noreferrer">
+          <ExternalLink size={15} aria-hidden="true" />
+          {c.preview}
+        </a>
+        <button type="submit" className="adm-btn" disabled={pending}>
+          <Check size={15} aria-hidden="true" />
+          {pending ? t.common.saving : t.common.save}
         </button>
       </div>
       {toastNode}

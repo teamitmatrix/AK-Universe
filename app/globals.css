@@ -170,6 +170,9 @@ font {
   font-size: 0.9rem;
   margin: 0 0 40px;
 }
+.legal-html > *:first-child {
+  margin-top: 0;
+}
 .legal-body h2 {
   scroll-margin-top: 120px;
   color: var(--text);

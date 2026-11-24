@@ -9,6 +9,8 @@ import { ensureProfile } from "@/lib/auth/session";
 import { requireClient } from "@/lib/client/session";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { getTerms } from "@/lib/terms";
+import { recordSubscriptionTermsAcceptance } from "@/lib/terms-acceptance";
 
 // Restricts Checkout to the method picked on paiement.html (it must also be enabled in Stripe).
 const METHODS: Record<string, Stripe.Checkout.SessionCreateParams.AllowedPaymentMethodType[]> = {
@@ -32,10 +34,15 @@ export async function startSubscriptionCheckout(input: {
   method: string;
   promotionCodeId?: string;
   lang?: string;
+  /** Mandatory CGV checkbox — must be true or the checkout is refused. */
+  termsAccepted?: boolean;
 }) {
   const stripe = getStripe();
   if (!stripe) {
     return { success: false as const, code: "not_configured" as const };
+  }
+  if (input.termsAccepted !== true) {
+    return { success: false as const, code: "terms_required" as const };
   }
 
   const supabase = await createClient();
@@ -45,8 +52,10 @@ export async function startSubscriptionCheckout(input: {
 
   // Never trust client totals: recompute from the sanitized selection + live catalogue prices.
   const selection = sanitizeSelection(input.selection);
-  const quote = computeQuote(selection, await getAgentsPricing());
+  const [quoteRates, terms] = await Promise.all([getAgentsPricing(), getTerms()]);
+  const quote = computeQuote(selection, quoteRates);
   const admin = createAdminClient();
+  const termsAcceptedAt = new Date().toISOString();
 
   // One running subscription per customer: a second checkout would charge twice. Plan / option / cycle changes
   // go through the client space (/client/dashboard/mon-offre) instead.
@@ -77,6 +86,10 @@ export async function startSubscriptionCheckout(input: {
       options: selection.options,
       monthly_total_cents: toCents(quote.monthly),
       status: "pending",
+      terms_accepted: true,
+      terms_version: terms.version,
+      terms_label: terms.label,
+      terms_accepted_at: termsAcceptedAt,
     })
     .select("id")
     .single();
@@ -84,6 +97,18 @@ export async function startSubscriptionCheckout(input: {
     console.error("subscription insert failed:", error?.message);
     return { success: false as const, code: "prepare_failed" as const };
   }
+
+  await recordSubscriptionTermsAcceptance({
+    userId: auth.user.id,
+    subscriptionId: subscription.id,
+    plan: PLAN.id,
+    cycle: selection.cycle,
+    extraUsers: selection.users,
+    options: selection.options,
+    acceptedAt: termsAcceptedAt,
+    termsVersion: terms.version,
+    termsLabel: terms.label,
+  });
 
   const site = getSiteUrl();
   const annual = selection.cycle === "annuel";

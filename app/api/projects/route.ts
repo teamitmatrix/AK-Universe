@@ -6,7 +6,10 @@ import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { termsContactFields } from "@/config/terms";
 import { buildEarlyStartRecord, earlyStartContactFields } from "@/config/withdrawal";
+import { getTerms } from "@/lib/terms";
+import { recordProjectTermsAcceptance } from "@/lib/terms-acceptance";
 
 /*
  * Video project intake (finaliser.html → "Demander mon devis", acompte.html → "Payer").
@@ -32,6 +35,8 @@ type Body = {
   items?: ProjectItemInput[];
   /** Optional early-start consent for acompte checkout (must stay unchecked by default on the client). */
   earlyStartAccepted?: boolean;
+  /** Mandatory CGV checkbox for acompte — must be true or the request is refused. */
+  termsAccepted?: boolean;
 };
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -111,8 +116,27 @@ export async function POST(request: Request) {
   if (auth.user) await ensureProfile(auth.user);
   const reference = `AKU-${randomBytes(4).toString("hex").toUpperCase()}`;
 
+  if (kind === "acompte" && body.termsAccepted !== true) {
+    return NextResponse.json(
+      {
+        error:
+          "Vous devez accepter les Conditions Générales de Vente et d'Utilisation pour continuer.",
+      },
+      { status: 400 }
+    );
+  }
+
   const earlyStart = kind === "acompte" ? buildEarlyStartRecord(body.earlyStartAccepted === true) : null;
-  const storedContact = earlyStart ? { ...contact, ...earlyStartContactFields(earlyStart) } : contact;
+  const termsAcceptedAt = kind === "acompte" ? new Date().toISOString() : null;
+  const terms = kind === "acompte" ? await getTerms() : null;
+  const storedContact =
+    kind === "acompte" && terms && termsAcceptedAt
+      ? {
+          ...contact,
+          ...(earlyStart ? earlyStartContactFields(earlyStart) : {}),
+          ...termsContactFields(terms, termsAcceptedAt),
+        }
+      : contact;
 
   const { data: project, error } = await admin
     .from("video_projects")
@@ -131,6 +155,18 @@ export async function POST(request: Request) {
   if (error || !project) {
     console.error("video_projects insert failed:", error?.message);
     return NextResponse.json({ error: "Enregistrement impossible. Veuillez réessayer." }, { status: 500 });
+  }
+
+  if (kind === "acompte" && termsAcceptedAt && terms) {
+    await recordProjectTermsAcceptance({
+      userId: auth.user?.id ?? null,
+      projectId: project.id,
+      plan: reference,
+      options: priced.items,
+      acceptedAt: termsAcceptedAt,
+      termsVersion: terms.version,
+      termsLabel: terms.label,
+    });
   }
 
   const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? priced.deposit : 0 };

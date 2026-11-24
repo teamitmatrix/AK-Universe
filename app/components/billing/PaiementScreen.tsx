@@ -11,6 +11,7 @@ import {
   type AgentsPricing,
   type Selection,
 } from "@/config/pricing";
+import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
@@ -58,12 +59,17 @@ const TEXT = {
     submit: "Payer et s'abonner",
     submitting: "Redirection…",
     securedBy: "Paiement sécurisé par",
-    note: "En vous abonnant, vous autorisez AK Universe à vous débiter conformément aux conditions d'utilisation jusqu'à résiliation.",
+    termsBefore: TERMS_CHECKBOX.fr.before,
+    termsLink: TERMS_CHECKBOX.fr.link,
+    termsAfter: TERMS_CHECKBOX.fr.after,
+    termsRequired: TERMS_CHECKBOX.fr.required,
+    note: TERMS_CHECKBOX.fr.recurring,
     errors: {
       not_configured: "Le paiement en ligne n'est pas encore configuré. Aucun montant n'a été débité.",
       already_subscribed: "Vous avez déjà un abonnement actif. Modifiez-le depuis votre espace client (Mon offre). Aucun montant n'a été débité.",
       prepare_failed: "Impossible de préparer le paiement. Veuillez réessayer.",
       method_unavailable: "Ce moyen de paiement n'est pas disponible. Choisissez la carte bancaire.",
+      terms_required: TERMS_CHECKBOX.fr.required,
     },
     success: {
       heading: ["Merci, votre abonnement est ", "confirmé"],
@@ -111,12 +117,17 @@ const TEXT = {
     submit: "Pay and subscribe",
     submitting: "Redirecting…",
     securedBy: "Secure payment by",
-    note: "By subscribing, you authorize AK Universe to charge you in accordance with the terms of use until you cancel.",
+    termsBefore: TERMS_CHECKBOX.en.before,
+    termsLink: TERMS_CHECKBOX.en.link,
+    termsAfter: TERMS_CHECKBOX.en.after,
+    termsRequired: TERMS_CHECKBOX.en.required,
+    note: TERMS_CHECKBOX.en.recurring,
     errors: {
       not_configured: "Online payment is not configured yet. You have not been charged.",
       already_subscribed: "You already have an active subscription. Change it from your client area (My plan). You have not been charged.",
       prepare_failed: "Unable to prepare the payment. Please try again.",
       method_unavailable: "This payment method is not available. Please choose a credit card.",
+      terms_required: TERMS_CHECKBOX.en.required,
     },
     success: {
       heading: ["Thank you, your subscription is ", "confirmed"],
@@ -183,6 +194,7 @@ export function PaiementScreen({
   // Message keys (not strings) so they follow the language switch.
   const [promoMsg, setPromoMsg] = useState<PromoMsg | null>(null);
   const [promotionCodeId, setPromotionCodeId] = useState<string>();
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<keyof typeof TEXT.fr.errors | "">("");
   const [pending, startTransition] = useTransition();
 
@@ -209,9 +221,20 @@ export function PaiementScreen({
       input.reportValidity();
       return;
     }
+    if (!termsAccepted) {
+      setError("terms_required");
+      return;
+    }
     startTransition(async () => {
       // Redirects to Stripe Checkout on success.
-      const result = await startSubscriptionCheckout({ selection, email, method, promotionCodeId, lang });
+      const result = await startSubscriptionCheckout({
+        selection,
+        email,
+        method,
+        promotionCodeId,
+        lang,
+        termsAccepted: true,
+      });
       if (result && !result.success) setError(result.code);
     });
   }
@@ -353,13 +376,37 @@ export function PaiementScreen({
               ))}
             </div>
 
-            {error && (
+            {error && error !== "terms_required" ? (
               <p key={error} className="auth-error" role="alert" style={{ marginTop: 16 }}>
                 {t.errors[error]}
               </p>
-            )}
+            ) : null}
 
-            <button type="submit" className="btn btn-light-primary btn-block" style={{ marginTop: 26, fontSize: "1.35rem" }} disabled={pending}>
+            <label className="terms-accept">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  if (e.target.checked && error === "terms_required") setError("");
+                }}
+                aria-required="true"
+              />
+              <span>
+                {t.termsBefore}
+                <a href={TERMS.href} target="_blank" rel="noopener noreferrer">
+                  {t.termsLink}
+                </a>
+                {t.termsAfter}
+              </span>
+            </label>
+            {error === "terms_required" ? (
+              <p className="terms-accept-error" role="alert">
+                {t.termsRequired}
+              </p>
+            ) : null}
+
+            <button type="submit" className="btn btn-light-primary btn-block" style={{ marginTop: 18, fontSize: "1.35rem" }} disabled={pending}>
               <span key={String(pending)}>{pending ? t.submitting : t.submit}</span> <Icon name="arrow" />
             </button>
             <p className="secure">

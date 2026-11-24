@@ -38,7 +38,7 @@ import { FilterBar } from "./CrmClient";
 import { dashTextFor } from "./dashText";
 import { RevenueChart } from "./RevenueChart";
 import { AddStaffButton, StaffOpenLink } from "./StaffManage";
-import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewAgentServiceButton, NewPromotionButton, NewTaskButton, NotificationsForm, PasswordForm, ProfileForm, PromotionToggle, TaskActions, UploadButton, type TaskOptions } from "./ToolsClient";
+import { CatalogueEditor, CommissionRatesForm, CompanyForm, FileActions, LibraryGrid, NewAgentServiceButton, NewPromotionButton, NewTaskButton, NotificationsForm, PasswordForm, ProfileForm, PromotionToggle, TaskActions, TermsForm, UploadButton, type TaskOptions } from "./ToolsClient";
 import type { loadCommissionRates } from "@/lib/admin/rates";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, PageHead, formatters } from "./ui";
@@ -597,7 +597,7 @@ export function RapportsView({ lang, admin, data }: { lang: Lang; admin: Admin; 
 
 // ---------- Paramètres ----------
 
-export const SETTINGS_TABS = ["profil", "entreprise", "equipe", "notifications", "securite"] as const;
+export const SETTINGS_TABS = ["profil", "entreprise", "cgv", "equipe", "notifications", "securite"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function ParametresView({ lang, admin, data, tab }: { lang: Lang; admin: Admin; data: Awaited<ReturnType<typeof loadSettings>>; tab: SettingsTab }) {
@@ -658,6 +658,20 @@ export function ParametresView({ lang, admin, data, tab }: { lang: Lang; admin: 
               <h2 className="adm-subhead">{p.entreprise.title}</h2>
               <p className="adm-muted adm-small">{p.entreprise.intro}</p>
               <CompanyForm values={companyValues} defaults={companyDefaults} />
+            </>
+          )}
+
+          {tab === "cgv" && (
+            <>
+              <h2 className="adm-subhead">{p.cgv.title}</h2>
+              <p className="adm-muted adm-small">{p.cgv.intro}</p>
+              <TermsForm
+                version={data.terms.version}
+                label={data.terms.label}
+                title={data.terms.title}
+                bodyHtml={data.terms.bodyHtml}
+                href={data.terms.href}
+              />
             </>
           )}
 
