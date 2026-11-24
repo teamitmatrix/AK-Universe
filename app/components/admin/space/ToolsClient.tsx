@@ -1663,10 +1663,12 @@ export function TermsForm({
   const [toast, toastNode] = useToast();
   const [pending, start] = useTransition();
   const [form, setForm] = useState({ title, bodyHtml, versionDate: todayTermsVersion(), bumpVersion: true });
-
-  useEffect(() => {
+  const [prevDoc, setPrevDoc] = useState({ version, label, title, bodyHtml });
+  // Sync during render after save/refresh (same pattern as CommissionRatesForm).
+  if (version !== prevDoc.version || label !== prevDoc.label || title !== prevDoc.title || bodyHtml !== prevDoc.bodyHtml) {
+    setPrevDoc({ version, label, title, bodyHtml });
     setForm((prev) => ({ ...prev, title, bodyHtml }));
-  }, [title, bodyHtml, version, label]);
+  }
 
   return (
     <form

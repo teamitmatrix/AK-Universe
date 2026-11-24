@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { replyAsSupport, setSupportStatus } from "@/lib/admin/support-actions";
 import type { TicketStatus } from "@/lib/client/support-content";
@@ -30,10 +30,15 @@ export function SupportReply({ reference, status, labels }: { reference: string;
   const [link, setLink] = useState("");
   const [replyStatus, setReplyStatus] = useState<TicketStatus>("en_attente");
   const [nextStatus, setNextStatus] = useState<TicketStatus>(status);
+  const [prevStatus, setPrevStatus] = useState(status);
   const [error, setError] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
-  useEffect(() => setNextStatus(status), [status]);
+  // Sync during render when the ticket status changes after refresh (no useEffect setState).
+  if (status !== prevStatus) {
+    setPrevStatus(status);
+    setNextStatus(status);
+  }
 
   const fail = (code: string) => setError(labels.errors[code] ?? labels.errors.failed ?? code);
 
