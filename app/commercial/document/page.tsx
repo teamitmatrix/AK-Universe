@@ -9,7 +9,7 @@ import { getCompany } from "@/lib/company";
 import "@/styles/commercial-doc.css";
 
 export const metadata: Metadata = {
-  title: { absolute: "Aperçu du document — AK Universe" },
+  title: { absolute: "Document — AK Universe" },
   robots: { index: false, follow: false },
 };
 

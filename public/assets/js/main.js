@@ -466,7 +466,7 @@ function initPaiement() {
     m.className = "promo-msg err";
   });
 
-  $(".apple-pay").addEventListener("click", () => toast("Apple Pay sera disponible après l'intégration Stripe."));
+  // Stripe Checkout handles Apple Pay / Google Pay on /paiement (Next.js PaiementScreen).
   $("#pay-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const mail = $("#pay-email");

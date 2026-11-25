@@ -4,28 +4,44 @@
  * below are only labels and the defaults shown before the table exists.
  *   commission = amount actually collected (HT) × rate of the product type (else the rep's own rate)
  *   optional fixed_commission_cents on a line replaces the % for that line (migration 014)
- *   recurring AI subscriptions use the "abonnements" rate on each paid Stripe cycle
+ *
+ * Three business lines only (aligned with the site universes):
+ *   agents    — Agents IA (setup + recurring subscriptions)
+ *   marketing — Marketing
+ *   digital   — Digital (sites, vidéos, options, prestations)
  */
-export const PRODUCT_TYPES = ["agents", "abonnements", "marketing", "videos", "options", "prestations"] as const;
+export const PRODUCT_TYPES = ["agents", "marketing", "digital"] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 export const isProductType = (v: unknown): v is ProductType => PRODUCT_TYPES.includes(v as ProductType);
 
+/** Legacy product_type values still present on older devis lines / commission_rates rows. */
+export const LEGACY_PRODUCT_TYPES = ["abonnements", "videos", "options", "prestations", "consulting"] as const;
+
+/** When saving Agents IA / Marketing / Digital rates, keep legacy rows in sync for old documents. */
+export const RATE_SYNC_ALIASES: Record<ProductType, readonly string[]> = {
+  agents: ["abonnements"],
+  marketing: [],
+  digital: ["videos", "options", "prestations", "consulting"],
+};
+
+/** Map a stored / submitted product_type onto the three-line model. */
+export function normalizeProductType(v: unknown): ProductType | null {
+  if (isProductType(v)) return v;
+  if (v === "abonnements") return "agents";
+  if (v === "videos" || v === "options" || v === "prestations" || v === "consulting") return "digital";
+  return null;
+}
+
 export const DEFAULT_RATES: Record<ProductType, number> = {
   agents: 15,
-  abonnements: 10,
   marketing: 12,
-  videos: 10,
-  options: 10,
-  prestations: 12,
+  digital: 10,
 };
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
-  agents: "Agents IA (mise en place)",
-  abonnements: "Abonnements IA (récurrent)",
+  agents: "Agents IA",
   marketing: "Marketing",
-  videos: "Vidéos",
-  options: "Options supplémentaires",
-  prestations: "Prestations ponctuelles",
+  digital: "Digital",
 };
 
 /** Document statuses (quotes: brouillon → en attente → validée / annulée; invoices: brouillon → en attente → payée). */

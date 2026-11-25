@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { readClient, submitProject, useCart } from "./cart";
+import { cartIsPriced, readClient, submitProject, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, useMounted } from "./flow";
 
@@ -17,9 +16,13 @@ export function FinaliserView() {
   const [sending, setSending] = useState(false);
   const client = mounted ? readClient() : null;
 
+  const priced = cartIsPriced(config, cart.items);
+
   useEffect(() => {
-    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/projet/informations");
-  }, [mounted, cart.items.length, router]);
+    if (!mounted || cart.items.length === 0) return;
+    if (!readClient().email) router.replace("/projet/informations");
+    else if (priced) router.replace("/acompte");
+  }, [mounted, cart.items.length, priced, router]);
 
   return (
     <main className="flow">
@@ -34,6 +37,7 @@ export function FinaliserView() {
               Estimation de votre projet : <strong className="gold">{euro(cart.total)} HT</strong>
             </p>
             <div className="choice-grid">
+              {priced ? null : (
               <div className="choice">
                 <span className="choice-ic">
                   <Icon name="file-text" />
@@ -80,33 +84,7 @@ export function FinaliserView() {
                   )}
                 </button>
               </div>
-              <div className="choice featured">
-                <span className="choice-ic">
-                  <Icon name="credit-card" />
-                </span>
-                <h2>Réserver avec un acompte</h2>
-                <ul className="gold-checks">
-                  <li>
-                    <Icon name="check-circle" />
-                    Réservation sécurisée de votre date
-                  </li>
-                  <li>
-                    <Icon name="check-circle" />
-                    Acompte de {config.depositPercent} % : <strong>{euro(cart.deposit)} HT</strong>
-                  </li>
-                  <li>
-                    <Icon name="check-circle" />
-                    Confirmation immédiate
-                  </li>
-                  <li>
-                    <Icon name="check-circle" />
-                    Solde selon le devis final
-                  </li>
-                </ul>
-                <Link href="/acompte" className="btn btn-primary btn-block btn-lg">
-                  Payer un acompte <Icon name="arrow" />
-                </Link>
-              </div>
+              )}
             </div>
           </>
         )}

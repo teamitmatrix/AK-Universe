@@ -78,17 +78,17 @@ export default async function Page() {
                 Parlons de <span className="gold">votre projet</span>
               </h2>
               <p className="section-sub">
-                Demandez un devis gratuit, ou composez votre projet vidéo service par service.
+                Les forfaits et services au prix affiché se règlent directement. Un devis est réservé aux projets sur mesure.
               </p>
               <div className="cta-row" style={{ justifyContent: "center" }}>
-                <Link href={contactHref("Demande de devis")} className="btn btn-primary btn-lg">
-                  Demander un devis <Icon name="arrow" />
+                <Link href="/marketing/forfaits" className="btn btn-primary btn-lg">
+                  Voir les forfaits <Icon name="arrow" />
                 </Link>
                 <Link href="/services" className="btn btn-outline btn-lg">
-                  Composer mon projet
+                  Composer mon panier
                 </Link>
-                <Link href="/marketing/forfaits" className="btn btn-outline-gold btn-lg">
-                  Voir les forfaits
+                <Link href={contactHref("Demande de devis")} className="btn btn-outline-gold btn-lg">
+                  Projet sur mesure
                 </Link>
               </div>
             </div>

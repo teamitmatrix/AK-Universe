@@ -52,7 +52,7 @@ export function MyPlanView({
             </h2>
             <p className="cs-card-sub">Choisissez l&apos;abonnement Agents IA adapté à votre activité.</p>
             <div className="cs-actions">
-              <Link href="/abonnement" className="cs-act is-primary">
+              <Link href="/" className="cs-act is-primary">
                 <ArrowUpFromLine className="cs-act-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
                 <span>Choisir mon abonnement</span>
                 <ArrowRight className="cs-act-arrow" size={20} aria-hidden="true" />

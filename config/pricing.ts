@@ -242,6 +242,65 @@ export function computeQuote(
   };
 }
 
+export type CheckoutPlan = {
+  id: string;
+  name: string;
+  monthly: number;
+  /** Yearly package HT. Null = monthly × 12 with the annual discount. */
+  annualPackage: number | null;
+  setup: number;
+  features: readonly string[];
+};
+
+/** A priced AI offer that can be paid on /paiement. "Sur devis" and unknown ids return null. */
+export function checkoutPlan(id: string | null | undefined, pricing: AgentsPricing = DEFAULT_AGENTS_PRICING): CheckoutPlan | null {
+  const rates = normalizeAgentsPricing(pricing);
+  if (!id) return null;
+  if (id === PLAN.id) {
+    return {
+      id: PLAN.id,
+      name: PLAN.name,
+      monthly: rates.planMonthly,
+      annualPackage: null,
+      setup: 0,
+      features: PLAN.features,
+    };
+  }
+  const tier = AGENT_TIERS.find((item) => item.id === id);
+  if (!tier || tier.price == null) return null;
+  const live = rates.tiers[tier.name];
+  const monthly = live?.price ?? tier.price;
+  if (monthly == null) return null;
+  return {
+    id: tier.id,
+    name: tier.name,
+    monthly,
+    annualPackage: tier.priceAnnual,
+    setup: live?.setupFrom ?? tier.setupFrom ?? 0,
+    features: tier.features,
+  };
+}
+
+/** What Stripe charges for a chosen plan. Setup is paid once; the rest renews. */
+export function quoteCheckout(plan: CheckoutPlan, selection: Selection, pricing: AgentsPricing = DEFAULT_AGENTS_PRICING) {
+  const rates = normalizeAgentsPricing(pricing);
+  const annual = selection.cycle === "annuel";
+  const k = annual ? 1 - rates.annualDiscount : 1;
+  const chosen = OPTIONS.filter((option) => selection.options.includes(option.id));
+  const usersMonthly = selection.users * rates.userPrice * k;
+  const optionsMonthly = chosen.reduce((sum, option) => sum + (rates.options[option.id] ?? option.price), 0) * k;
+  const planDue = annual ? (plan.annualPackage ?? plan.monthly * 12 * k) : plan.monthly;
+  const extrasDue = (usersMonthly + optionsMonthly) * (annual ? 12 : 1);
+  const due = planDue + extrasDue;
+  const setup = Math.max(0, plan.setup);
+  return {
+    monthly: planDue / (annual ? 12 : 1) + usersMonthly + optionsMonthly,
+    due,
+    setup,
+    dueToday: due + setup,
+  };
+}
+
 export function sanitizeSelection(input: Partial<Selection>): Selection {
   const users = Math.floor(Number(input.users) || 0);
   return {

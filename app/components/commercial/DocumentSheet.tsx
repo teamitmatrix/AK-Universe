@@ -2,12 +2,22 @@ import { PRODUCT_TYPE_LABELS } from "@/lib/commercial/commission-rules";
 import type { SalesDoc } from "@/lib/commercial/sales-docs";
 import { BANK } from "@/config/company";
 import type { Company } from "@/lib/company";
+import { DocSignature } from "./DocSignature";
 
 const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const dateFr = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR");
 
 /** The printable A4 sheet of a quote / invoice (commercial/document.html). Pure display: data checked by the page. */
-export function DocumentSheet({ doc, company }: { doc: SalesDoc; company: Company }) {
+export function DocumentSheet({
+  doc,
+  company,
+  shareToken = null,
+}: {
+  doc: SalesDoc;
+  company: Company;
+  /** When set on a shared open devis, shows the electronic signature pad. */
+  shareToken?: string | null;
+}) {
   const isQuote = doc.kind === "devis";
   const vatCents = doc.totalTtcCents - doc.totalHtCents;
   const validity = new Date(new Date(`${doc.issueDate}T12:00:00`).getTime() + 30 * 86_400_000).toISOString().slice(0, 10);
@@ -52,6 +62,7 @@ export function DocumentSheet({ doc, company }: { doc: SalesDoc; company: Compan
               )
             )}
             {doc.status === "brouillon" && <p className="doc-draft">BROUILLON</p>}
+            {doc.status === "validee" && <p className="doc-paid">ACCEPTÉ{doc.signedAt ? ` · ${dateFr(doc.signedAt)}` : ""}</p>}
             {doc.status === "payee" && doc.paidAt && <p className="doc-paid">Payée le {dateFr(doc.paidAt)}</p>}
           </div>
         </div>
@@ -121,9 +132,15 @@ export function DocumentSheet({ doc, company }: { doc: SalesDoc; company: Compan
         {isQuote ? (
           <>
             <p>Devis valable 30 jours. Pour l&apos;accepter, retournez-le daté et signé avec la mention « Bon pour accord ».</p>
-            <div className="doc-sign">
-              <span>Date et signature du client :</span>
-            </div>
+            <DocSignature
+              shareToken={shareToken}
+              kind={doc.kind}
+              status={doc.status}
+              clientSignature={doc.clientSignature}
+              signerName={doc.signerName}
+              signedAt={doc.signedAt}
+              defaultSignerName={doc.clientName}
+            />
           </>
         ) : (
           <p>

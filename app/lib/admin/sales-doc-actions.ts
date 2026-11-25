@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { isUuid } from "@/lib/admin/team";
 import { notifyDocumentIssued } from "@/lib/commercial/document-share";
+import { ensureCustomerForRep } from "@/lib/commercial/ensure-customer";
 import { parseSalesDocInput, type DocInput } from "@/lib/commercial/sales-doc-actions";
+import { loadSalesDocById, type SalesDoc } from "@/lib/commercial/sales-docs";
 import { createClient } from "@/lib/supabase/server";
 
 /*
@@ -26,6 +28,7 @@ const revalidate = () => {
     "/commercial/mes-commissions",
     "/commercial/mes-clients",
     "/commercial/dashboard",
+    "/admin/clients",
   ]) {
     revalidatePath(path);
   }
@@ -43,18 +46,6 @@ async function assertActiveCommercial(salespersonId: string) {
   return !!data;
 }
 
-async function customerForRep(salespersonId: string, email: string | null) {
-  if (!email) return null;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("salesperson_id", salespersonId)
-    .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
-    .limit(1);
-  return (data?.[0]?.id as string | undefined) ?? null;
-}
-
 /** Create a devis or facture as admin, assigned to a sales rep. */
 export async function saveAdminSalesDocument(
   salespersonId: string,
@@ -63,11 +54,16 @@ export async function saveAdminSalesDocument(
   if (!(await getAdminIdentity())) return fail("forbidden");
   if (!isUuid(salespersonId)) return fail("invalid");
   if (!(await assertActiveCommercial(salespersonId))) return fail("invalid");
-  const row = await parseSalesDocInput(input);
+  const row = await parseSalesDocInput(input, { allowCommercialDiscount: true });
   if (!row) return fail("invalid");
 
   const supabase = await createClient();
-  const customer_id = await customerForRep(salespersonId, row.client_email);
+  // Same as commercial space: first save registers the client under Customers for reuse.
+  const customer_id = await ensureCustomerForRep({
+    salespersonId,
+    name: row.client_name,
+    email: row.client_email,
+  });
   const { data, error } = await supabase
     .from("sales_documents")
     .insert({ ...row, customer_id, salesperson_id: salespersonId })
@@ -80,4 +76,72 @@ export async function saveAdminSalesDocument(
   if (data.status === "en_attente") await notifyDocumentIssued(data.id as string);
   revalidate();
   return { success: true, id: data.id as string };
+}
+
+/** Load a devis/facture for the admin edit modal. */
+export async function getAdminSalesDocument(id: string): Promise<{ success: true; doc: SalesDoc } | Fail> {
+  if (!(await getAdminIdentity())) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const doc = await loadSalesDocById(id);
+  if (!doc) return fail("notFound");
+  return { success: true, doc };
+}
+
+/** Update an existing devis/facture (draft or issued / awaiting). */
+export async function updateAdminSalesDocument(
+  id: string,
+  salespersonId: string,
+  input: DocInput,
+): Promise<{ success: true; id: string } | Fail> {
+  if (!(await getAdminIdentity())) return fail("forbidden");
+  if (!isUuid(id) || !isUuid(salespersonId)) return fail("invalid");
+  if (!(await assertActiveCommercial(salespersonId))) return fail("invalid");
+  const row = await parseSalesDocInput(input, { allowCommercialDiscount: true });
+  if (!row) return fail("invalid");
+
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("sales_documents").select("status, kind").eq("id", id).maybeSingle();
+  if (!current) return fail("notFound");
+  if (current.status !== "brouillon" && current.status !== "en_attente") return fail("locked");
+  if (current.kind !== row.kind) return fail("invalid");
+
+  const customer_id = await ensureCustomerForRep({
+    salespersonId,
+    name: row.client_name,
+    email: row.client_email,
+  });
+  const { kind: _kind, ...changes } = row;
+  void _kind;
+  const { data, error } = await supabase
+    .from("sales_documents")
+    .update({ ...changes, customer_id, salesperson_id: salespersonId })
+    .eq("id", id)
+    .in("status", ["brouillon", "en_attente"])
+    .select("id, status");
+  if (error) {
+    console.error("updateAdminSalesDocument failed:", error.message);
+    return fail(/document_locked/.test(error.message) ? "locked" : "failed");
+  }
+  if (!data?.length) return fail("locked");
+  const saved = data[0]!;
+  if (saved.status === "en_attente" && current.status !== "en_attente") {
+    await notifyDocumentIssued(saved.id as string);
+  }
+  revalidate();
+  return { success: true, id };
+}
+
+/** Delete a draft devis/facture (issued documents stay for accounting history). */
+export async function deleteAdminSalesDocument(id: string): Promise<{ success: true } | Fail> {
+  if (!(await getAdminIdentity())) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("sales_documents").delete().eq("id", id).eq("status", "brouillon").select("id");
+  if (error) {
+    console.error("deleteAdminSalesDocument failed:", error.message);
+    return fail("failed");
+  }
+  if (!data?.length) return fail("locked");
+  revalidate();
+  return { success: true };
 }

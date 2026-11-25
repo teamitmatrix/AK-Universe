@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/auth/session";
-import { PRODUCT_TYPES } from "@/lib/commercial/commission-rules";
+import { PRODUCT_TYPES, RATE_SYNC_ALIASES } from "@/lib/commercial/commission-rules";
 import { createClient } from "@/lib/supabase/server";
 import { audit } from "./audit";
 
@@ -13,10 +13,16 @@ const fail = (error: Fail["error"]): Fail => ({ success: false, error });
 export async function saveCommissionRates(input: Record<string, number>): Promise<{ success: true } | Fail> {
   if (!(await isAdmin())) return fail("forbidden");
   const rows = [];
+  const now = new Date().toISOString();
   for (const product_type of PRODUCT_TYPES) {
     const n = Number(input?.[product_type]);
     if (!Number.isFinite(n) || n < 0 || n > 100) return fail("invalid");
-    rows.push({ product_type, rate: Math.round(n * 100) / 100, updated_at: new Date().toISOString() });
+    const rate = Math.round(n * 100) / 100;
+    rows.push({ product_type, rate, updated_at: now });
+    // Keep legacy product_type rows in sync so older devis lines still resolve.
+    for (const alias of RATE_SYNC_ALIASES[product_type]) {
+      rows.push({ product_type: alias, rate, updated_at: now });
+    }
   }
   const supabase = await createClient();
   const { error } = await supabase.from("commission_rates").upsert(rows, { onConflict: "product_type" });

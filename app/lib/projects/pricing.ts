@@ -35,10 +35,14 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
   const digitalCatalog = websites.length ? websites : DIGITAL_WEBSITES;
   const addonPrices = agentsPricing.addons;
 
+  let unpriced = false;
   const items = rawItems.slice(0, 30).flatMap((item) => {
     if (item.type === "forfait") {
       const plan = plans.find((p) => p.key === item.key);
-      if (!plan || plan.onQuote || plan.price == null) return [];
+      if (!plan || plan.onQuote || plan.price == null) {
+        unpriced = true;
+        return [];
+      }
       const lines = [];
       if (plan.setupPrice != null && plan.setupPrice > 0) {
         lines.push({
@@ -57,7 +61,10 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
 
     if (item.type === "digital") {
       const site = item.key ? digitalCatalog.find((s) => s.id === item.key) ?? digitalWebsiteOf(item.key) : undefined;
-      if (!site) return [];
+      if (!site) {
+        unpriced = true;
+        return [];
+      }
       const details =
         site.runningFrom != null
           ? `Mise en place ${site.price.toLocaleString("fr-FR")} € HT (une fois) · Fonctionnement dès ${site.runningFrom.toLocaleString("fr-FR")} € HT / mois`
@@ -68,7 +75,10 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
 
     if (item.type === "agent") {
       const offer = item.key ? agentOffers.find((o) => o.id === item.key) : undefined;
-      if (!offer) return [];
+      if (!offer) {
+        unpriced = true;
+        return [];
+      }
       const lines = [
         {
           service: `Agent IA — ${offer.name} — mise en place`,
@@ -95,7 +105,10 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
     }
 
     const s = cfg.services.find((x) => x.slug === item.slug);
-    if (!s) return [];
+    if (!s) {
+      unpriced = true;
+      return [];
+    }
     const qtyChoices = qtyChoicesOf(cfg, s);
     const qty = qtyChoices.includes(Number(item.qty)) ? Number(item.qty) : qtyChoices[0];
     const durations = durationsOf(cfg, s);
@@ -107,5 +120,15 @@ export async function priceProject(rawItems: ProjectItemInput[]) {
   });
 
   const total = items.reduce((a, i) => a + i.price, 0);
-  return { items, total, deposit: Math.round((total * cfg.depositPercent) / 100), depositPercent: cfg.depositPercent };
+  const fixed = items.length > 0 && !unpriced;
+  const deposit = Math.round((total * cfg.depositPercent) / 100);
+  return {
+    items,
+    total,
+    deposit,
+    depositPercent: cfg.depositPercent,
+    /** Every line has a listed price, so the customer pays that total now. */
+    fixed,
+    charge: fixed ? total : deposit,
+  };
 }

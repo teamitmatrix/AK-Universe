@@ -134,6 +134,12 @@ export function CreateMenu({ options }: { options: TaskOptions | null }) {
           <Link role="menuitem" href="/admin/devis-factures?nouveau=facture" onClick={() => setOpen(false)}>
             {t.create.invoice}
           </Link>
+          <Link role="menuitem" href="/admin/prospects?nouveau=1" onClick={() => setOpen(false)}>
+            {t.create.prospect}
+          </Link>
+          <Link role="menuitem" href="/admin/clients?nouveau=1" onClick={() => setOpen(false)}>
+            {t.create.customer}
+          </Link>
           <Link role="menuitem" href="/admin/parametres?onglet=equipe" onClick={() => setOpen(false)}>
             {t.create.member}
           </Link>
@@ -406,15 +412,12 @@ function marginPct(
   return Math.round((margin / cost) * 10000) / 100;
 }
 
-/** Same mapping as sales catalogue: monthly AI → abonnements, setup AI → agents, etc. */
-function productTypeFor(category: string, monthly: boolean): ProductType | null {
+/** Same mapping as sales catalogue: Agents IA · Marketing · Digital. */
+function productTypeFor(category: string, _monthly: boolean): ProductType | null {
   if (category === "regles") return null;
-  if (category === "agents") return monthly ? "abonnements" : "agents";
-  if (category === "abonnement") return "abonnements";
-  if (category === "addons") return monthly ? "abonnements" : "options";
+  if (category === "agents" || category === "abonnement" || category === "addons") return "agents";
   if (category === "marketing") return "marketing";
-  if (category === "videos") return "videos";
-  return "options";
+  return "digital";
 }
 
 export function CatalogueEditor({

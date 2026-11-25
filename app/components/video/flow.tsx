@@ -19,7 +19,7 @@ import {
 import { useVideo } from "./context";
 import { Mockup } from "./Mockup";
 
-const STEPS = ["Mon projet", "Mes informations", "Validation"];
+const STEPS = ["Mon panier", "Mes informations", "Validation"];
 
 export function useMounted() {
   return useSyncExternalStore(
@@ -52,11 +52,19 @@ export function EmptyProject() {
       <span className="icon-circle big">
         <Icon name="clapper" />
       </span>
-      <h2>Votre projet est vide</h2>
-      <p>Choisissez un ou plusieurs services vidéo pour composer votre projet.</p>
-      <Link href="/services" className="btn btn-primary btn-lg">
-        Choisir mes services <Icon name="arrow" />
-      </Link>
+      <h2>Votre panier est vide</h2>
+      <p>Choisissez un abonnement IA, un forfait marketing ou un service au prix affiché.</p>
+      <div className="cta-row" style={{ justifyContent: "center" }}>
+        <Link href="/agents-ia#tarifs" className="btn btn-primary btn-lg">
+          Abonnements IA <Icon name="arrow" />
+        </Link>
+        <Link href="/marketing/forfaits" className="btn btn-outline-gold btn-lg">
+          Forfaits marketing
+        </Link>
+        <Link href="/services" className="btn btn-outline btn-lg">
+          Services vidéo
+        </Link>
+      </div>
     </div>
   );
 }
@@ -75,7 +83,7 @@ export function Summary({ editable = false }: { editable?: boolean }) {
   return (
     <>
       <div className="recap-head">
-        <h2>Mon projet</h2>
+        <h2>Mon panier</h2>
         {editable && (
           <Link href="/projet" className="link-gold">
             Modifier

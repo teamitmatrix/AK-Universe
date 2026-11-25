@@ -26,7 +26,7 @@ export default async function SharedDocumentPage({ params }: { params: Promise<{
         closeHref="/"
         closeLabel="Accueil"
       />
-      <DocumentSheet doc={doc} company={company} />
+      <DocumentSheet doc={doc} company={company} shareToken={token} />
     </div>
   );
 }

@@ -188,7 +188,7 @@ export function BillingView({
               <>
                 <strong>—</strong>
                 <p className="cs-kpi-sub">
-                  <Link href="/abonnement" className="cs-link-btn">
+                  <Link href="/" className="cs-link-btn">
                     Choisir mon abonnement
                   </Link>
                 </p>

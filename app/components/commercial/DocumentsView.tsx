@@ -12,6 +12,7 @@ import {
   PRODUCT_TYPES,
   PRODUCT_TYPE_LABELS,
   VAT_RATE,
+  normalizeProductType,
   type DocKind,
   type DocStatus,
   type ProductType,
@@ -54,7 +55,7 @@ type Props = {
   docs: SalesDoc[];
   catalogue: SalesCatalogueItem[];
   rates: Record<ProductType, number>;
-  clients: { id: string; name: string; email: string }[];
+  clients: { id: string; name: string; email: string; phone?: string }[];
   initialNew: DocKind | null;
   initialQuery: string;
 };
@@ -256,7 +257,7 @@ function DocumentModal({
   doc: SalesDoc | null;
   catalogue: SalesCatalogueItem[];
   rates: Record<ProductType, number>;
-  clients: { id: string; name: string; email: string }[];
+  clients: { id: string; name: string; email: string; phone?: string }[];
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
@@ -279,7 +280,7 @@ function DocumentModal({
       key: ++lineKey,
       catalogueId: l.catalogue_id,
       label: l.label,
-      productType: l.product_type,
+      productType: normalizeProductType(l.product_type) ?? "digital",
       unitEuros: String(l.unit_cents / 100),
       qty: String(l.qty),
       fixedCommissionEuros: l.fixed_commission_cents != null ? String(l.fixed_commission_cents / 100) : "",
@@ -309,7 +310,7 @@ function DocumentModal({
     setLines((ls) => [...ls, { key: ++lineKey, catalogueId: item.id, label: item.label, productType: item.productType, unitEuros: String(item.unitCents / 100), qty: "1", fixedCommissionEuros: "" }]);
     setPick("");
   };
-  const addCustom = () => setLines((ls) => [...ls, { key: ++lineKey, catalogueId: null, label: "", productType: "prestations", unitEuros: "", qty: "1", fixedCommissionEuros: "" }]);
+  const addCustom = () => setLines((ls) => [...ls, { key: ++lineKey, catalogueId: null, label: "", productType: "digital", unitEuros: "", qty: "1", fixedCommissionEuros: "" }]);
 
   // Preview only — the database recomputes the same figures from commission_rates when saving.
   const htCents = lines.reduce((s, l) => s + Math.round(num(l.qty) * num(l.unitEuros) * 100), 0);
@@ -379,6 +380,7 @@ function DocumentModal({
             <label className="adm-field">
               <span>E-mail du client</span>
               <input type="email" maxLength={254} value={form.clientEmail} onChange={set("clientEmail")} />
+              <small className="adm-muted">Avec un e-mail, le client est enregistré dans Clients et proposé au prochain devis.</small>
             </label>
             <label className="adm-field">
               <span>SIRET</span>
@@ -444,11 +446,22 @@ function DocumentModal({
                 const maxDisc = catItem?.maxDiscountPercent ?? 0;
                 const minEuros = listEuros != null ? Math.round(listEuros * (1 - maxDisc / 100) * 100) / 100 : null;
                 const priceLocked = fromCatalogue && maxDisc <= 0;
+                const price = num(l.unitEuros);
+                const remisePct =
+                  listEuros != null && listEuros > 0
+                    ? Math.round(Math.max(0, Math.min(100, (1 - price / listEuros) * 100)) * 100) / 100
+                    : 0;
                 const priceTitle = fromCatalogue
                   ? maxDisc > 0
                     ? `Prix catalogue ${listEuros?.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € — remise max ${maxDisc} % (min ${minEuros?.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €)`
                     : "Prix du catalogue (aucune remise autorisée)"
                   : undefined;
+                const applyRemise = (raw: string) => {
+                  if (listEuros == null || maxDisc <= 0) return;
+                  const rem = Math.min(maxDisc, Math.max(0, num(raw)));
+                  const next = Math.round(listEuros * (1 - rem / 100) * 100) / 100;
+                  updateLine(l.key, { unitEuros: String(next), fixedCommissionEuros: "" });
+                };
                 return (
                   <li key={l.key} className="com-line">
                     <span className="com-line-badge" title={PRODUCT_TYPE_LABELS[type]}>
@@ -493,7 +506,7 @@ function DocumentModal({
                         max={listEuros ?? undefined}
                         required
                         value={l.unitEuros}
-                        onChange={(e) => updateLine(l.key, { unitEuros: e.target.value })}
+                        onChange={(e) => updateLine(l.key, { unitEuros: e.target.value, fixedCommissionEuros: "" })}
                         onBlur={() => {
                           if (!fromCatalogue || listEuros == null || minEuros == null) return;
                           const p = num(l.unitEuros);
@@ -504,17 +517,34 @@ function DocumentModal({
                       />
                       <span>€</span>
                     </label>
-                    <label className="com-fixed" title="Commission fixe (€) — laissez vide pour appliquer le taux du type de produit">
+                    <label
+                      className="com-fixed"
+                      title={
+                        fromCatalogue
+                          ? maxDisc > 0
+                            ? `Remise commerciale (%) — max ${maxDisc} %`
+                            : "Aucune remise autorisée sur cette prestation"
+                          : "Remise disponible uniquement pour les lignes catalogue"
+                      }
+                    >
                       <input
-                        aria-label="Commission fixe (€)"
+                        aria-label="Remise commerciale (%)"
                         inputMode="decimal"
-                        placeholder="Fixe €"
-                        value={l.fixedCommissionEuros ?? ""}
-                        onChange={(e) => updateLine(l.key, { fixedCommissionEuros: e.target.value })}
+                        placeholder="Remise %"
+                        disabled={!fromCatalogue || maxDisc <= 0}
+                        readOnly={!fromCatalogue || maxDisc <= 0}
+                        min={0}
+                        max={maxDisc || undefined}
+                        value={fromCatalogue ? String(remisePct) : ""}
+                        onChange={(e) => applyRemise(e.target.value)}
+                        onBlur={(e) => {
+                          if (!fromCatalogue || maxDisc <= 0) return;
+                          applyRemise(e.target.value);
+                        }}
                       />
                     </label>
-                    <span className="com-rate" title={String(l.fixedCommissionEuros ?? "").trim() ? "Commission fixe saisie pour cette ligne" : "Taux de commission selon le type de produit"}>
-                      <Lock size={12} aria-hidden="true" /> {String(l.fixedCommissionEuros ?? "").trim() ? "Fixe" : `${rates[type] ?? 10} %`}
+                    <span className="com-rate" title="Taux de commission selon le type de produit">
+                      <Lock size={12} aria-hidden="true" /> {rates[type] ?? 10} %
                     </span>
                     <button type="button" className="adm-icon-btn sm com-danger" aria-label={`Retirer la ligne ${l.label || ""}`} onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}>
                       <Trash2 size={14} />

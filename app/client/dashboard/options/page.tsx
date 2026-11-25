@@ -63,7 +63,7 @@ export default async function OptionsPage() {
         <section className="cs-card cs-options-empty">
           <h2 className="cs-card-title is-sm">Options disponibles</h2>
           <p className="cs-card-sub">Les options s&apos;ajoutent à un abonnement Agents IA actif.</p>
-          <Link href="/abonnement" className="cs-act is-primary cs-act-fit">
+          <Link href="/" className="cs-act is-primary cs-act-fit">
             <span>Choisir mon abonnement</span>
             <ArrowRight className="cs-act-arrow" size={20} aria-hidden="true" />
           </Link>

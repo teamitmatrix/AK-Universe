@@ -32,8 +32,9 @@ import { LEDGER_PERIODS, UNASSIGNED } from "@/lib/admin/crm";
 import type { SalesCatalogueItem } from "@/lib/commercial/catalogue";
 import type { DocKind, ProductType } from "@/lib/commercial/commission-rules";
 import { AdmShell } from "./AdmShell";
-import { AdminSalesDocComposer } from "./AdminSalesDocComposer";
+import { AdminDocRowActions, AdminSalesDocComposer } from "./AdminSalesDocComposer";
 import { CommissionBoardTable, FilterBar, GenerateCommissionsButton, RecordBalanceButton, SubscriptionAssign } from "./CrmClient";
+import { CreateCustomerButton, CreateProspectButton } from "./CrmCreateForms";
 import { dashTextFor, type DashText } from "./dashText";
 import { Kpi, MigrationNote, PageHead, formatters } from "./ui";
 
@@ -78,14 +79,28 @@ const DOC_CLASS: Record<string, string> = { brouillon: "is-muted", en_attente: "
 
 // ---------- Clients ----------
 
-export function ClientsView({ lang, admin, data, filter }: { lang: Lang; admin: Admin; data: Awaited<ReturnType<typeof loadClients>>; filter: ClientFilter }) {
+export function ClientsView({
+  lang,
+  admin,
+  data,
+  filter,
+  initialNew = false,
+}: {
+  lang: Lang;
+  admin: Admin;
+  data: Awaited<ReturnType<typeof loadClients>>;
+  filter: ClientFilter;
+  initialNew?: boolean;
+}) {
   const t = dashTextFor(lang);
   const c = t.crm.clients;
   const f = formatters(localeOf(lang));
   return (
     <AdmShell t={t} active="clients" admin={admin}>
       <div className="adm-content">
-        <PageHead title={c.title} subtitle={c.subtitle} />
+        <PageHead title={c.title} subtitle={c.subtitle}>
+          {data.ready ? <CreateCustomerButton reps={data.reps} labels={c} autoOpen={initialNew} /> : null}
+        </PageHead>
         {!data.ready ? (
           <p className="adm-note">
             <Info size={15} aria-hidden="true" />
@@ -171,14 +186,28 @@ export function ClientsView({ lang, admin, data, filter }: { lang: Lang; admin: 
 
 // ---------- Prospects ----------
 
-export function ProspectsView({ lang, admin, data, filter }: { lang: Lang; admin: Admin; data: Awaited<ReturnType<typeof loadProspects>>; filter: ProspectFilter }) {
+export function ProspectsView({
+  lang,
+  admin,
+  data,
+  filter,
+  initialNew = false,
+}: {
+  lang: Lang;
+  admin: Admin;
+  data: Awaited<ReturnType<typeof loadProspects>>;
+  filter: ProspectFilter;
+  initialNew?: boolean;
+}) {
   const t = dashTextFor(lang);
   const p = t.crm.prospects;
   const f = formatters(localeOf(lang));
   return (
     <AdmShell t={t} active="prospects" admin={admin}>
       <div className="adm-content">
-        <PageHead title={p.title} subtitle={p.subtitle} />
+        <PageHead title={p.title} subtitle={p.subtitle}>
+          {data.ready ? <CreateProspectButton reps={data.reps} labels={p} autoOpen={initialNew} /> : null}
+        </PageHead>
         {!data.ready ? (
           <p className="adm-note">
             <Info size={15} aria-hidden="true" />
@@ -526,6 +555,7 @@ export function DevisFacturesView({
                         <th scope="col">{q.qcols.date}</th>
                         <th scope="col" className="num">{q.qcols.amount}</th>
                         <th scope="col">{q.qcols.status}</th>
+                        <th scope="col">{q.qcols.actions}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -555,6 +585,32 @@ export function DevisFacturesView({
                           <td data-label={q.qcols.amount} className="num">{f.euros(r.amountCents)}</td>
                           <td data-label={q.qcols.status}>
                             <span className={`adm-badge ${DOC_CLASS[r.status] ?? "is-info"}`}>{q.statuses[r.status] ?? r.status}</span>
+                          </td>
+                          <td data-label={q.qcols.actions}>
+                            {catalogue && rates && clients ? (
+                              <AdminDocRowActions
+                                id={r.id}
+                                number={r.number}
+                                kind={r.kind}
+                                status={r.status}
+                                commercialId={r.commercialId}
+                                catalogue={catalogue}
+                                rates={rates}
+                                reps={data.reps}
+                                clients={clients}
+                                labels={{
+                                  edit: q.edit,
+                                  delete: q.delete,
+                                  deleteConfirm: q.deleteConfirm,
+                                  deleted: q.deleted,
+                                  view: q.open,
+                                }}
+                              />
+                            ) : (
+                              <Link className="adm-icon-btn sm" href={`/admin/document?id=${r.id}`} title={q.open}>
+                                {q.open}
+                              </Link>
+                            )}
                           </td>
                         </tr>
                       ))}

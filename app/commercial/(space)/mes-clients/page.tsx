@@ -26,7 +26,7 @@ export default async function MesClientsPage() {
       </p>
 
       {clients.length === 0 ? (
-        <p className="adm-empty">Aucun client pour le moment. Convertissez un prospect ou émettez une facture.</p>
+        <p className="adm-empty">Aucun client pour le moment. Convertissez un prospect, créez un devis avec e-mail, ou attendez qu&apos;un admin vous en attribue un.</p>
       ) : (
         <ul className="com-client-grid">
           {clients.map((c) => (

@@ -4,18 +4,16 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import {
   DEFAULT_AGENTS_PRICING,
-  PLAN,
-  computeQuote,
   eur,
-  normalizeAgentsPricing,
+  quoteCheckout,
   type AgentsPricing,
+  type CheckoutPlan,
   type Selection,
 } from "@/config/pricing";
 import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
-import { useToast } from "@/components/ui/Toast";
 
 const METHODS = ["card", "sepa", "paypal", "revolut", "satispay"] as const;
 
@@ -44,20 +42,21 @@ const TEXT = {
       ["check-circle", "Sans engagement", "Vous pouvez résilier à tout moment."],
     ],
     applePay: "Payer avec Apple Pay",
-    applePayToast: "Apple Pay est proposé automatiquement sur la page de paiement sécurisée (carte bancaire).",
+    googlePay: "Payer avec Google Pay",
+    walletsHint: "Apple Pay et Google Pay s'ouvrent via Stripe Checkout (appareil et portefeuille compatibles requis).",
     or: "ou",
     contact: "Coordonnées",
     email: "E-mail",
     method: "Moyen de paiement",
     methods: {
-      card: "Carte bancaire",
+      card: "Carte bancaire (Apple Pay / Google Pay inclus)",
       sepa: "Prélèvement automatique SEPA",
       paypal: "PayPal",
       revolut: "Revolut Pay",
       satispay: "Satispay",
     },
     submit: "Payer et s'abonner",
-    submitting: "Redirection…",
+    submitting: "Redirection vers Stripe…",
     securedBy: "Paiement sécurisé par",
     termsBefore: TERMS_CHECKBOX.fr.before,
     termsLink: TERMS_CHECKBOX.fr.link,
@@ -102,20 +101,21 @@ const TEXT = {
       ["check-circle", "No commitment", "You can cancel at any time."],
     ],
     applePay: "Pay with Apple Pay",
-    applePayToast: "Apple Pay is offered automatically on the secure payment page (credit card).",
+    googlePay: "Pay with Google Pay",
+    walletsHint: "Apple Pay and Google Pay open via Stripe Checkout (compatible device and wallet required).",
     or: "or",
     contact: "Contact details",
     email: "Email",
     method: "Payment method",
     methods: {
-      card: "Credit card",
+      card: "Credit card (Apple Pay / Google Pay included)",
       sepa: "SEPA direct debit",
       paypal: "PayPal",
       revolut: "Revolut Pay",
       satispay: "Satispay",
     },
     submit: "Pay and subscribe",
-    submitting: "Redirecting…",
+    submitting: "Redirecting to Stripe…",
     securedBy: "Secure payment by",
     termsBefore: TERMS_CHECKBOX.en.before,
     termsLink: TERMS_CHECKBOX.en.link,
@@ -139,6 +139,16 @@ const TEXT = {
 };
 
 type PromoMsg = "promoEmpty" | "promoOk" | "promoBad";
+
+function GooglePayMark() {
+  return (
+    <svg width="48" height="20" viewBox="0 0 48 20" aria-hidden="true">
+      <text x="0" y="15" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="14" fill="currentColor">
+        GPay
+      </text>
+    </svg>
+  );
+}
 
 function MethodLogo({ method }: { method: string }) {
   switch (method) {
@@ -176,17 +186,18 @@ function MethodLogo({ method }: { method: string }) {
 }
 
 export function PaiementScreen({
+  plan,
   selection,
   email: initialEmail,
   pricing = DEFAULT_AGENTS_PRICING,
 }: {
+  plan: CheckoutPlan;
   selection: Selection;
   email: string;
   pricing?: AgentsPricing;
 }) {
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
-  const [toast, toastNode] = useToast();
   const [email, setEmail] = useState(initialEmail);
   const [method, setMethod] = useState("card");
   const [promoOpen, setPromoOpen] = useState(false);
@@ -198,8 +209,7 @@ export function PaiementScreen({
   const [error, setError] = useState<keyof typeof TEXT.fr.errors | "">("");
   const [pending, startTransition] = useTransition();
 
-  const rates = normalizeAgentsPricing(pricing);
-  const quote = computeQuote(selection, rates);
+  const quote = quoteCheckout(plan, selection, pricing);
   const annual = selection.cycle === "annuel";
 
   async function applyPromo(event: FormEvent<HTMLFormElement>) {
@@ -213,10 +223,9 @@ export function PaiementScreen({
     setPromoMsg(result.valid ? "promoOk" : "promoBad");
   }
 
-  function pay(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function startPay(payMethod: string) {
     setError("");
-    const input = event.currentTarget.querySelector<HTMLInputElement>("#pay-email");
+    const input = document.querySelector<HTMLInputElement>("#pay-email");
     if (input && !input.checkValidity()) {
       input.reportValidity();
       return;
@@ -225,12 +234,14 @@ export function PaiementScreen({
       setError("terms_required");
       return;
     }
+    setMethod(payMethod === "apple_pay" || payMethod === "google_pay" ? "card" : payMethod);
     startTransition(async () => {
-      // Redirects to Stripe Checkout on success.
+      // Redirects to Stripe Checkout on success. Wallet buttons use `card` (Apple/Google Pay on Checkout).
       const result = await startSubscriptionCheckout({
+        planId: plan.id,
         selection,
         email,
-        method,
+        method: payMethod,
         promotionCodeId,
         lang,
         termsAccepted: true,
@@ -239,11 +250,16 @@ export function PaiementScreen({
     });
   }
 
+  function pay(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    startPay(method);
+  }
+
   return (
     <div className="theme-light" translate={nativeTranslate(lang)}>
       <div className="container" id="paiement">
         <div className="light-top" style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <Link href="/abonnement" className="back">
+          <Link href="/agents-ia#tarifs" className="back">
             <Icon name="arrow-left" /> {t.back}
           </Link>
           <LangSwitch lang={lang} onChange={setLang} />
@@ -259,8 +275,8 @@ export function PaiementScreen({
                     <Icon name="crown" />
                   </span>
                   <div>
-                    <h2 style={{ fontSize: "1.35rem" }}>{PLAN.name}</h2>
-                    <p>{t.planText}</p>
+                    <h2 style={{ fontSize: "1.35rem" }}>{plan.name}</h2>
+                    <p>{plan.features[0] ?? t.planText}</p>
                   </div>
                   <div className="amt">
                     <span id="p-plan-price" className="notranslate">{eur(quote.monthly)}</span>
@@ -275,6 +291,15 @@ export function PaiementScreen({
                 </span>
                 <b className="p-due notranslate">{eur(quote.due)}</b>
               </div>
+              {quote.setup > 0 ? (
+                <div className="line" style={{ padding: "12px 2px" }}>
+                  <span>
+                    Mise en place
+                    <small>Facturée une seule fois</small>
+                  </span>
+                  <b className="notranslate">{eur(quote.setup)}</b>
+                </div>
+              ) : null}
 
               <button className="promo" id="promo-toggle" type="button" onClick={() => setPromoOpen((v) => !v)}>
                 <Icon name="tag" /> {t.addPromo}
@@ -302,7 +327,7 @@ export function PaiementScreen({
 
               <div className="line" style={{ padding: "14px 2px" }}>
                 <span>{t.subtotal}</span>
-                <b className="p-due notranslate">{eur(quote.due)}</b>
+                <b className="p-due notranslate">{eur(quote.dueToday)}</b>
               </div>
               <div className="sep-line" />
               <div className="line" style={{ padding: "14px 2px" }}>
@@ -316,7 +341,7 @@ export function PaiementScreen({
               </div>
               <div className="total-box">
                 <span>{t.dueToday}</span>
-                <span className="v p-due notranslate">{eur(quote.due)}</span>
+                <span className="v p-due notranslate">{eur(quote.dueToday)}</span>
               </div>
             </section>
 
@@ -334,9 +359,27 @@ export function PaiementScreen({
           </div>
 
           <form className="card-l" id="pay-form" noValidate onSubmit={pay}>
-            <button type="button" className="apple-pay" aria-label={t.applePay} onClick={() => toast(t.applePayToast)}>
-              <Icon name="apple" /> Pay
-            </button>
+            <div className="wallet-pays" role="group" aria-label={t.walletsHint}>
+              <button
+                type="button"
+                className="apple-pay"
+                aria-label={t.applePay}
+                disabled={pending}
+                onClick={() => startPay("apple_pay")}
+              >
+                <Icon name="apple" /> Pay
+              </button>
+              <button
+                type="button"
+                className="google-pay"
+                aria-label={t.googlePay}
+                disabled={pending}
+                onClick={() => startPay("google_pay")}
+              >
+                <GooglePayMark /> Pay
+              </button>
+            </div>
+            <p className="wallet-hint">{t.walletsHint}</p>
             <div className="or">{t.or}</div>
 
             <h2 className="label-h">{t.contact}</h2>
@@ -416,7 +459,6 @@ export function PaiementScreen({
           </form>
         </div>
       </div>
-      {toastNode}
     </div>
   );
 }

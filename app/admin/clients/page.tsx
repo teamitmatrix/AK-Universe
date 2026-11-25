@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Params = { statut?: string; commercial?: string; q?: string };
+type Params = { statut?: string; commercial?: string; q?: string; nouveau?: string };
 
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Server-side role check on every request (the proxy only guarantees a session).
@@ -23,5 +23,5 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     q: String(sp.q ?? "").slice(0, 100),
   };
   const [lang, data] = await Promise.all([getAdminLang(), loadClients(filter)]);
-  return <ClientsView lang={lang} admin={admin} data={data} filter={filter} />;
+  return <ClientsView lang={lang} admin={admin} data={data} filter={filter} initialNew={sp.nouveau === "1"} />;
 }

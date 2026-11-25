@@ -85,7 +85,7 @@ export async function POST(request: Request) {
           })
           .select("id")
           .single();
-        // Recurring commission (abonnements rate) when a sales rep is linked to the subscription / customer.
+        // Recurring commission (Agents IA rate) when a sales rep is linked to the subscription / customer.
         if (payment?.id) await db.rpc("ensure_subscription_commission", { p_payment_id: payment.id });
       }
 

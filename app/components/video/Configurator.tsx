@@ -72,7 +72,7 @@ export function Configurator({
 
   const draft = { qty, dur, opts };
   const price = videoPrice(config, service, draft);
-  const verb = editId ? "Mettre à jour" : mode === "quote" ? "Continuer vers mon devis" : "Ajouter à mon projet";
+  const verb = editId ? "Mettre à jour" : mode === "quote" ? "Continuer vers mon devis" : "Ajouter au panier";
   const showOptions = !done && tab === "options";
 
   const submit = () => {

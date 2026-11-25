@@ -14,13 +14,7 @@ export function PrintBar({
   closeLabel?: string;
 }) {
   return (
-    <div className="doc-bar">
-      <p>
-        <span className="doc-bar-brand notranslate" translate="no">
-          <span>AK</span> UNIVERSE
-        </span>{" "}
-        — Aperçu du document · {title}
-      </p>
+    <div className="doc-bar" aria-label={title}>
       <div>
         <Link href={closeHref} className="doc-btn is-ghost">
           <X size={15} aria-hidden="true" /> {closeLabel}

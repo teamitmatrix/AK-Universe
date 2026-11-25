@@ -4,7 +4,7 @@ import type { Lang } from "@/config/languages";
 const TEXT = {
   fr: {
     nav: { catalogue: "Catalogue & prix", prixVideo: "Prix des services vidéo", projets: "Projets vidéo", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Rapports & statistiques", parametres: "Paramètres", support: "Support clients" },
-    create: { button: "Créer", task: "Nouvelle tâche", promotion: "Nouvelle promotion", member: "Ajouter un membre", quote: "Nouveau devis", invoice: "Nouvelle facture", menu: "Menu Créer" },
+    create: { button: "Créer", task: "Nouvelle tâche", promotion: "Nouvelle promotion", member: "Ajouter un membre", quote: "Nouveau devis", invoice: "Nouvelle facture", prospect: "Nouveau prospect", customer: "Nouveau client", menu: "Menu Créer" },
     me: { edit: "Modifier mon profil", logout: "Se déconnecter" },
     common: { save: "Enregistrer", saving: "Enregistrement…", saved: "Enregistré.", cancel: "Annuler", close: "Fermer", unavailable: "Indisponible", all: "Tous", search: "Rechercher…" },
     errors: {
@@ -171,11 +171,8 @@ const TEXT = {
         missing: "Exécutez la migration 012_sales_tools.sql pour modifier les taux.",
         names: {
           agents: "Agents IA",
-          abonnements: "Abonnements",
           marketing: "Marketing",
-          videos: "Vidéos",
-          options: "Options",
-          prestations: "Prestations ponctuelles",
+          digital: "Digital",
         } as Record<string, string>,
       },
     },
@@ -463,7 +460,7 @@ const TEXT = {
   },
   en: {
     nav: { catalogue: "Catalogue & prices", prixVideo: "Video service prices", projets: "Video projects", promotions: "Promotions", documents: "Documents", agenda: "Agenda", rapports: "Reports & statistics", parametres: "Settings", support: "Client support" },
-    create: { button: "Create", task: "New task", promotion: "New promotion", member: "Add a member", quote: "New quote", invoice: "New invoice", menu: "Create menu" },
+    create: { button: "Create", task: "New task", promotion: "New promotion", member: "Add a member", quote: "New quote", invoice: "New invoice", prospect: "New prospect", customer: "New customer", menu: "Create menu" },
     me: { edit: "Edit my profile", logout: "Log out" },
     common: { save: "Save", saving: "Saving…", saved: "Saved.", cancel: "Cancel", close: "Close", unavailable: "Unavailable", all: "All", search: "Search…" },
     errors: {
@@ -630,11 +627,8 @@ const TEXT = {
         missing: "Run the migration 012_sales_tools.sql to edit the rates.",
         names: {
           agents: "AI agents",
-          abonnements: "Subscriptions",
           marketing: "Marketing",
-          videos: "Videos",
-          options: "Options",
-          prestations: "One-off work",
+          digital: "Digital",
         } as Record<string, string>,
       },
     },

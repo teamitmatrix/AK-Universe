@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { quoteHref } from "@/lib/contact/quote";
 import { serviceOf } from "./cart";
 import { useVideo } from "./context";
 import { Examples } from "./Examples";
@@ -53,11 +52,8 @@ export function ServiceView({ slug }: { slug: string }) {
             </ul>
             <div className="cta-row">
               <button type="button" className="btn btn-primary btn-lg" onClick={() => openConfig(service.slug)}>
-                <Icon name="plus" /> Ajouter à mon projet
+                <Icon name="plus" /> Ajouter au panier
               </button>
-              <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-lg">
-                Demander un devis
-              </Link>
             </div>
           </div>
           <VideoPlayer
@@ -103,7 +99,7 @@ export function ServiceView({ slug }: { slug: string }) {
           <div className="price-line">
             <strong>{euro(service.price)}</strong> <span>{service.unit}</span>
           </div>
-          <p className="price-note">{service.priceNote} Prix indicatif selon les besoins du projet.</p>
+          <p className="price-note">{service.priceNote} Le prix affiché est celui du paiement.</p>
           <ul className="gold-checks small">
             {(service.priceList ?? []).map((line) => (
               <li key={line}>
@@ -113,11 +109,8 @@ export function ServiceView({ slug }: { slug: string }) {
             ))}
           </ul>
           <button type="button" className="btn btn-primary btn-block" onClick={() => openConfig(service.slug)}>
-            Ajouter à mon projet <Icon name="arrow" />
+            Ajouter au panier <Icon name="arrow" />
           </button>
-          <Link href={quoteHref(service.slug)} className="btn btn-outline-gold btn-block">
-            Demander un devis
-          </Link>
         </aside>
       </section>
 

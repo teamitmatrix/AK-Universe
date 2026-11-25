@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { ensureProfile } from "@/lib/auth/session";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
+import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
@@ -83,9 +84,19 @@ export async function POST(request: Request) {
   }
 
   // "virement": the booking is confirmed when the bank transfer is received, no online payment.
+  if (kind === "acompte" && !priced.fixed) {
+    return NextResponse.json(
+      { error: "Cette sélection n'a pas de prix fixe. Demandez un devis." },
+      { status: 400 }
+    );
+  }
+
+  // Online Stripe Checkout for card + wallets; bank transfer skips Stripe.
   const byCard = kind === "acompte" && body.payment !== "virement";
   const stripe = byCard ? getStripe() : null;
-  if (byCard && (!stripe || priced.deposit <= 0)) {
+  const checkoutMethod = body.payment === "wallet" ? "wallet" : "card";
+  const charge = priced.charge;
+  if (byCard && (!stripe || charge <= 0)) {
     return NextResponse.json(
       { error: "Le paiement en ligne n'est pas encore configuré. Aucun paiement n'a été effectué." },
       { status: 503 }
@@ -148,7 +159,7 @@ export async function POST(request: Request) {
       contact: storedContact,
       items: priced.items,
       total_cents: priced.total * 100,
-      deposit_cents: kind === "acompte" ? priced.deposit * 100 : 0,
+      deposit_cents: kind === "acompte" ? charge * 100 : 0,
     })
     .select("id")
     .single();
@@ -169,7 +180,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? priced.deposit : 0 };
+  const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? charge : 0 };
   const lang = body.lang === "en" ? "en" : "fr";
   if (!byCard) {
     // Card deposits are confirmed (and e-mailed) by the Stripe webhook once paid.
@@ -198,14 +209,18 @@ export async function POST(request: Request) {
       mode: "payment",
       customer_email: contact.email,
       locale: checkoutLocale(body.lang),
+      // Card Checkout surfaces Apple Pay / Google Pay when enabled in the Stripe Dashboard.
+      allowed_payment_method_types: allowedCheckoutMethods(checkoutMethod),
       line_items: [
         {
           quantity: 1,
           price_data: {
             currency: "eur",
-            unit_amount: priced.deposit * 100,
+            unit_amount: charge * 100,
             product_data: {
-              name: `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`,
+              name: priced.fixed
+                ? `Paiement — ${reference}`
+                : `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`,
               description: priced.items.map((i) => i.service).join(", ").slice(0, 500),
             },
           },

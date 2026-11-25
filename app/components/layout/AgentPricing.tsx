@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import {
   AGENT_TIERS,
+  PLAN,
   normalizeAgentsPricing,
   type AgentsPricing,
   type Cycle,
@@ -14,11 +15,11 @@ import { writeAgentsCycle } from "@/lib/agents-cycle";
 
 /** Look of each offer, in AGENT_TIERS order (copy lives in config; amounts come from live pricing). */
 const LOOK = [
-  { image: "ph-plan-starter", cta: "Commencer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "rocket" },
-  { image: "ph-plan-pro", cta: "Essayer gratuitement", ctaClass: "btn btn-primary btn-block", setupIcon: "gear" },
-  { image: "ph-plan-business", cta: "Essayer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "chart" },
-  { image: "ph-plan-business", cta: "Essayer gratuitement", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "bolt" },
-  { image: "ph-plan-devis", cta: "Nous contacter", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: quoteHref() },
+  { image: "ph-plan-starter", cta: "S'abonner", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "rocket" },
+  { image: "ph-plan-pro", cta: "S'abonner", ctaClass: "btn btn-primary btn-block", setupIcon: "gear" },
+  { image: "ph-plan-business", cta: "S'abonner", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "chart" },
+  { image: "ph-plan-business", cta: "S'abonner", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "bolt" },
+  { image: "ph-plan-devis", cta: "Demander un devis", ctaClass: "btn btn-outline-gold btn-block", setupIcon: "headset", href: quoteHref() },
 ];
 
 function formatTierPrice(n: number) {
@@ -26,7 +27,15 @@ function formatTierPrice(n: number) {
 }
 
 /** Pricing block of the AI agents page (/agents-ia#tarifs). */
-export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPricing; hiddenIds?: string[] }) {
+export function AgentPricing({
+  pricing,
+  hiddenIds = [],
+  signedIn = false,
+}: {
+  pricing: AgentsPricing;
+  hiddenIds?: string[];
+  signedIn?: boolean;
+}) {
   const rates = normalizeAgentsPricing(pricing);
   const [cycle, setCycle] = useState<Cycle>("mensuel");
   const annual = cycle === "annuel";
@@ -36,6 +45,11 @@ export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPrici
   const setBilling = (next: Cycle) => {
     setCycle(next);
     writeAgentsCycle(next);
+  };
+
+  const payHref = (id: string) => {
+    const pay = `/paiement?plan=${encodeURIComponent(id)}&cycle=${cycle}`;
+    return signedIn ? pay : `/inscription?next=${encodeURIComponent(pay)}`;
   };
 
   const plans = AGENT_TIERS.flatMap((tier, i) => {
@@ -79,6 +93,52 @@ export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPrici
     ];
   });
 
+  const proMonthly = rates.planMonthly;
+  const proAnnual = Math.round(proMonthly * 12 * (1 - rates.annualDiscount) * 100) / 100;
+  const offers: Array<{
+    id: string;
+    name: string;
+    desc: string;
+    features: readonly string[];
+    popular?: boolean;
+    quote: boolean;
+    price: string;
+    yearlyNote: string;
+    perLabel: string;
+    image: string;
+    cta: string;
+    ctaClass: string;
+    setupIcon: string;
+    href?: string;
+    setup: ReactNode;
+  }> = [...plans];
+  if (!hidden.has("sub:plan")) {
+    const quoteAt = offers.findIndex((item) => item.quote);
+    offers.splice(quoteAt === -1 ? offers.length : quoteAt, 0, {
+      id: PLAN.id,
+      name: PLAN.name,
+      desc: "Tous les agents IA, sans plafond de formule.",
+      features: [...PLAN.features],
+      popular: false,
+      quote: false,
+      price: formatTierPrice(annual ? proAnnual : proMonthly),
+      yearlyNote: formatTierPrice(proAnnual),
+      perLabel: annual ? "/ an HT" : "/ mois HT",
+      image: "ph-plan-pro",
+      cta: "S'abonner",
+      ctaClass: "btn btn-outline-gold btn-block",
+      setupIcon: "crown",
+      href: undefined as string | undefined,
+      setup: (
+        <>
+          Mise en place
+          <br />
+          <span className="gold">incluse</span>
+        </>
+      ),
+    });
+  }
+
   return (
     <section className="pricing stars" id="tarifs">
       <div className="container">
@@ -104,7 +164,7 @@ export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPrici
         </div>
 
         <div className="plans">
-          {plans.map((plan) => (
+          {offers.map((plan) => (
             <article key={plan.name} className={`plan${plan.popular ? " featured" : ""}`}>
               {plan.popular && (
                 <span className="popular">
@@ -141,7 +201,7 @@ export function AgentPricing({ pricing, hiddenIds = [] }: { pricing: AgentsPrici
                 ))}
               </ul>
               <Link
-                href={plan.href ?? `/inscription?next=${encodeURIComponent("/abonnement")}`}
+                href={plan.quote ? (plan.href ?? quoteHref()) : payHref(plan.id)}
                 className={plan.ctaClass}
                 onClick={() => writeAgentsCycle(cycle)}
               >

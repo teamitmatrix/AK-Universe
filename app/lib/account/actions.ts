@@ -27,13 +27,13 @@ export async function createOrganization(input: { name: string; sector: string; 
     return { success: false as const, code: "failed" as const };
   }
 
-  // Registration ends here. A subscription started on the public site (or a checkout left unfinished)
-  // continues on /abonnement, where it can still be skipped. Otherwise the client dashboard opens.
+  // Registration ends here. A plan chosen on the public site continues on that plan's checkout.
+  // Otherwise the client dashboard opens.
   const { data: subs } = await createAdminClient().from("subscriptions").select("status").eq("user_id", auth.user.id);
   const statuses = (subs ?? []).map((row) => row.status as string);
   const live = statuses.some((status) => status === "active" || status === "past_due");
   const unfinished = statuses.some((status) => status === "pending" || status === "incomplete");
   const resume = subscriptionResumePath(input.next);
-  if (!live && (resume || unfinished)) redirect(resume ?? "/abonnement");
+  if (!live && (resume || unfinished)) redirect(resume ?? "/agents-ia#tarifs");
   redirect("/client/dashboard");
 }

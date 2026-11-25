@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { DIGITAL_RUNNING_POLICY, DIGITAL_WEBSITES, type DigitalWebsite } from "@/config/digital";
 import { Icon } from "@/components/ui/Icon";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { quoteHref } from "@/lib/contact/quote";
 import { useCart } from "@/components/video/cart";
 import type { VideoConfig } from "@/lib/video-config";
 
@@ -13,6 +13,7 @@ const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
 
 /** Priced website offers on /digital#sites — illustrations, HT prices, discover + cart. */
 export function DigitalWebsiteCards({ config, websites }: { config: VideoConfig; websites?: DigitalWebsite[] }) {
+  const router = useRouter();
   const [toast, toastNode] = useToast();
   const sites = websites?.length ? websites : config.digitalWebsites?.length ? config.digitalWebsites : DIGITAL_WEBSITES;
   const cart = useCart({ ...config, digitalWebsites: [...sites] });
@@ -22,11 +23,7 @@ export function DigitalWebsiteCards({ config, websites }: { config: VideoConfig;
       <div className="agent-tiles digital-website-tiles">
         {sites.map((site) => (
           <article key={site.id} className="agent-tile marketing-tile digital-website-card" id={site.id}>
-            <Link
-              href={quoteHref(`digital:${site.id}`)}
-              className="agent-tile-media"
-              aria-label={`${site.name} — découvrir`}
-            >
+            <Link href={`#${site.id}`} className="agent-tile-media" aria-label={site.name}>
               <Image
                 src={site.image}
                 alt={site.imageAlt}
@@ -36,7 +33,7 @@ export function DigitalWebsiteCards({ config, websites }: { config: VideoConfig;
               />
             </Link>
             <strong>
-              <Link href={quoteHref(`digital:${site.id}`)}>{site.name}</Link>
+              <Link href={`#${site.id}`}>{site.name}</Link>
             </strong>
             <ul className="feature-list digital-points">
               {site.points.map((point) => (
@@ -63,15 +60,13 @@ export function DigitalWebsiteCards({ config, websites }: { config: VideoConfig;
               <span className="digital-running-note">{site.runningNote}</span>
             </div>
             <div className="agent-tile-actions digital-website-actions">
-              <Link href={quoteHref(`digital:${site.id}`)} className="btn btn-outline btn-sm">
-                Découvrir
-              </Link>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => {
                   cart.add({ type: "digital", key: site.id });
-                  toast(`${site.name} ajouté à mon projet`);
+                  toast(`${site.name} ajouté au panier`);
+                  router.push("/projet");
                 }}
               >
                 <Icon name="plus" /> Ajouter au panier

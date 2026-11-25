@@ -74,7 +74,7 @@ export default async function MonProfilPage() {
         <p className="adm-muted">
           Commission = montant réellement encaissé (HT, après remise) × taux, sauf commission fixe saisie sur une ligne. Le taux du type de produit
           s&apos;applique en priorité ; votre taux personnel{p.ownRate !== null ? ` (${p.ownRate} %)` : ""} sert par défaut. Les abonnements IA
-          génèrent une commission à chaque paiement Stripe (taux « Abonnements »).
+          génèrent une commission à chaque paiement Stripe (taux « Agents IA »).
         </p>
         <dl className="com-dl">
           {PRODUCT_TYPES.map((t) => (

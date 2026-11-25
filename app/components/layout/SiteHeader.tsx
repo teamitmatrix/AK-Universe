@@ -11,8 +11,8 @@ const DESKTOP = "(min-width: 981px)";
 
 /** Top-level labels; in English they are written out (Google Translate makes "Accueil" "Welcome"). */
 const LABELS = {
-  fr: { home: "Accueil", about: "À propos", contact: "Contact", project: "Mes projets" },
-  en: { home: "Home", about: "About Us", contact: "Contact", project: "My Projects" },
+  fr: { home: "Accueil", about: "À propos", contact: "Contact", project: "Mon panier" },
+  en: { home: "Home", about: "About Us", contact: "Contact", project: "My Basket" },
 };
 
 type Menu = NavMenu["id"];

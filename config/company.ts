@@ -21,7 +21,7 @@ export const COMPANY = {
   vat: "FR20934762360",
   /** Person legally responsible for the content of the site. */
   publicationDirector: "Monsieur Sardar Aqil Iqbal, président de la société AK UNIVERSE",
-  email: "contact@akuniverse.com",
+  email: "Contact@akuniverse.com",
   phone: "+33 6 50 92 86 38",
   website: "https://www.akuniverse.com",
   /** Last time the legal texts were reviewed (shown at the top of each page). */

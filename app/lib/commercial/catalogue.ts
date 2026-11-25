@@ -6,8 +6,7 @@ import type { ProductType } from "./commission-rules";
  * Catalogue offered in the "Nouveau devis / facture" modal — the SAME prices the site sells at
  * (lib/admin/catalogue.ts: site_settings "video_pricing" / "agents_pricing"). Each priced field becomes one line
  * choice, tagged with its product type for the commission rule:
- *   Agents IA setup → agents (15 %) · Agents IA monthly, subscription items → abonnements (10 %)
- *   marketing packages → marketing (12 %) · video services → videos (10 %) · video options → options (10 %)
+ *   Agents IA (setup + mensuel) → agents · marketing packages → marketing · digital / vidéos / options → digital
  * Line prices are re-read here on the server when a document is saved; the browser may send a discounted
  * unit price that must stay within the admin max-discount cap for that field.
  */
@@ -32,22 +31,13 @@ export async function loadSalesCatalogue(): Promise<SalesCatalogueItem[]> {
       if (field.unit === "pct" || !(field.value > 0)) continue;
       const monthly = field.label === "monthly";
       const type: ProductType =
-        row.category === "agents"
-          ? monthly
-            ? "abonnements"
-            : "agents"
-          : row.category === "abonnement"
-            ? "abonnements"
-            : row.category === "addons"
-              ? monthly
-                ? "abonnements"
-                : "options"
-              : row.category === "marketing"
-                ? "marketing"
-                : row.category === "videos"
-                  ? "videos"
-                  : "options";
-      const suffix = row.fields.length > 1 || row.category === "agents" ? (monthly ? " — abonnement mensuel" : " — mise en place") : "";
+        row.category === "agents" || row.category === "abonnement" || row.category === "addons"
+          ? "agents"
+          : row.category === "marketing"
+            ? "marketing"
+            : "digital";
+      const suffix =
+        row.fields.length > 1 || row.category === "agents" ? (monthly ? " — abonnement mensuel" : " — mise en place") : "";
       const maxDiscountPercent = monthly
         ? (row.commercial?.maxDiscountMonthly ?? 0)
         : (row.commercial?.maxDiscountSetup ?? 0);

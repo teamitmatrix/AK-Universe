@@ -112,7 +112,7 @@ export default async function Page() {
           </div>
         </section>
 
-        <AgentPricing pricing={pricing} hiddenIds={[...hidden]} />
+        <AgentPricing pricing={pricing} hiddenIds={[...hidden]} signedIn={!!user} />
         <AgentAddons pricing={pricing} hiddenIds={[...hidden]} />
 
         <section className="section" id="faq">

@@ -914,7 +914,28 @@ h1, h2, h3 { line-height: 1.08; letter-spacing: -.02em; margin: 0; }
 .assurance > .ic { font-size: 2.2rem; color: #f7ac2c; }
 .assurance b { display: block; }
 .assurance span { color: var(--l-muted); }
-.apple-pay { width: 100%; height: 60px; border: 0; border-radius: 10px; background: #000; color: #fff; font-size: 1.7rem; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wallet-pays { display: grid; gap: 10px; }
+.apple-pay,
+.google-pay {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.apple-pay { background: #000; color: #fff; }
+.google-pay { background: #fff; color: #1f1f1f; border: 1px solid #dadce0; }
+.apple-pay:disabled,
+.google-pay:disabled { opacity: 0.55; cursor: not-allowed; }
+.apple-pay:focus-visible,
+.google-pay:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.wallet-hint { margin: 10px 0 0; color: var(--l-muted); font-size: 0.85rem; line-height: 1.35; text-align: center; }
 .or { display: flex; align-items: center; gap: 16px; color: var(--l-muted); margin: 18px 0; font-size: .95rem; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--l-line); }
 .label-h { font-size: 1.2rem; font-weight: 700; margin: 22px 0 14px; }

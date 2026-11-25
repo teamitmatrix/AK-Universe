@@ -1,11 +1,11 @@
 ﻿import { NextResponse, type NextRequest } from "next/server";
+import { subscriptionResumePath } from "@/lib/auth/redirect";
 import { redirectToPath } from "@/lib/supabase/env";
 import { updateSession } from "@/lib/supabase/proxy";
 
 /** Pages that require a signed-in user. */
 const PROTECTED_ROUTES = [
   "/organisation",
-  "/abonnement",
   "/paiement",
   "/acompte",
   "/admin",
@@ -44,8 +44,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && GUEST_ONLY_ROUTES.includes(pathname)) {
-    // Already signed in: /espace sends each role to its own space (clients → /client/dashboard).
-    return redirectToPath("/espace", 307);
+    // A plan chosen before sign-in must survive login. Anything else goes to the right space.
+    const resume = subscriptionResumePath(
+      request.nextUrl.searchParams.get("next") || request.nextUrl.searchParams.get("redirectTo")
+    );
+    return redirectToPath(resume ?? "/espace", 307);
   }
 
   return response;

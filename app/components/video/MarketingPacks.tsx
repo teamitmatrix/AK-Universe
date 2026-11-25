@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { euro } from "@/lib/projects/quote-math";
 import { quoteHref } from "@/lib/contact/quote";
 import type { Plan, VideoConfig } from "@/lib/video-config";
@@ -26,6 +27,7 @@ function PackPrice({ plan }: { plan: Plan }) {
 
 /** Bundle cards for /marketing#packs — uses the same forfait catalogue as /marketing/forfaits. */
 export function MarketingPacks({ config }: { config: VideoConfig }) {
+  const router = useRouter();
   const [toast, toastNode] = useToast();
   const plans = config.marketing?.plans ?? [];
 
@@ -35,7 +37,8 @@ export function MarketingPacks({ config }: { config: VideoConfig }) {
       return;
     }
     saveForfait(config, plan.key);
-    toast(`${plan.name} ajouté à mon projet`);
+    toast(`${plan.name} ajouté au panier`);
+    router.push("/projet");
   };
 
   if (!plans.length) return null;

@@ -7,7 +7,7 @@ import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { EARLY_START_CONSENT, EARLY_START_HINT } from "@/config/withdrawal";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { readClient, submitProject, useCart } from "./cart";
+import { cartIsPriced, readClient, submitProject, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, Summary, useMounted } from "./flow";
 
@@ -26,18 +26,24 @@ export function AcompteView() {
   const mounted = useMounted();
   const { config, toast } = useVideo();
   const cart = useCart(config);
-  const [method, setMethod] = useState("carte");
+  const [method, setMethod] = useState<"carte" | "wallet" | "virement">("carte");
   const [sending, setSending] = useState(false);
-  const [notice, setNotice] = useState("Le formulaire de paiement sécurisé Stripe s'affichera ici.");
+  const [notice, setNotice] = useState(
+    "Vous serez redirigé vers Stripe Checkout (carte, Apple Pay ou Google Pay selon votre appareil).",
+  );
   const [alert, setAlert] = useState(false);
   const [earlyStart, setEarlyStart] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState(false);
   const client = mounted ? readClient() : null;
 
+  const priced = cartIsPriced(config, cart.items);
+
   useEffect(() => {
-    if (mounted && cart.items.length > 0 && !readClient().email) router.replace("/projet/informations");
-  }, [mounted, cart.items.length, router]);
+    if (!mounted || cart.items.length === 0) return;
+    if (!readClient().email) router.replace("/projet/informations");
+    else if (!priced) router.replace("/finaliser");
+  }, [mounted, cart.items.length, priced, router]);
 
   const fail = (message: string) => {
     setNotice(message);
@@ -54,18 +60,22 @@ export function AcompteView() {
           <EmptyProject />
         ) : !client.email ? null : (
           <>
-            <h1 className="flow-title">Paiement de l&apos;acompte</h1>
+            <h1 className="flow-title">{priced ? "Paiement" : "Paiement de l'acompte"}</h1>
             <div className="flow-grid">
               <aside className="stack-dark">
                 <div className="dark-card recap">
                   <Summary editable />
                   <div className="deposit-box">
-                    <span>Acompte ({config.depositPercent} %) à régler aujourd&apos;hui</span>
+                    <span>{priced ? "Total à régler aujourd'hui" : `Acompte (${config.depositPercent} %) à régler aujourd'hui`}</span>
                     <strong>
-                      {euro(cart.deposit)} <small>HT</small>
+                      {euro(priced ? cart.total : cart.deposit)} <small>HT</small>
                     </strong>
                   </div>
-                  <p className="muted-note">Le solde sera réglé selon le devis final, après validation des détails.</p>
+                  {priced ? (
+                    <p className="muted-note">Ce montant est le prix affiché. Il est réglé en une fois.</p>
+                  ) : (
+                    <p className="muted-note">Le solde sera réglé selon le devis final, après validation des détails.</p>
+                  )}
                 </div>
                 <div className="dark-card">
                   <div className="recap-head">
@@ -104,7 +114,7 @@ export function AcompteView() {
                   setTermsError(false);
                   if (!event.currentTarget.reportValidity()) return;
                   setSending(true);
-                  const payment = method === "virement" ? "virement" : undefined;
+                  const payment = method === "virement" ? "virement" : method === "wallet" ? "wallet" : "card";
                   submitProject(config, "acompte", cart.items, client, payment, {
                     earlyStartAccepted: earlyStart,
                     termsAccepted: true,
@@ -123,18 +133,49 @@ export function AcompteView() {
                 <h2>Moyen de paiement</h2>
                 <div className="pay-methods" role="radiogroup" aria-label="Moyen de paiement">
                   <label className="pay-method">
-                    <input type="radio" name="pm" value="carte" checked={method === "carte"} onChange={() => setMethod("carte")} />
+                    <input
+                      type="radio"
+                      name="pm"
+                      value="carte"
+                      checked={method === "carte"}
+                      onChange={() => {
+                        setMethod("carte");
+                        setNotice("Stripe Checkout : carte bancaire. Apple Pay / Google Pay apparaissent aussi si votre appareil les propose.");
+                        setAlert(false);
+                      }}
+                    />
                     <Icon name="credit-card" />
                     <span>Carte bancaire</span>
                     <small>Visa, Mastercard, CB, Amex</small>
                   </label>
                   <label className="pay-method">
-                    <input type="radio" name="pm" value="wallet" checked={method === "wallet"} onChange={() => setMethod("wallet")} />
+                    <input
+                      type="radio"
+                      name="pm"
+                      value="wallet"
+                      checked={method === "wallet"}
+                      onChange={() => {
+                        setMethod("wallet");
+                        setNotice("Stripe Checkout ouvrira Apple Pay ou Google Pay lorsque votre navigateur et votre portefeuille le permettent.");
+                        setAlert(false);
+                      }}
+                    />
                     <Icon name="smartphone" />
                     <span>Apple Pay / Google Pay</span>
+                    <small>Via Stripe Checkout</small>
                   </label>
                   <label className="pay-method">
-                    <input type="radio" name="pm" value="virement" checked={method === "virement"} onChange={() => setMethod("virement")} />
+                    <input
+                      type="radio"
+                      name="pm"
+                      value="virement"
+                      checked={method === "virement"}
+                      onChange={() => {
+                        setMethod("virement");
+                        setNotice("Aucun paiement en ligne : la réservation sera confirmée à réception du virement.");
+                        setAlert(false);
+                      }}
+                    />
                     <Icon name="file-text" />
                     <span>Virement bancaire</span>
                     <small>Réservation confirmée à réception</small>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { signInBeforePayment } from "@/lib/auth/redirect";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { isAgent, isDigital, isForfait, itemName, itemPriceLines, itemSummary, serviceOf, useCart } from "./cart";
+import { cartIsPriced, isAgent, isDigital, isForfait, itemName, itemPriceLines, itemSummary, serviceOf, useCart } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, quantityLabel, Stepper, useMounted } from "./flow";
 import { Mockup } from "./Mockup";
@@ -34,7 +34,7 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
           <div className="projet-card">
             <div className="projet-head">
               <div>
-                <h1>Mon projet</h1>
+                <h1>Mon panier</h1>
                 <p>
                   {cart.items.length} prestation{cart.items.length > 1 ? "s" : ""} sélectionnée
                   {cart.items.length > 1 ? "s" : ""}
@@ -156,35 +156,53 @@ export function ProjetView({ signedIn = false }: { signedIn?: boolean }) {
                   ) : null}
                 </div>
               </div>
-              <ul className="estimate-badges">
-                <li>
-                  <Icon name="info" /> Prix indicatif
-                </li>
-                <li>
-                  <Icon name="file-text" /> Devis personnalisé après échange
-                </li>
-                <li>
-                  <Icon name="shield" /> Aucun engagement
-                </li>
-              </ul>
-              <p className="muted-note">
-                {cart.recurringMonthly > 0
-                  ? "La mise en place est facturée une seule fois. Les renouvellements ne comprennent que l'abonnement. "
-                  : ""}
-                Cette estimation n&apos;est pas un devis définitif : le prix final est confirmé après étude de votre projet.
-              </p>
-              <div className="cta-row">
-                <Link href="/projet/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
-                  <Icon name="mail" /> Demander un devis
-                </Link>
-                <Link
-                  href={signedIn ? "/projet/informations" : signInBeforePayment()}
-                  className="btn btn-primary btn-lg"
-                  style={{ flex: 1 }}
-                >
-                  <Icon name="lock" /> Réserver et payer un acompte
-                </Link>
-              </div>
+              {cartIsPriced(config, cart.items) ? (
+                <>
+                  <ul className="estimate-badges">
+                    <li>
+                      <Icon name="check-circle" /> Prix fixe
+                    </li>
+                    <li>
+                      <Icon name="lock" /> Paiement direct
+                    </li>
+                    <li>
+                      <Icon name="shield" /> Sans devis
+                    </li>
+                  </ul>
+                  <p className="muted-note">
+                    {cart.recurringMonthly > 0
+                      ? "La mise en place est facturée une seule fois. Les renouvellements ne comprennent que l'abonnement. "
+                      : ""}
+                    Le montant affiché est celui qui sera réglé.
+                  </p>
+                  <div className="cta-row">
+                    <Link
+                      href={signedIn ? "/projet/informations" : signInBeforePayment()}
+                      className="btn btn-primary btn-lg"
+                      style={{ flex: 1 }}
+                    >
+                      <Icon name="lock" /> Payer {euro(cart.total)} HT
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <ul className="estimate-badges">
+                    <li>
+                      <Icon name="file-text" /> Offre sur devis
+                    </li>
+                    <li>
+                      <Icon name="shield" /> Aucun paiement immédiat
+                    </li>
+                  </ul>
+                  <p className="muted-note">Cette sélection n&apos;a pas de prix affiché. Elle se demande par devis.</p>
+                  <div className="cta-row">
+                    <Link href="/projet/informations" className="btn btn-outline-gold btn-lg" style={{ flex: 1 }}>
+                      <Icon name="mail" /> Demander un devis
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

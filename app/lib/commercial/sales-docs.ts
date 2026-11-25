@@ -42,11 +42,15 @@ export type SalesDoc = {
   quoteId: string | null;
   paidAt: string | null;
   createdAt: string;
+  /** PNG data URL — electronic acceptance of a devis (migration 023). */
+  clientSignature: string | null;
+  signerName: string | null;
+  signedAt: string | null;
 };
 
 const COLUMNS_BASE =
   "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, notes, quote_id, paid_at, created_at";
-const COLUMNS = `${COLUMNS_BASE}, amount_paid_cents`;
+const COLUMNS = `${COLUMNS_BASE}, amount_paid_cents, client_signature, signer_name, signed_at`;
 
 type Row = Record<string, unknown>;
 const toLine = (l: Record<string, unknown>): DocLine => ({
@@ -81,6 +85,9 @@ export const toDoc = (r: Row): SalesDoc => ({
   quoteId: (r.quote_id as string | null) ?? null,
   paidAt: (r.paid_at as string | null) ?? null,
   createdAt: r.created_at as string,
+  clientSignature: typeof r.client_signature === "string" && r.client_signature.startsWith("data:image/") ? r.client_signature : null,
+  signerName: (r.signer_name as string | null) ?? null,
+  signedAt: (r.signed_at as string | null) ?? null,
 });
 
 /** Rates applied by the database (commission_rates), with the handoff defaults before migration 012. */
@@ -95,9 +102,9 @@ export async function loadRates(): Promise<Record<ProductType, number>> {
 export async function loadSalesDocs(me: CommercialMe) {
   const supabase = await createClient();
   const primary = await supabase.from("sales_documents").select(COLUMNS).eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(1000);
-  // Before migration 014 the amount_paid_cents column does not exist yet.
+  // Before migration 014 / 023 some columns do not exist yet.
   const fallback =
-    primary.error && /amount_paid_cents/.test(primary.error.message)
+    primary.error && /amount_paid_cents|client_signature|signer_name|signed_at/.test(primary.error.message)
       ? await supabase.from("sales_documents").select(COLUMNS_BASE).eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(1000)
       : null;
   const data = fallback?.data ?? primary.data;
@@ -123,7 +130,7 @@ export async function loadSalesDocs(me: CommercialMe) {
 export async function loadSalesDoc(me: CommercialMe, id: string) {
   const supabase = await createClient();
   let { data, error } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).eq("salesperson_id", me.id).maybeSingle();
-  if (error && /amount_paid_cents/.test(error.message)) {
+  if (error && /amount_paid_cents|client_signature|signer_name|signed_at/.test(error.message)) {
     ({ data, error } = await supabase.from("sales_documents").select(COLUMNS_BASE).eq("id", id).eq("salesperson_id", me.id).maybeSingle());
   }
   return !error && data ? toDoc(data as Row) : null;
@@ -136,15 +143,25 @@ export async function loadSalesDoc(me: CommercialMe, id: string) {
 export async function loadSalesDocById(id: string) {
   const supabase = await createClient();
   let { data, error } = await supabase.from("sales_documents").select(COLUMNS).eq("id", id).maybeSingle();
-  if (error && /amount_paid_cents/.test(error.message)) {
+  if (error && /amount_paid_cents|client_signature|signer_name|signed_at/.test(error.message)) {
     ({ data, error } = await supabase.from("sales_documents").select(COLUMNS_BASE).eq("id", id).maybeSingle());
   }
   return !error && data ? toDoc(data as Row) : null;
 }
 
-/** The rep's customers (converted prospects), offered to pre-fill the client block. */
+/** The rep's customers (converted prospects / auto-registered from devis), offered to pre-fill the client block. */
 export async function loadClientChoices(me: CommercialMe) {
   const supabase = await createClient();
-  const { data } = await supabase.from("customers").select("id, name, company, email").eq("salesperson_id", me.id).order("created_at", { ascending: false }).limit(300);
-  return (data ?? []).map((c) => ({ id: c.id as string, name: (c.company as string) || (c.name as string), email: (c.email as string | null) ?? "" }));
+  const { data } = await supabase
+    .from("customers")
+    .select("id, name, company, email, phone")
+    .eq("salesperson_id", me.id)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  return (data ?? []).map((c) => ({
+    id: c.id as string,
+    name: (c.company as string) || (c.name as string),
+    email: (c.email as string | null) ?? "",
+    phone: (c.phone as string | null) ?? "",
+  }));
 }

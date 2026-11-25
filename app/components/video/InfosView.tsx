@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { useCart, useClientDraft, writeClient } from "./cart";
+import { cartIsPriced, useCart, useClientDraft, writeClient } from "./cart";
 import { useVideo } from "./context";
 import { EmptyProject, Stepper, Summary, useMounted } from "./flow";
 
@@ -33,7 +33,7 @@ export function InfosView() {
                 const form = event.currentTarget;
                 if (!form.reportValidity()) return;
                 writeClient(client);
-                router.push("/finaliser");
+                router.push(cartIsPriced(config, cart.items) ? "/acompte" : "/finaliser");
               }}
             >
               <h2>Vos informations</h2>

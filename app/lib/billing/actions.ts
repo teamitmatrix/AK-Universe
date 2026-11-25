@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
-import { PLAN, computeQuote, sanitizeSelection, toCents, type Selection } from "@/config/pricing";
+import { checkoutPlan, quoteCheckout, sanitizeSelection, toCents, type Selection } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
+import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { ensureProfile } from "@/lib/auth/session";
 import { requireClient } from "@/lib/client/session";
@@ -11,15 +12,6 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
 import { getTerms } from "@/lib/terms";
 import { recordSubscriptionTermsAcceptance } from "@/lib/terms-acceptance";
-
-// Restricts Checkout to the method picked on paiement.html (it must also be enabled in Stripe).
-const METHODS: Record<string, Stripe.Checkout.SessionCreateParams.AllowedPaymentMethodType[]> = {
-  card: ["card"],
-  sepa: ["sepa_debit"],
-  paypal: ["paypal"],
-  revolut: ["revolut_pay"],
-  satispay: ["satispay"],
-};
 
 export async function checkPromoCode(code: string) {
   const stripe = getStripe();
@@ -29,6 +21,7 @@ export async function checkPromoCode(code: string) {
 }
 
 export async function startSubscriptionCheckout(input: {
+  planId: string;
   selection: Selection;
   email: string;
   method: string;
@@ -45,15 +38,18 @@ export async function startSubscriptionCheckout(input: {
     return { success: false as const, code: "terms_required" as const };
   }
 
+  const selection = sanitizeSelection(input.selection);
+  const resume = `/paiement?plan=${encodeURIComponent(input.planId)}&cycle=${selection.cycle}`;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect("/connexion?redirectTo=/abonnement");
+  if (!auth.user) redirect(`/connexion?redirectTo=${encodeURIComponent(resume)}`);
   await ensureProfile(auth.user);
 
-  // Never trust client totals: recompute from the sanitized selection + live catalogue prices.
-  const selection = sanitizeSelection(input.selection);
+  // Never trust client totals: recompute from the chosen plan + live catalogue prices.
   const [quoteRates, terms] = await Promise.all([getAgentsPricing(), getTerms()]);
-  const quote = computeQuote(selection, quoteRates);
+  const plan = checkoutPlan(input.planId, quoteRates);
+  if (!plan) return { success: false as const, code: "prepare_failed" as const };
+  const quote = quoteCheckout(plan, selection, quoteRates);
   const admin = createAdminClient();
   const termsAcceptedAt = new Date().toISOString();
 
@@ -80,7 +76,7 @@ export async function startSubscriptionCheckout(input: {
     .insert({
       user_id: auth.user.id,
       organization_id: membership?.organization_id ?? null,
-      plan: PLAN.id,
+      plan: plan.id,
       cycle: selection.cycle,
       extra_users: selection.users,
       options: selection.options,
@@ -101,7 +97,7 @@ export async function startSubscriptionCheckout(input: {
   await recordSubscriptionTermsAcceptance({
     userId: auth.user.id,
     subscriptionId: subscription.id,
-    plan: PLAN.id,
+    plan: plan.id,
     cycle: selection.cycle,
     extraUsers: selection.users,
     options: selection.options,
@@ -119,7 +115,8 @@ export async function startSubscriptionCheckout(input: {
       customer_email: input.email || auth.user.email,
       client_reference_id: auth.user.id,
       locale: checkoutLocale(input.lang),
-      allowed_payment_method_types: METHODS[input.method] ?? METHODS.card,
+      // `card` also enables Apple Pay / Google Pay on Stripe Checkout when wallets are on in the Dashboard.
+      allowed_payment_method_types: allowedCheckoutMethods(input.method),
       line_items: [
         {
           quantity: 1,
@@ -128,17 +125,29 @@ export async function startSubscriptionCheckout(input: {
             unit_amount: toCents(quote.due),
             recurring: { interval: annual ? "year" : "month" },
             product_data: {
-              name: `${PLAN.name} — ${annual ? "annuel" : "mensuel"}`,
-              description: `${selection.users} utilisateur(s) supplémentaire(s), ${selection.options.length} option(s)`,
+              name: `${plan.name} — ${annual ? "annuel" : "mensuel"}`,
+              description: plan.features.slice(0, 3).join(" · "),
             },
           },
         },
+        ...(quote.setup > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: "eur" as const,
+                  unit_amount: toCents(quote.setup),
+                  product_data: { name: `${plan.name} — mise en place` },
+                },
+              },
+            ]
+          : []),
       ],
       discounts: input.promotionCodeId ? [{ promotion_code: input.promotionCodeId }] : undefined,
       metadata: { kind: "subscription", subscription_id: subscription.id, user_id: auth.user.id },
       subscription_data: { metadata: { subscription_id: subscription.id, user_id: auth.user.id } },
       success_url: `${site}/paiement?success=1`,
-      cancel_url: `${site}/abonnement`,
+      cancel_url: `${site}${resume}`,
     });
   } catch (cause) {
     console.error("Stripe checkout failed:", cause);

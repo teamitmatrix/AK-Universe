@@ -96,7 +96,7 @@ const MARKETING_LINKS = [
   { id: "tous", href: "/marketing#tous", label: "Tous les services" },
   { id: "packs", href: "/marketing#packs", label: "Nos packs" },
   { id: "realisations", href: "/marketing/realisations", label: "Réalisations" },
-  { id: "devis", href: "/marketing#devis", label: "Devis" },
+  { id: "devis", href: "/marketing#devis", label: "Sur mesure" },
   { id: "faq", href: "/marketing#faq", label: "FAQ" },
 ] as const;
 

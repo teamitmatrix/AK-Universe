@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
-import { quoteHref } from "@/lib/contact/quote";
 import { HomeLabel } from "@/components/ui/LangSwitch";
 import { useCart } from "./cart";
 import { useVideo } from "./context";
@@ -48,7 +47,7 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
             <span className="ak">AK</span> UNIVERSE
           </span>
         </Link>
-        <Link href="/projet" className="projet-link projet-link-mobile" aria-label="Mon projet" title="Mon projet">
+        <Link href="/projet" className="projet-link projet-link-mobile" aria-label="Mon panier" title="Mon panier">
           <Icon name="clapper" />
           <span className="projet-badge" hidden={count === 0}>
             {count}
@@ -124,13 +123,13 @@ export function VideoHeader({ active = "", currentSlug }: { active?: VideoNav; c
           <div className="nav-actions">
             <Link href="/projet" className={`projet-link${active === "projet" ? " active" : ""}`} onClick={closeAll}>
               <Icon name="clapper" />
-              <span className="projet-count-label">Mon projet</span>
+              <span className="projet-count-label">Mon panier</span>
               <span className="projet-badge" hidden={count === 0}>
                 {count}
               </span>
             </Link>
-            <Link href={quoteHref()} className="btn btn-primary" onClick={closeAll}>
-              Devis gratuit <Icon name="arrow" />
+            <Link href="/marketing/forfaits" className="btn btn-primary" onClick={closeAll}>
+              Nos forfaits <Icon name="arrow" />
             </Link>
           </div>
         </div>

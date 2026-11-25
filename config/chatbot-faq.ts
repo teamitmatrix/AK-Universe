@@ -84,7 +84,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       {
         q: "Peut-on avoir plusieurs utilisateurs ou toute une équipe ?",
         a: "Oui. Vous créez une organisation pour collaborer avec votre équipe, et vous pouvez ajouter des utilisateurs supplémentaires à votre abonnement (jusqu'à 500), facturés par utilisateur et par mois.",
-        url: "/abonnement",
+        url: "/agents-ia#tarifs",
       },
     ],
   },
@@ -93,7 +93,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
     entries: [
       {
         q: "Comment créer un compte et m'abonner aux agents IA ?",
-        a: "1) Créez votre compte sur /inscription (e-mail et mot de passe, ou Google). 2) Saisissez le code à 6 chiffres reçu par e-mail (il expire après 15 minutes). 3) Créez votre organisation (nom, secteur, taille). Vous arrivez ensuite dans votre espace client. Si vous aviez choisi une offre sur le site public, la page /abonnement s'ouvre pour terminer l'abonnement : vous pouvez aussi la quitter et payer plus tard. Le paiement se fait sur /paiement.",
+        a: "1) Créez votre compte sur /inscription (e-mail et mot de passe, ou Google). 2) Saisissez le code à 6 chiffres reçu par e-mail (il expire après 15 minutes). 3) Créez votre organisation (nom, secteur, taille). Si vous aviez choisi une offre à prix fixe sur /agents-ia#tarifs, le paiement de cette offre s'ouvre. Sinon vous arrivez dans votre espace client. Les offres « sur devis » se demandent par le formulaire de contact.",
         url: "/inscription",
       },
       {
@@ -113,13 +113,13 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Quels moyens de paiement acceptez-vous pour l'abonnement ?",
-        a: "Le paiement est sécurisé par Stripe : carte bancaire, prélèvement automatique SEPA, et Apple Pay (proposé automatiquement sur la page de paiement par carte). Vous pouvez aussi ajouter un code promotionnel.",
+        a: "Le paiement est sécurisé par Stripe Checkout : carte bancaire, Apple Pay, Google Pay, prélèvement SEPA, PayPal, Revolut Pay et Satispay (selon disponibilité). Sur /paiement, les boutons Apple Pay et Google Pay ouvrent Stripe ; les portefeuilles s'affichent aussi avec « Carte bancaire » si l'appareil les propose. Vous pouvez ajouter un code promotionnel.",
         url: "/paiement",
       },
       {
         q: "Mensuel ou annuel : quelle différence ?",
-        a: "L'abonnement se paie d'avance au mois ou à l'année et se renouvelle automatiquement à chaque échéance. Le paiement annuel donne une remise (voir le montant exact sur /abonnement) et est facturé en une fois pour 12 mois.",
-        url: "/abonnement",
+        a: "L'abonnement se paie d'avance au mois ou à l'année et se renouvelle automatiquement à chaque échéance. Le montant annuel de chaque offre est affiché sur /agents-ia#tarifs et est facturé en une fois.",
+        url: "/agents-ia#tarifs",
       },
       {
         q: "Comment changer de carte, voir mes factures ou modifier mon abonnement ?",

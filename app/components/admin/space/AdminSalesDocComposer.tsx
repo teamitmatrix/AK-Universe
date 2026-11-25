@@ -1,26 +1,36 @@
 "use client";
 
-import { FilePlus2, FileText, Lock, Minus, PenLine, Plus, Receipt, Trash2, X } from "lucide-react";
+import Link from "next/link";
+import { Eye, FilePlus2, FileText, Lock, Minus, Pencil, PenLine, Plus, Receipt, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { saveAdminSalesDocument } from "@/lib/admin/sales-doc-actions";
+import {
+  deleteAdminSalesDocument,
+  getAdminSalesDocument,
+  saveAdminSalesDocument,
+  updateAdminSalesDocument,
+} from "@/lib/admin/sales-doc-actions";
 import type { SalesCatalogueItem } from "@/lib/commercial/catalogue";
 import {
   PRODUCT_TYPES,
   PRODUCT_TYPE_LABELS,
   VAT_RATE,
+  normalizeProductType,
   type DocKind,
   type DocStatus,
   type ProductType,
 } from "@/lib/commercial/commission-rules";
 import type { DocInput, LineInput } from "@/lib/commercial/sales-doc-actions";
+import type { SalesDoc } from "@/lib/commercial/sales-docs";
 
 const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const ERRORS: Record<string, string> = {
   forbidden: "Accès refusé.",
-  invalid: "Vérifiez le commercial, le client, les dates, les lignes et les remises catalogue.",
-  failed: "Création impossible. Réessayez.",
+  invalid: "Vérifiez le commercial, le client, les dates, les lignes et la remise commerciale.",
+  notFound: "Document introuvable.",
+  locked: "Ce document ne peut plus être modifié ou supprimé.",
+  failed: "Enregistrement impossible. Réessayez.",
 };
 
 type EditLine = LineInput & { key: number };
@@ -31,7 +41,7 @@ type Props = {
   catalogue: SalesCatalogueItem[];
   rates: Record<ProductType, number>;
   reps: { id: string; name: string; active: boolean }[];
-  clients: { id: string; name: string; email: string }[];
+  clients: { id: string; name: string; email: string; phone?: string }[];
   initialNew?: DocKind | null;
   labels: {
     newQuote: string;
@@ -40,10 +50,12 @@ type Props = {
   };
 };
 
+type ModalState = { mode: "new"; kind: DocKind } | { mode: "edit"; doc: SalesDoc; salespersonId: string };
+
 /** Header actions + modal so admins can create devis / factures assigned to a sales rep. */
 export function AdminSalesDocComposer({ catalogue, rates, reps, clients, initialNew = null, labels }: Props) {
   const activeReps = reps.filter((r) => r.active);
-  const [modal, setModal] = useState<DocKind | null>(initialNew);
+  const [modal, setModal] = useState<ModalState | null>(initialNew ? { mode: "new", kind: initialNew } : null);
   const [toast, toastNode] = useToast();
   const router = useRouter();
 
@@ -54,17 +66,17 @@ export function AdminSalesDocComposer({ catalogue, rates, reps, clients, initial
   return (
     <>
       <div className="adm-pagehead-actions">
-        <button type="button" className="adm-btn is-ghost" onClick={() => setModal("devis")}>
+        <button type="button" className="adm-btn is-ghost" onClick={() => setModal({ mode: "new", kind: "devis" })}>
           <FileText size={15} aria-hidden="true" /> {labels.newQuote}
         </button>
-        <button type="button" className="adm-btn" onClick={() => setModal("facture")}>
+        <button type="button" className="adm-btn" onClick={() => setModal({ mode: "new", kind: "facture" })}>
           <Receipt size={15} aria-hidden="true" /> {labels.newInvoice}
         </button>
       </div>
       {modal && (
         <AdminDocumentModal
-          key={modal}
-          initialKind={modal}
+          key={modal.mode === "edit" ? modal.doc.id : `new-${modal.kind}`}
+          modal={modal}
           catalogue={catalogue}
           rates={rates}
           reps={activeReps}
@@ -81,8 +93,105 @@ export function AdminSalesDocComposer({ catalogue, rates, reps, clients, initial
   );
 }
 
+/** Row actions for the devis & factures list: view, edit, delete draft. */
+export function AdminDocRowActions({
+  id,
+  number,
+  kind,
+  status,
+  commercialId,
+  catalogue,
+  rates,
+  reps,
+  clients,
+  labels,
+}: {
+  id: string;
+  number: string;
+  kind: DocKind;
+  status: string;
+  commercialId: string | null;
+  catalogue: SalesCatalogueItem[];
+  rates: Record<ProductType, number>;
+  reps: { id: string; name: string; active: boolean }[];
+  clients: { id: string; name: string; email: string; phone?: string }[];
+  labels: { edit: string; delete: string; deleteConfirm: (n: string) => string; deleted: string; view: string };
+}) {
+  const activeReps = reps.filter((r) => r.active);
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [pending, start] = useTransition();
+  const [toast, toastNode] = useToast();
+  const router = useRouter();
+  const editable = status === "brouillon" || status === "en_attente";
+  const deletable = status === "brouillon";
+
+  const openEdit = () => {
+    start(async () => {
+      const res = await getAdminSalesDocument(id);
+      if (!res.success) {
+        toast(ERRORS[res.error] ?? ERRORS.failed);
+        return;
+      }
+      setModal({
+        mode: "edit",
+        doc: res.doc,
+        salespersonId: commercialId ?? activeReps[0]?.id ?? "",
+      });
+    });
+  };
+
+  const remove = () => {
+    if (!window.confirm(labels.deleteConfirm(number))) return;
+    start(async () => {
+      const res = await deleteAdminSalesDocument(id);
+      if (!res.success) {
+        toast(ERRORS[res.error] ?? ERRORS.failed);
+        return;
+      }
+      toast(labels.deleted);
+      router.refresh();
+    });
+  };
+
+  return (
+    <>
+      <span className="adm-row-actions">
+        <Link className="adm-icon-btn sm" href={`/admin/document?id=${id}`} title={labels.view} aria-label={`${labels.view} ${number}`}>
+          <Eye size={15} />
+        </Link>
+        {editable && (
+          <button type="button" className="adm-icon-btn sm" title={labels.edit} aria-label={`${labels.edit} ${number}`} disabled={pending} onClick={openEdit}>
+            <Pencil size={15} />
+          </button>
+        )}
+        {deletable && (
+          <button type="button" className="adm-icon-btn sm com-danger" title={labels.delete} aria-label={`${labels.delete} ${number}`} disabled={pending} onClick={remove}>
+            <Trash2 size={15} />
+          </button>
+        )}
+      </span>
+      {modal && (
+        <AdminDocumentModal
+          key={modal.mode === "edit" ? modal.doc.id : `new-${modal.kind}`}
+          modal={modal}
+          catalogue={catalogue}
+          rates={rates}
+          reps={activeReps.length ? activeReps : reps}
+          clients={clients}
+          onClose={() => setModal(null)}
+          onSaved={(msg) => {
+            toast(msg);
+            router.refresh();
+          }}
+        />
+      )}
+      {toastNode}
+    </>
+  );
+}
+
 function AdminDocumentModal({
-  initialKind,
+  modal,
   catalogue,
   rates,
   reps,
@@ -90,30 +199,43 @@ function AdminDocumentModal({
   onClose,
   onSaved,
 }: {
-  initialKind: DocKind;
+  modal: ModalState;
   catalogue: SalesCatalogueItem[];
   rates: Record<ProductType, number>;
   reps: { id: string; name: string }[];
-  clients: { id: string; name: string; email: string }[];
+  clients: { id: string; name: string; email: string; phone?: string }[];
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
+  const editing = modal.mode === "edit" ? modal.doc : null;
   const ref = useRef<HTMLDialogElement>(null);
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
-  const [kind, setKind] = useState<DocKind>(initialKind);
-  const [salespersonId, setSalespersonId] = useState(reps[0]?.id ?? "");
+  const [kind, setKind] = useState<DocKind>(editing?.kind ?? (modal.mode === "new" ? modal.kind : "devis"));
+  const [salespersonId, setSalespersonId] = useState(
+    modal.mode === "edit" ? modal.salespersonId || reps[0]?.id || "" : reps[0]?.id ?? "",
+  );
   const [form, setForm] = useState({
-    clientName: "",
-    clientEmail: "",
-    clientSiret: "",
-    clientAddress: "",
-    issueDate: today(),
-    dueDate: "",
-    status: "brouillon" as DocStatus,
-    notes: "",
+    clientName: editing?.clientName ?? "",
+    clientEmail: editing?.clientEmail ?? "",
+    clientSiret: editing?.clientSiret ?? "",
+    clientAddress: editing?.clientAddress ?? "",
+    issueDate: editing?.issueDate ?? today(),
+    dueDate: editing?.dueDate ?? "",
+    status: (editing?.status ?? "brouillon") as DocStatus,
+    notes: editing?.notes ?? "",
   });
-  const [lines, setLines] = useState<EditLine[]>([]);
+  const [lines, setLines] = useState<EditLine[]>(() =>
+    (editing?.lines ?? []).map((l) => ({
+      key: ++lineKey,
+      catalogueId: l.catalogue_id,
+      label: l.label,
+      productType: normalizeProductType(l.product_type) ?? "digital",
+      unitEuros: String(l.unit_cents / 100),
+      qty: String(l.qty),
+      fixedCommissionEuros: l.fixed_commission_cents != null ? String(l.fixed_commission_cents / 100) : "",
+    })),
+  );
   const [pick, setPick] = useState("");
   const byId = useMemo(() => new Map(catalogue.map((i) => [i.id, i])), [catalogue]);
 
@@ -153,7 +275,7 @@ function AdminDocumentModal({
   const addCustom = () =>
     setLines((ls) => [
       ...ls,
-      { key: ++lineKey, catalogueId: null, label: "", productType: "prestations", unitEuros: "", qty: "1", fixedCommissionEuros: "" },
+      { key: ++lineKey, catalogueId: null, label: "", productType: "digital", unitEuros: "", qty: "1", fixedCommissionEuros: "" },
     ]);
 
   const htCents = lines.reduce((s, l) => s + Math.round(num(l.qty) * num(l.unitEuros) * 100), 0);
@@ -168,7 +290,11 @@ function AdminDocumentModal({
 
   const chooseClient = (name: string) => {
     const c = clients.find((x) => x.name === name);
-    setForm((f) => ({ ...f, clientName: name, clientEmail: c?.email || f.clientEmail }));
+    setForm((f) => ({
+      ...f,
+      clientName: name,
+      clientEmail: c?.email || f.clientEmail,
+    }));
   };
 
   const submit = (e: React.FormEvent) => {
@@ -178,9 +304,19 @@ function AdminDocumentModal({
     if (lines.length === 0) return setError("Ajoutez au moins une ligne (catalogue ou personnalisée).");
     const input: DocInput = { kind, ...form, lines: lines.map(({ key: _k, ...l }) => (void _k, l)) };
     start(async () => {
-      const res = await saveAdminSalesDocument(salespersonId, input);
+      const res = editing
+        ? await updateAdminSalesDocument(editing.id, salespersonId, input)
+        : await saveAdminSalesDocument(salespersonId, input);
       if (!res.success) return setError(ERRORS[res.error] ?? ERRORS.failed);
-      onSaved(kind === "devis" ? "Devis créé." : "Facture créée.");
+      onSaved(
+        editing
+          ? kind === "devis"
+            ? "Devis modifié."
+            : "Facture modifiée."
+          : kind === "devis"
+            ? "Devis créé."
+            : "Facture créée.",
+      );
       close();
     });
   };
@@ -192,7 +328,7 @@ function AdminDocumentModal({
       <form className="adm-modal-card" onSubmit={submit}>
         <header>
           <div>
-            <h2 id="adm-doc-title">Nouveau devis / facture</h2>
+            <h2 id="adm-doc-title">{editing ? `Modifier ${editing.number}` : "Nouveau devis / facture"}</h2>
             <p className="adm-muted">Le document est attribué au commercial choisi (commission et suivi client).</p>
           </div>
           <button type="button" className="adm-icon-btn" onClick={close} aria-label="Fermer">
@@ -201,10 +337,22 @@ function AdminDocumentModal({
         </header>
 
         <div className="com-kind-toggle" role="group" aria-label="Type de document">
-          <button type="button" className={kind === "devis" ? "is-active" : undefined} aria-pressed={kind === "devis"} onClick={() => setKind("devis")}>
+          <button
+            type="button"
+            className={kind === "devis" ? "is-active" : undefined}
+            aria-pressed={kind === "devis"}
+            disabled={Boolean(editing)}
+            onClick={() => setKind("devis")}
+          >
             <FileText size={16} aria-hidden="true" /> Devis
           </button>
-          <button type="button" className={kind === "facture" ? "is-active" : undefined} aria-pressed={kind === "facture"} onClick={() => setKind("facture")}>
+          <button
+            type="button"
+            className={kind === "facture" ? "is-active" : undefined}
+            aria-pressed={kind === "facture"}
+            disabled={Boolean(editing)}
+            onClick={() => setKind("facture")}
+          >
             <Receipt size={16} aria-hidden="true" /> Facture
           </button>
         </div>
@@ -235,6 +383,7 @@ function AdminDocumentModal({
             <label className="adm-field">
               <span>E-mail du client</span>
               <input type="email" maxLength={254} value={form.clientEmail} onChange={set("clientEmail")} />
+              <small className="adm-muted">Avec un e-mail, le client est enregistré dans Clients et proposé au prochain devis.</small>
             </label>
             <label className="adm-field">
               <span>SIRET</span>
@@ -297,9 +446,19 @@ function AdminDocumentModal({
                 const type = l.productType as ProductType;
                 const catItem = fromCatalogue ? byId.get(l.catalogueId!) : undefined;
                 const listEuros = catItem ? catItem.unitCents / 100 : null;
-                const maxDisc = catItem?.maxDiscountPercent ?? 0;
-                const minEuros = listEuros != null ? Math.round(listEuros * (1 - maxDisc / 100) * 100) / 100 : null;
-                const priceLocked = fromCatalogue && maxDisc <= 0;
+                // Admin commercial discount: any remise 0–100 % (server allows down to 0 €).
+                const minEuros = listEuros != null ? 0 : null;
+                const price = num(l.unitEuros);
+                const remisePct =
+                  listEuros != null && listEuros > 0
+                    ? Math.round(Math.max(0, Math.min(100, (1 - price / listEuros) * 100)) * 100) / 100
+                    : 0;
+                const applyRemise = (raw: string) => {
+                  if (listEuros == null) return;
+                  const rem = Math.min(100, Math.max(0, num(raw)));
+                  const next = Math.round(listEuros * (1 - rem / 100) * 100) / 100;
+                  updateLine(l.key, { unitEuros: String(next), fixedCommissionEuros: "" });
+                };
                 return (
                   <li key={l.key} className="com-line">
                     <span className="com-line-badge" title={PRODUCT_TYPE_LABELS[type]}>
@@ -343,16 +502,15 @@ function AdminDocumentModal({
                         <Plus size={14} />
                       </button>
                     </span>
-                    <label className="com-price">
+                    <label className="com-price" title={fromCatalogue ? "Prix unitaire HT après remise commerciale" : undefined}>
                       <input
                         aria-label="Prix unitaire HT (€)"
                         inputMode="decimal"
-                        readOnly={priceLocked}
                         min={minEuros ?? undefined}
                         max={listEuros ?? undefined}
                         required
                         value={l.unitEuros}
-                        onChange={(e) => updateLine(l.key, { unitEuros: e.target.value })}
+                        onChange={(e) => updateLine(l.key, { unitEuros: e.target.value, fixedCommissionEuros: "" })}
                         onBlur={() => {
                           if (!fromCatalogue || listEuros == null || minEuros == null) return;
                           const p = num(l.unitEuros);
@@ -363,17 +521,32 @@ function AdminDocumentModal({
                       />
                       <span>€</span>
                     </label>
-                    <label className="com-fixed" title="Commission fixe (€)">
+                    <label
+                      className="com-fixed"
+                      title={
+                        fromCatalogue
+                          ? "Remise commerciale (%) — ajuste le prix unitaire HT"
+                          : "Remise disponible uniquement pour les lignes catalogue"
+                      }
+                    >
                       <input
-                        aria-label="Commission fixe (€)"
+                        aria-label="Remise commerciale (%)"
                         inputMode="decimal"
-                        placeholder="Fixe €"
-                        value={l.fixedCommissionEuros ?? ""}
-                        onChange={(e) => updateLine(l.key, { fixedCommissionEuros: e.target.value })}
+                        placeholder="Remise %"
+                        disabled={!fromCatalogue}
+                        readOnly={!fromCatalogue}
+                        min={0}
+                        max={100}
+                        value={fromCatalogue ? String(remisePct) : ""}
+                        onChange={(e) => applyRemise(e.target.value)}
+                        onBlur={(e) => {
+                          if (!fromCatalogue) return;
+                          applyRemise(e.target.value);
+                        }}
                       />
                     </label>
-                    <span className="com-rate">
-                      <Lock size={12} aria-hidden="true" /> {String(l.fixedCommissionEuros ?? "").trim() ? "Fixe" : `${rates[type] ?? 10} %`}
+                    <span className="com-rate" title="Taux de commission selon le type de produit">
+                      <Lock size={12} aria-hidden="true" /> {rates[type] ?? 10} %
                     </span>
                     <button
                       type="button"
@@ -423,7 +596,17 @@ function AdminDocumentModal({
             Annuler
           </button>
           <button type="submit" className="adm-btn" disabled={pending}>
-            {pending ? "Création…" : kind === "devis" ? "Créer le devis" : "Créer la facture"}
+            {pending
+              ? editing
+                ? "Enregistrement…"
+                : "Création…"
+              : editing
+                ? kind === "devis"
+                  ? "Enregistrer le devis"
+                  : "Enregistrer la facture"
+                : kind === "devis"
+                  ? "Créer le devis"
+                  : "Créer la facture"}
           </button>
         </div>
       </form>

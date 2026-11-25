@@ -240,7 +240,7 @@ export async function loadCatalogue() {
       category: "abonnement" as const,
       name: PLAN.name,
       detail: PLAN.features.join(" · "),
-      href: "/abonnement",
+      href: "/agents-ia#tarifs",
       fields: [{ key: "a:plan", label: "monthly" as const, value: agents.planMonthly, default: PLAN.monthlyPrice, unit: "eurMonth" as const }],
     },
     {
@@ -248,7 +248,7 @@ export async function loadCatalogue() {
       category: "abonnement" as const,
       name: "Utilisateur supplémentaire",
       detail: "Par utilisateur et par mois",
-      href: "/abonnement",
+      href: "/agents-ia#tarifs",
       fields: [{ key: "a:user", label: "monthly" as const, value: agents.userPrice, default: 9.9, unit: "eurMonth" as const }],
     },
     ...OPTIONS.map((o) => ({
@@ -256,7 +256,7 @@ export async function loadCatalogue() {
       category: "abonnement" as const,
       name: `Option — ${o.label}${isRetiredOption(o) ? " (plus proposée, abonnés existants)" : ""}`,
       detail: o.info,
-      href: "/abonnement",
+      href: "/agents-ia#tarifs",
       fields: [{ key: `a:opt:${o.id}`, label: "monthly" as const, value: agents.options[o.id], default: o.price, unit: "eurMonth" as const }],
     })),
   ]) {

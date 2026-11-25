@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Params = { etape?: string; commercial?: string; q?: string };
+type Params = { etape?: string; commercial?: string; q?: string; nouveau?: string };
 
 export default async function ProspectsPage({ searchParams }: { searchParams: Promise<Params> }) {
   const admin = await getAdminIdentity();
@@ -23,5 +23,5 @@ export default async function ProspectsPage({ searchParams }: { searchParams: Pr
     q: String(sp.q ?? "").slice(0, 100),
   };
   const [lang, data] = await Promise.all([getAdminLang(), loadProspects(filter)]);
-  return <ProspectsView lang={lang} admin={admin} data={data} filter={filter} />;
+  return <ProspectsView lang={lang} admin={admin} data={data} filter={filter} initialNew={sp.nouveau === "1"} />;
 }

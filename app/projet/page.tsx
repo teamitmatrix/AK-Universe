@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getVideoConfig } from "@/lib/video-config";
 
 export const metadata: Metadata = {
-  title: { absolute: "Mon projet — AK Universe" },
+  title: { absolute: "Mon panier — AK Universe" },
   description: "Votre projet vidéo AK Universe.",
   robots: { index: false, follow: false },
 };

@@ -7,7 +7,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { toDoc, type SalesDoc } from "./sales-docs";
 
 const SHARE_COLUMNS =
-  "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, amount_paid_cents, notes, quote_id, paid_at, created_at, share_token";
+  "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, amount_paid_cents, notes, quote_id, paid_at, created_at, share_token, client_signature, signer_name, signed_at";
+const SHARE_COLUMNS_FALLBACK =
+  "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, notes, quote_id, paid_at, created_at, share_token";
 
 export function isShareToken(token: string) {
   return /^[A-Za-z0-9_-]{20,64}$/.test(token);
@@ -23,14 +25,8 @@ export async function loadSalesDocByShareToken(token: string): Promise<SalesDoc 
   try {
     const admin = createAdminClient();
     let { data, error } = await admin.from("sales_documents").select(SHARE_COLUMNS).eq("share_token", token).maybeSingle();
-    if (error && /amount_paid_cents|share_token/.test(error.message)) {
-      ({ data, error } = await admin
-        .from("sales_documents")
-        .select(
-          "id, number, kind, status, client_name, client_email, client_siret, client_address, issue_date, due_date, lines, vat_rate, total_ht_cents, total_ttc_cents, commission_cents, notes, quote_id, paid_at, created_at, share_token",
-        )
-        .eq("share_token", token)
-        .maybeSingle());
+    if (error && /amount_paid_cents|share_token|client_signature|signer_name|signed_at/.test(error.message)) {
+      ({ data, error } = await admin.from("sales_documents").select(SHARE_COLUMNS_FALLBACK).eq("share_token", token).maybeSingle());
     }
     if (error || !data) return null;
     if (data.status === "brouillon" || data.status === "annulee") return null;

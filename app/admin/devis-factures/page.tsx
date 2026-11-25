@@ -20,13 +20,18 @@ async function loadAdminClients() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("customers")
-    .select("id, name, email")
+    .select("id, name, company, email, phone")
     .order("name")
     .limit(2000);
   if (error) return [];
   return (data ?? [])
     .filter((c) => c.name)
-    .map((c) => ({ id: c.id as string, name: c.name as string, email: (c.email as string | null) ?? "" }));
+    .map((c) => ({
+      id: c.id as string,
+      name: ((c.company as string | null) || (c.name as string)) as string,
+      email: (c.email as string | null) ?? "",
+      phone: (c.phone as string | null) ?? "",
+    }));
 }
 
 export default async function DevisFacturesPage({ searchParams }: { searchParams: Promise<Params> }) {

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { MARKETING_FIT_MEDIA } from "@/config/marketing";
 import { euro } from "@/lib/projects/quote-math";
 import { Icon } from "@/components/ui/Icon";
-import { quoteHref } from "@/lib/contact/quote";
 import { useVideo } from "./context";
 
 const FIT_MEDIA = new Set<string>(MARKETING_FIT_MEDIA);
@@ -24,11 +23,11 @@ export function ServicesList() {
           <h1>
             Composez votre <span className="gold">projet vidéo</span>
           </h1>
-          <p>Choisissez un ou plusieurs services, personnalisez-les, puis demandez un devis ou réservez avec un acompte.</p>
+          <p>Choisissez un ou plusieurs services au prix affiché, puis réglez-les directement.</p>
           <ol className="how">
             <li>Choisissez vos services</li>
             <li>Personnalisez les options</li>
-            <li>Devis ou acompte</li>
+            <li>Payez le prix affiché</li>
           </ol>
         </div>
       </section>
@@ -61,9 +60,6 @@ export function ServicesList() {
                   <div className="svc-card-actions">
                     <Link href={`/services/${service.slug}`} className="btn btn-outline btn-sm">
                       Découvrir
-                    </Link>
-                    <Link href={quoteHref(service.slug)} className="btn btn-outline btn-sm">
-                      Devis
                     </Link>
                     <button type="button" className="btn btn-primary btn-sm" onClick={() => openConfig(service.slug)}>
                       <Icon name="plus" /> Ajouter

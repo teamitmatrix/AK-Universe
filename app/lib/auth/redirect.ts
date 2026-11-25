@@ -10,17 +10,30 @@ export function signInBeforePayment() {
 }
 
 /**
- * Where to finish a subscription the visitor started on the public site (/abonnement or /paiement).
+ * Where to finish a subscription the visitor started on the public site.
  * Any other path is ignored so registration cannot be sent off-site.
+ * /paiement is kept as-is (it carries the chosen plan). The retired /abonnement page
+ * continues onto that checkout when a plan is present, otherwise the public price list.
  */
 export function subscriptionResumePath(value: string | null | undefined): string | null {
   const path = safeRedirect(value, "");
   if (!path || path === "/") return null;
-  const queryAt = path.indexOf("?");
-  const pathname = queryAt === -1 ? path : path.slice(0, queryAt);
-  const search = queryAt === -1 ? "" : path.slice(queryAt);
-  if (pathname === "/abonnement" || pathname.startsWith("/abonnement/")) return path;
-  if (pathname === "/paiement" || pathname.startsWith("/paiement/")) return `/abonnement${search}`;
+  const hashAt = path.indexOf("#");
+  const beforeHash = hashAt === -1 ? path : path.slice(0, hashAt);
+  const queryAt = beforeHash.indexOf("?");
+  const pathname = queryAt === -1 ? beforeHash : beforeHash.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : beforeHash.slice(queryAt);
+  if (pathname === "/paiement" || pathname.startsWith("/paiement/")) return path;
+  if (pathname === "/abonnement" || pathname.startsWith("/abonnement/")) {
+    const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+    const plan = params.get("plan");
+    if (!plan) return "/agents-ia#tarifs";
+    const next = new URLSearchParams();
+    next.set("plan", plan);
+    const cycle = params.get("cycle");
+    if (cycle) next.set("cycle", cycle);
+    return `/paiement?${next}`;
+  }
   return null;
 }
 

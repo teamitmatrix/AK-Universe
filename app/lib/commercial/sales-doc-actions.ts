@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/admin/team";
 import { loadSalesCatalogue } from "./catalogue";
-import { DOC_TRANSITIONS, VAT_RATE, isProductType, type DocKind, type DocStatus } from "./commission-rules";
+import { DOC_TRANSITIONS, VAT_RATE, normalizeProductType, type DocKind, type DocStatus } from "./commission-rules";
 import { notifyDocumentIssued } from "./document-share";
+import { ensureCustomerForRep } from "./ensure-customer";
 import { getCommercial } from "./session";
 
 /*
@@ -20,7 +21,17 @@ import { getCommercial } from "./session";
 type Fail = { success: false; error: "forbidden" | "invalid" | "notFound" | "locked" | "transition" | "failed" };
 const fail = (error: Fail["error"]): Fail => ({ success: false, error });
 const revalidate = () => {
-  for (const path of ["/commercial/devis-factures", "/commercial/mes-ventes", "/commercial/mes-commissions", "/commercial/mes-clients", "/commercial/dashboard"]) revalidatePath(path);
+  for (const path of [
+    "/commercial/devis-factures",
+    "/commercial/mes-ventes",
+    "/commercial/mes-commissions",
+    "/commercial/mes-clients",
+    "/commercial/dashboard",
+    "/admin/clients",
+    "/admin/devis-factures",
+  ]) {
+    revalidatePath(path);
+  }
 };
 
 export type LineInput = {
@@ -52,7 +63,16 @@ const text = (v: unknown, max: number) => {
 const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
 /** Shared validation for commercial and admin document writes. */
-export async function parseSalesDocInput(input: DocInput) {
+export async function parseSalesDocInput(
+  input: DocInput,
+  options?: {
+    /**
+     * Admin commercial discount: allow lowering catalogue prices below the catalogue
+     * max-discount cap (down to 0). Reps stay limited by catalogue rules.
+     */
+    allowCommercialDiscount?: boolean;
+  },
+) {
   if (input.kind !== "devis" && input.kind !== "facture") return null;
   // A new / edited document is a draft or issued; "accepté", "payée"… are set with the status buttons.
   if (input.status !== "brouillon" && input.status !== "en_attente") return null;
@@ -85,11 +105,13 @@ export async function parseSalesDocInput(input: DocInput) {
       const item = catalogue.get(l.catalogueId);
       if (!item) return null;
       // Rep may lower the unit price within the admin max-discount cap; never above list price.
+      // Admin (`allowCommercialDiscount`) may go down to 0 € for a commercial discount.
       const rawPrice = String(l.unitEuros ?? "").trim().replace(/\s/g, "").replace(",", ".");
       const requested = rawPrice === "" ? item.unitCents / 100 : Number(rawPrice);
       if (!Number.isFinite(requested) || requested < 0 || requested > 1_000_000) return null;
       const requestedCents = Math.round(requested * 100);
-      const minCents = Math.round(item.unitCents * (1 - item.maxDiscountPercent / 100));
+      const maxDisc = options?.allowCommercialDiscount ? 100 : item.maxDiscountPercent;
+      const minCents = Math.round(item.unitCents * (1 - maxDisc / 100));
       if (requestedCents < minCents || requestedCents > item.unitCents) return null;
       lines.push({
         catalogue_id: item.id,
@@ -103,8 +125,9 @@ export async function parseSalesDocInput(input: DocInput) {
     } else {
       const label = text(l.label, 200);
       const price = Number(String(l.unitEuros ?? "").replace(/\s/g, "").replace(",", "."));
-      if (!label || !isProductType(l.productType) || !Number.isFinite(price) || price < 0 || price > 1_000_000) return null;
-      lines.push({ catalogue_id: null, label, detail: "", product_type: l.productType, qty, unit_cents: Math.round(price * 100), fixed_commission_cents });
+      const productType = normalizeProductType(l.productType);
+      if (!label || !productType || !Number.isFinite(price) || price < 0 || price > 1_000_000) return null;
+      lines.push({ catalogue_id: null, label, detail: "", product_type: productType, qty, unit_cents: Math.round(price * 100), fixed_commission_cents });
     }
   }
   return {
@@ -122,14 +145,6 @@ export async function parseSalesDocInput(input: DocInput) {
   };
 }
 
-/** Links the document to the rep's own customer record with the same e-mail, when there is one. */
-async function customerFor(me: { id: string }, email: string | null) {
-  if (!email) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.from("customers").select("id").eq("salesperson_id", me.id).ilike("email", email.replace(/[\\%_]/g, "\\$&")).limit(1);
-  return (data?.[0]?.id as string | undefined) ?? null;
-}
-
 export async function saveSalesDocument(id: string | null, input: DocInput): Promise<{ success: true; id: string } | Fail> {
   const me = await getCommercial();
   if (!me) return fail("forbidden");
@@ -137,7 +152,12 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   const row = await parseSalesDocInput(input);
   if (!row) return fail("invalid");
   const supabase = await createClient();
-  const customer_id = await customerFor(me, row.client_email);
+  // Register the client in « Customers » (create or reuse by e-mail) so the next devis can pick them.
+  const customer_id = await ensureCustomerForRep({
+    salespersonId: me.id,
+    name: row.client_name,
+    email: row.client_email,
+  });
 
   if (id === null) {
     const { data, error } = await supabase.from("sales_documents").insert({ ...row, customer_id, salesperson_id: me.id }).select("id, number, client_name, total_ht_cents, kind, status").single();

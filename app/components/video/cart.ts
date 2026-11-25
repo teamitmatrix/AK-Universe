@@ -227,6 +227,20 @@ export function itemPriceLines(config: VideoConfig, item: CartItem): CartPriceLi
 }
 
 /** First-period estimate (one-time setup + first subscription month when both apply). Renewals = subscription only. */
+/** True when every line has a listed price. A missing or « sur devis » price means the basket cannot be charged. */
+export function cartIsPriced(config: VideoConfig, items: CartItem[]) {
+  if (!items.length) return false;
+  return items.every((item) => {
+    if (isForfait(item)) {
+      const plan = planOf(config, item.key);
+      return !!plan && !plan.onQuote && plan.price != null;
+    }
+    if (isDigital(item)) return (digitalWebsiteOf(config, item.key)?.price ?? 0) > 0;
+    if (isAgent(item)) return !!agentOfferOf(config, item.key);
+    return !!serviceOf(config, item.slug);
+  });
+}
+
 export function itemPrice(config: VideoConfig, item: CartItem) {
   if (isForfait(item)) {
     const plan = planOf(config, item.key);

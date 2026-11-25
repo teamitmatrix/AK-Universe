@@ -138,16 +138,40 @@ ${early?.accepted ? `<p style="margin:0 0 12px;font-size:12px;color:#a89c8e;line
   return { html, text };
 }
 
+function paidInFull(p: ProjectMail) {
+  return p.total > 0 && p.deposit >= p.total - 0.001;
+}
+
 function clientEmail(p: ProjectMail, event: ProjectEvent) {
   const t = p.lang === "en" ? TEXT.en : TEXT.fr;
+  const full = paidInFull(p);
   const step = event === "deposit_paid" ? "deposit_paid" : p.kind;
   const name = p.contact.prenom || p.contact.nom || "";
-  const depositLabel = event === "deposit_paid" ? t.paid : t.deposit;
+  const depositLabel = full
+    ? event === "deposit_paid"
+      ? p.lang === "en"
+        ? "Amount paid"
+        : "Montant payé"
+      : p.lang === "en"
+        ? "Due today"
+        : "À régler"
+    : event === "deposit_paid"
+      ? t.paid
+      : t.deposit;
+  const intro = full
+    ? event === "deposit_paid"
+      ? p.lang === "en"
+        ? "We have received your payment: your order is confirmed. Our team will contact you shortly."
+        : "Nous avons bien reçu votre paiement : votre commande est confirmée. Notre équipe vous contacte rapidement."
+      : p.lang === "en"
+        ? "Thank you for your order. It will be confirmed as soon as we receive your bank transfer for the amount due. Our team will contact you shortly."
+        : "Merci pour votre commande. Elle sera confirmée dès réception de votre virement du montant indiqué. Notre équipe vous contacte rapidement."
+    : t.intro[step];
   const withdrawal = withdrawalBlock(p, t);
   const html = layout(
     t.subject[step](p.reference).replace(/ — AK Universe$/, ""),
     `<p style="margin:0 0 12px">${escapeHtml(t.hello(name))}</p>
-<p style="margin:0 0 12px">${t.intro[step]}</p>
+<p style="margin:0 0 12px">${escapeHtml(intro)}</p>
 <p style="margin:0">${t.reference} : <strong style="color:#fdb942">${escapeHtml(p.reference)}</strong></p>
 ${itemsTable(p, { total: t.total, deposit: depositLabel })}
 ${withdrawal.html}
@@ -157,7 +181,7 @@ ${withdrawal.html}
   const text = [
     t.hello(name),
     "",
-    t.intro[step],
+    intro,
     "",
     `${t.reference} : ${p.reference}`,
     itemsText(p),

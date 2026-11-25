@@ -7,7 +7,6 @@ import { DigitalQuoteCards } from "@/components/digital/DigitalQuoteCards";
 import { DigitalWebsiteCards } from "@/components/digital/DigitalWebsiteCards";
 import { Icon } from "@/components/ui/Icon";
 import { DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_SUBNAV } from "@/config/digital";
-import { quoteHref } from "@/lib/contact/quote";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, withDigitalWebsites } from "@/lib/video-config";
@@ -91,8 +90,8 @@ export default async function Page() {
               ))}
             </div>
             <div className="agents-cta">
-              <Link href={quoteHref()} className="btn btn-primary btn-lg">
-                Demander un devis gratuit <Icon name="arrow" />
+              <Link href="#sites" className="btn btn-primary btn-lg">
+                Voir les offres au prix affiché <Icon name="arrow" />
               </Link>
             </div>
           </div>

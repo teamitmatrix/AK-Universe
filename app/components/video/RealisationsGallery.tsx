@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Realisation } from "@/config/realisations";
 import { Icon } from "@/components/ui/Icon";
-import { quoteHref } from "@/lib/contact/quote";
 import { VideoPlayer } from "./VideoPlayer";
 
 function RealisationCard({ project }: { project: Realisation }) {
@@ -69,8 +68,8 @@ export function RealisationsGallery({ projects }: { projects: Realisation[] }) {
             attendant, demandez des références adaptées à votre secteur.
           </p>
           <div className="agents-cta">
-            <Link href={quoteHref()} className="btn btn-primary btn-lg">
-              Demander un devis <Icon name="arrow" />
+            <Link href="/services" className="btn btn-primary btn-lg">
+              Voir les services <Icon name="arrow" />
             </Link>
           </div>
         </div>

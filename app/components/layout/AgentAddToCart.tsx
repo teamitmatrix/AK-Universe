@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { addonsForAgent, formatAddonPrice, isAddonId, type AgentAddon } from "@/config/agent-addons";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
@@ -28,6 +29,7 @@ export function AgentAddToCart({
   addonPrices?: Record<string, number>;
   hiddenAddonIds?: string[];
 }) {
+  const router = useRouter();
   const [toast, toastNode] = useToast();
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -106,7 +108,8 @@ export function AgentAddToCart({
           className="btn btn-primary btn-lg"
           onClick={() => {
             saveAgentSubscription(agentId, selected);
-            toast(`${name} ajouté à mon projet`);
+            toast(`${name} ajouté au panier`);
+            router.push("/projet");
           }}
         >
           <Icon name="cart" /> Ajouter au panier – {euros(firstMonth)} € HT
