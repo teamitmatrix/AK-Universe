@@ -6,6 +6,7 @@ import {
   DEFAULT_AGENTS_PRICING,
   eur,
   quoteCheckout,
+  toCents,
   type AgentsPricing,
   type CheckoutPlan,
   type Selection,
@@ -13,6 +14,8 @@ import {
 import { LEGAL_REQUIRED, PRIVACY, PRIVACY_CHECKBOX } from "@/config/privacy";
 import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
+import { vatCentsFromHt, vatPercentForCountry } from "@/lib/billing/vat";
+import { COUNTRIES } from "@/lib/client/countries";
 import { Icon } from "@/components/ui/Icon";
 import { LangSwitch, nativeTranslate, textLang, useLang } from "@/components/ui/LangSwitch";
 
@@ -33,9 +36,11 @@ const TEXT = {
     promoEmpty: "Saisissez un code.",
     promoOk: "Code appliqué : la remise sera calculée à l'étape suivante.",
     promoBad: "Ce code promotionnel n'est pas valide.",
-    subtotal: "Sous-total",
-    vat: "TVA (0 %)",
-    vatInfo: "TVA non applicable ou autoliquidée selon votre statut.",
+    subtotal: "Sous-total HT",
+    vat: (pct: number) => `TVA (${pct} %)`,
+    vatInfoFr: "Client en France (ou Monaco) : TVA 20 % applicable.",
+    vatInfoExport: "Client hors France : TVA 0 %.",
+    country: "Pays de facturation",
     dueToday: "Total à payer aujourd'hui",
     assurances: [
       ["lock", "Paiement 100 % sécurisé", "Vos données sont protégées et chiffrées."],
@@ -96,9 +101,11 @@ const TEXT = {
     promoEmpty: "Enter a code.",
     promoOk: "Code applied: the discount will be calculated at the next step.",
     promoBad: "This promo code is not valid.",
-    subtotal: "Subtotal",
-    vat: "VAT (0%)",
-    vatInfo: "VAT not applicable or reverse-charged depending on your status.",
+    subtotal: "Subtotal excl. VAT",
+    vat: (pct: number) => `VAT (${pct}%)`,
+    vatInfoFr: "Customer in France (or Monaco): 20% VAT applies.",
+    vatInfoExport: "Customer outside France: 0% VAT.",
+    country: "Billing country",
     dueToday: "Total due today",
     assurances: [
       ["lock", "100% secure payment", "Your data is protected and encrypted."],
@@ -199,15 +206,18 @@ export function PaiementScreen({
   selection,
   email: initialEmail,
   pricing = DEFAULT_AGENTS_PRICING,
+  country: initialCountry = "FR",
 }: {
   plan: CheckoutPlan;
   selection: Selection;
   email: string;
   pricing?: AgentsPricing;
+  country?: string;
 }) {
   const [lang, setLang] = useLang();
   const t = TEXT[textLang(lang)];
   const [email, setEmail] = useState(initialEmail);
+  const [country, setCountry] = useState(initialCountry || "FR");
   const [method, setMethod] = useState("card");
   const [promoOpen, setPromoOpen] = useState(false);
   const [promo, setPromo] = useState("");
@@ -221,6 +231,10 @@ export function PaiementScreen({
 
   const quote = quoteCheckout(plan, selection, pricing);
   const annual = selection.cycle === "annuel";
+  const vatPct = vatPercentForCountry(country);
+  const htCents = toCents(quote.dueToday);
+  const vatCents = vatCentsFromHt(htCents, country);
+  const ttcCents = htCents + vatCents;
 
   async function applyPromo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -254,6 +268,7 @@ export function PaiementScreen({
         method: payMethod,
         promotionCodeId,
         lang,
+        country,
         termsAccepted: true,
         privacyAccepted: true,
       });
@@ -343,16 +358,18 @@ export function PaiementScreen({
               <div className="sep-line" />
               <div className="line" style={{ padding: "14px 2px" }}>
                 <span>
-                  {t.vat}{" "}
-                  <span className="info" title={t.vatInfo}>
+                  {t.vat(vatPct)}{" "}
+                  <span className="info" title={vatPct > 0 ? t.vatInfoFr : t.vatInfoExport}>
                     <Icon name="info" />
                   </span>
                 </span>
-                <span style={{ color: "var(--l-muted)" }}>0,00 €</span>
+                <span className="notranslate" style={{ color: "var(--l-muted)" }}>
+                  {eur(vatCents / 100)}
+                </span>
               </div>
               <div className="total-box">
                 <span>{t.dueToday}</span>
-                <span className="v p-due notranslate">{eur(quote.dueToday)}</span>
+                <span className="v p-due notranslate">{eur(ttcCents / 100)}</span>
               </div>
             </section>
 
@@ -409,6 +426,24 @@ export function PaiementScreen({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+            </div>
+            <label className="label-h" htmlFor="pay-country" style={{ display: "block" }}>
+              {t.country}
+            </label>
+            <div className="input">
+              <select
+                id="pay-country"
+                required
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                style={{ background: "var(--l-soft)", width: "100%", border: 0, height: 50, fontSize: "1rem" }}
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <h2 className="label-h">{t.method}</h2>

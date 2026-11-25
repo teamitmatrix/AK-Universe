@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import {
   AGENT_TIERS,
-  PLAN,
   normalizeAgentsPricing,
   type AgentsPricing,
   type Cycle,
@@ -93,51 +92,7 @@ export function AgentPricing({
     ];
   });
 
-  const proMonthly = rates.planMonthly;
-  const proAnnual = Math.round(proMonthly * 12 * (1 - rates.annualDiscount) * 100) / 100;
-  const offers: Array<{
-    id: string;
-    name: string;
-    desc: string;
-    features: readonly string[];
-    popular?: boolean;
-    quote: boolean;
-    price: string;
-    yearlyNote: string;
-    perLabel: string;
-    image: string;
-    cta: string;
-    ctaClass: string;
-    setupIcon: string;
-    href?: string;
-    setup: ReactNode;
-  }> = [...plans];
-  if (!hidden.has("sub:plan")) {
-    const quoteAt = offers.findIndex((item) => item.quote);
-    offers.splice(quoteAt === -1 ? offers.length : quoteAt, 0, {
-      id: PLAN.id,
-      name: PLAN.name,
-      desc: "Tous les agents IA, sans plafond de formule.",
-      features: [...PLAN.features],
-      popular: false,
-      quote: false,
-      price: formatTierPrice(annual ? proAnnual : proMonthly),
-      yearlyNote: formatTierPrice(proAnnual),
-      perLabel: annual ? "/ an HT" : "/ mois HT",
-      image: "ph-plan-pro",
-      cta: "S'abonner",
-      ctaClass: "btn btn-outline-gold btn-block",
-      setupIcon: "crown",
-      href: undefined as string | undefined,
-      setup: (
-        <>
-          Mise en place
-          <br />
-          <span className="gold">incluse</span>
-        </>
-      ),
-    });
-  }
+  const offers = plans;
 
   return (
     <section className="pricing stars" id="tarifs">

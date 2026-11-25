@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { isUuid } from "@/lib/admin/team";
-import { notifyDocumentIssued } from "@/lib/commercial/document-share";
+import { notifyDocumentIssued, sendDocumentEmailToClient } from "@/lib/commercial/document-share";
 import { ensureCustomerForRep } from "@/lib/commercial/ensure-customer";
 import { parseSalesDocInput, type DocInput } from "@/lib/commercial/sales-doc-actions";
 import { loadSalesDocById, type SalesDoc } from "@/lib/commercial/sales-docs";
@@ -14,7 +14,10 @@ import { createClient } from "@/lib/supabase/server";
  * picks which sales rep owns the document (commission + client linkage).
  */
 
-type Fail = { success: false; error: "forbidden" | "invalid" | "notFound" | "locked" | "failed" };
+type Fail = {
+  success: false;
+  error: "forbidden" | "invalid" | "notFound" | "locked" | "failed" | "draft" | "cancelled" | "no_email" | "no_share";
+};
 const fail = (error: Fail["error"]): Fail => ({ success: false, error });
 
 const revalidate = () => {
@@ -143,5 +146,21 @@ export async function deleteAdminSalesDocument(id: string): Promise<{ success: t
   }
   if (!data?.length) return fail("locked");
   revalidate();
+  return { success: true };
+}
+
+/** Resend the client download link by e-mail (issued documents only). */
+export async function emailAdminSalesDocument(id: string): Promise<{ success: true } | Fail> {
+  if (!(await getAdminIdentity())) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const sent = await sendDocumentEmailToClient(id);
+  if (!sent.ok) {
+    if (sent.reason === "not_found") return fail("notFound");
+    if (sent.reason === "draft") return fail("draft");
+    if (sent.reason === "cancelled") return fail("cancelled");
+    if (sent.reason === "no_email") return fail("no_email");
+    if (sent.reason === "no_share") return fail("no_share");
+    return fail("failed");
+  }
   return { success: true };
 }

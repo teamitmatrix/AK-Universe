@@ -376,6 +376,8 @@ const TEXT = {
         delete: "Supprimer",
         deleteConfirm: (n: string) => `Supprimer le brouillon ${n} ?`,
         deleted: "Brouillon supprimé.",
+        sendEmail: "Envoyer par e-mail",
+        emailed: "E-mail envoyé au client.",
       },
       fiche: {
         back: "Retour",
@@ -828,6 +830,8 @@ const TEXT = {
         delete: "Delete",
         deleteConfirm: (n: string) => `Delete draft ${n}?`,
         deleted: "Draft deleted.",
+        sendEmail: "Send by e-mail",
+        emailed: "E-mail sent to the client.",
       },
       fiche: {
         back: "Back",

@@ -272,8 +272,8 @@ export async function loadCatalogue() {
       id: "sub:plan",
       category: "abonnement" as const,
       name: PLAN.name,
-      detail: PLAN.features.join(" · "),
-      href: "/agents-ia#tarifs",
+      detail: `${PLAN.features.join(" · ")} · Legacy /abonnement (plus proposé sur /agents-ia#tarifs)`,
+      href: "/abonnement",
       fields: [{ key: "a:plan", label: "monthly" as const, value: agents.planMonthly, default: PLAN.monthlyPrice, unit: "eurMonth" as const }],
     },
     {

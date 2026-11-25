@@ -5,6 +5,8 @@ import type Stripe from "stripe";
 import { checkoutPlan, quoteCheckout, sanitizeSelection, toCents, type Selection } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
+import { frenchVatTaxRateId, isFrenchCustomer } from "@/lib/billing/vat";
+import { isCountry } from "@/lib/client/countries";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { ensureProfile } from "@/lib/auth/session";
 import { requireClient } from "@/lib/client/session";
@@ -28,6 +30,8 @@ export async function startSubscriptionCheckout(input: {
   method: string;
   promotionCodeId?: string;
   lang?: string;
+  /** ISO country of the bill-to customer — FR/MC → 20 % TVA, else 0 %. */
+  country?: string;
   /** Mandatory CGV checkbox — must be true or the checkout is refused. */
   termsAccepted?: boolean;
   /** Mandatory privacy-policy checkbox — must be true or the checkout is refused. */
@@ -121,6 +125,9 @@ export async function startSubscriptionCheckout(input: {
 
   const site = getSiteUrl();
   const annual = selection.cycle === "annuel";
+  const country = isCountry(input.country) ? input.country.toUpperCase() : "FR";
+  const applyFrVat = isFrenchCustomer(country);
+  const taxRates = applyFrVat ? [await frenchVatTaxRateId(stripe)] : undefined;
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe.checkout.sessions.create({
@@ -130,12 +137,15 @@ export async function startSubscriptionCheckout(input: {
       locale: checkoutLocale(input.lang),
       // `card` also enables Apple Pay / Google Pay on Stripe Checkout when wallets are on in the Dashboard.
       allowed_payment_method_types: allowedCheckoutMethods(input.method),
+      billing_address_collection: "required",
       line_items: [
         {
           quantity: 1,
+          tax_rates: taxRates,
           price_data: {
             currency: "eur",
             unit_amount: toCents(quote.due),
+            tax_behavior: "exclusive",
             recurring: { interval: annual ? "year" : "month" },
             product_data: {
               name: `${plan.name} — ${annual ? "annuel" : "mensuel"}`,
@@ -147,9 +157,11 @@ export async function startSubscriptionCheckout(input: {
           ? [
               {
                 quantity: 1,
+                tax_rates: taxRates,
                 price_data: {
                   currency: "eur" as const,
                   unit_amount: toCents(quote.setup),
+                  tax_behavior: "exclusive" as const,
                   product_data: { name: `${plan.name} — mise en place` },
                 },
               },
@@ -157,7 +169,13 @@ export async function startSubscriptionCheckout(input: {
           : []),
       ],
       discounts: input.promotionCodeId ? [{ promotion_code: input.promotionCodeId }] : undefined,
-      metadata: { kind: "subscription", subscription_id: subscription.id, user_id: auth.user.id },
+      metadata: {
+        kind: "subscription",
+        subscription_id: subscription.id,
+        user_id: auth.user.id,
+        billing_country: country,
+        vat_percent: String(applyFrVat ? 20 : 0),
+      },
       subscription_data: { metadata: { subscription_id: subscription.id, user_id: auth.user.id } },
       success_url: `${site}/paiement?success=1`,
       cancel_url: `${site}${resume}`,

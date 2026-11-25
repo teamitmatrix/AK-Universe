@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/admin/team";
 import { loadSalesCatalogue } from "./catalogue";
 import { DOC_TRANSITIONS, VAT_RATE, normalizeProductType, type DocKind, type DocStatus } from "./commission-rules";
-import { notifyDocumentIssued } from "./document-share";
+import { notifyDocumentIssued, sendDocumentEmailToClient } from "./document-share";
 import { ensureCustomerForRep } from "./ensure-customer";
 import { getCommercial } from "./session";
 
@@ -18,7 +18,10 @@ import { getCommercial } from "./session";
  * Marking an invoice "payée" records the sale's commission as "en attente" — an admin validates it before payout.
  */
 
-type Fail = { success: false; error: "forbidden" | "invalid" | "notFound" | "locked" | "transition" | "failed" };
+type Fail = {
+  success: false;
+  error: "forbidden" | "invalid" | "notFound" | "locked" | "transition" | "failed" | "draft" | "cancelled" | "no_email" | "no_share";
+};
 const fail = (error: Fail["error"]): Fail => ({ success: false, error });
 const revalidate = () => {
   for (const path of [
@@ -314,5 +317,25 @@ export async function deleteSalesDocument(id: string): Promise<{ success: true }
   if (error) return fail("failed");
   if (!data?.length) return fail("locked");
   revalidate();
+  return { success: true };
+}
+
+/** Resend the client download link by e-mail (issued documents only). */
+export async function emailSalesDocument(id: string): Promise<{ success: true } | Fail> {
+  const me = await getCommercial();
+  if (!me) return fail("forbidden");
+  if (!isUuid(id)) return fail("invalid");
+  const supabase = await createClient();
+  const { data } = await supabase.from("sales_documents").select("id").eq("id", id).eq("salesperson_id", me.id).maybeSingle();
+  if (!data) return fail("notFound");
+  const sent = await sendDocumentEmailToClient(id);
+  if (!sent.ok) {
+    if (sent.reason === "not_found") return fail("notFound");
+    if (sent.reason === "draft") return fail("draft");
+    if (sent.reason === "cancelled") return fail("cancelled");
+    if (sent.reason === "no_email") return fail("no_email");
+    if (sent.reason === "no_share") return fail("no_share");
+    return fail("failed");
+  }
   return { success: true };
 }

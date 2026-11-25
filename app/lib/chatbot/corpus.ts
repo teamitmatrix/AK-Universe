@@ -5,7 +5,7 @@ import { CHATBOT_FAQ } from "@/config/chatbot-faq";
 import { CUSTOM_DEV, DIGITAL_GROUPS, DIGITAL_OFFERS, DIGITAL_WEBSITES, MOBILE_APP, type DigitalWebsite } from "@/config/digital";
 import { COMPANY, TODO } from "@/config/company";
 import { AGENT_ADDON_LIST, formatAddonPrice, isAddonId } from "@/config/agent-addons";
-import { AGENT_TIERS, MAX_EXTRA_USERS, OFFERED_OPTIONS as PLAN_OPTIONS, PLAN, type AgentsPricing } from "@/config/pricing";
+import { AGENT_TIERS, MAX_EXTRA_USERS, OFFERED_OPTIONS as PLAN_OPTIONS, type AgentsPricing } from "@/config/pricing";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getDigitalWebsites } from "@/lib/digital-pricing";
 import { getVideoConfig, type OptionRef, type Service, type VideoConfig } from "@/lib/video-config";
@@ -32,7 +32,7 @@ export const OVERVIEW: Doc = {
   title: "Présentation d'AK Universe",
   url: "/",
   content: `AK Universe propose aux entreprises trois univers (menu : Agents IA, Marketing, Digital) :
-1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia#tarifs (offres à prix fixe, y compris AK Universe Pro), /inscription (création de compte), /paiement (règlement de l'offre choisie), /compte.
+1) Agents IA par abonnement (vocal, WhatsApp, ventes, marketing, support client, productivité, commercial, analyse, technique, recrutement), disponibles 24/7. Pages : /agents-ia (tous les agents, catégories, démos, FAQ), /agents-ia/<agent> (fiche de chaque agent), /agents-ia#tarifs (packs Starter, Growth, Business, Enterprise et Sur devis), /inscription (création de compte), /paiement (règlement de l'offre choisie), /compte.
 2) Production vidéo professionnelle (17 services : entreprise, événementiel, réseaux sociaux, drone, mariage, immobilier, food…) et Forfaits Marketing mensuels. Un devis se demande sur /contact (sujet « Demande de devis »), sans projet préalable ; depuis une fiche service le service est prérempli. « Mon projet » (/projet, puis /projet/informations) reste le parcours pour composer plusieurs services et réserver avec un acompte. Pages : /services (catalogue), /services/<service>, /marketing/realisations (portfolio public : vidéos sur le site lorsque des projets sont publiés dans config/realisations.ts), /marketing/forfaits, /contact.
 3) Solutions digitales (sites web, applications mobiles, SEO, fiche Google Business Profile, CRM), sur devis. Page : /digital.
 Mentions : /cgv (dont droit de rétractation et consentement de démarrage anticipé à l'acompte), /confidentialite, /mentions-legales. Tous les prix sont en euros HT.`,
@@ -215,7 +215,9 @@ function agentDocs(pricing: AgentsPricing, agents: Agent[]): Doc[] {
             "priceAnnual" in t && t.priceAnnual != null ? `, ${euros(t.priceAnnual)} / an` : "";
           return `${t.name}${"popular" in t ? " (le plus populaire)" : ""} : ${live.price === null ? "sur devis" : `${euros(live.price)} / mois${annual}`}, mise en place / onboarding ${live.setupFrom === null ? "sur devis" : euros(live.setupFrom)}. Mix d'usage : ${t.desc}. Inclus : ${t.features.join(", ")}.`;
         })
-      )}\nSans engagement (annulation à tout moment), accès immédiat (commencez en quelques minutes), essai gratuit via /inscription. Offre Sur devis : nous contacter.`,
+      )}\nLes packs à prix fixe se règlent depuis /agents-ia#tarifs ; seule l'offre « Sur devis » passe par un devis. Utilisateurs supplémentaires : ${euros(pricing.userPrice)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${Math.round(pricing.annualDiscount * 100)} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
+        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(pricing.options[o.id] ?? o.price)} HT / mois — ${o.info}`)
+      )}\nSans engagement (annulation à tout moment), accès immédiat (commencez en quelques minutes), essai gratuit via /inscription.`,
     },
     {
       source: "agents",
@@ -227,14 +229,6 @@ function agentDocs(pricing: AgentsPricing, agents: Agent[]): Doc[] {
           const unit = a.billing === "month" ? " / mois" : "";
           return `${a.label} : ${formatAddonPrice(a, live)} HT${unit} — ${a.detail}`;
         })
-      )}`,
-    },
-    {
-      source: "agents",
-      title: "Abonnement AK Universe Pro (carte sur /agents-ia#tarifs)",
-      url: "/agents-ia#tarifs",
-      content: `Les offres à prix fixe, dont ${PLAN.name} à ${euros(pricing.planMonthly)} HT / mois (${PLAN.features.join(", ")}), se règlent directement depuis /agents-ia#tarifs. Seule l'offre « Sur devis » passe par un devis. Utilisateurs supplémentaires : ${euros(pricing.userPrice)} HT / utilisateur / mois (jusqu'à ${MAX_EXTRA_USERS}). Paiement annuel : -${Math.round(pricing.annualDiscount * 100)} % (facturé 12 mois en une fois). Options mensuelles :\n${list(
-        PLAN_OPTIONS.map((o) => `${o.label} : ${euros(pricing.options[o.id] ?? o.price)} HT / mois — ${o.info}`)
       )}`,
     },
   ];

@@ -206,7 +206,24 @@ export function ProspectsView({
     <AdmShell t={t} active="prospects" admin={admin}>
       <div className="adm-content">
         <PageHead title={p.title} subtitle={p.subtitle}>
-          {data.ready ? <CreateProspectButton reps={data.reps} labels={p} autoOpen={initialNew} /> : null}
+          {data.ready ? (
+            <CreateProspectButton
+              reps={data.reps}
+              autoOpen={initialNew}
+              labels={{
+                create: p.create,
+                createTitle: p.createTitle,
+                createSubmit: p.createSubmit,
+                creating: p.creating,
+                created: p.created,
+                close: p.close,
+                noReps: p.noReps,
+                fields: p.fields,
+                sources: p.sources,
+                createErrors: p.createErrors,
+              }}
+            />
+          ) : null}
         </PageHead>
         {!data.ready ? (
           <p className="adm-note">
@@ -601,9 +618,10 @@ export function DevisFacturesView({
                                 labels={{
                                   edit: q.edit,
                                   delete: q.delete,
-                                  deleteConfirm: q.deleteConfirm,
                                   deleted: q.deleted,
                                   view: q.open,
+                                  sendEmail: q.sendEmail,
+                                  emailed: q.emailed,
                                 }}
                               />
                             ) : (

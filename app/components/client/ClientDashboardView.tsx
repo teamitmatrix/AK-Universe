@@ -128,7 +128,7 @@ function ManageCard({ plan }: { plan: ClientPlan | null }) {
         </div>
       ) : (
         <div className="cs-actions">
-          <Action href="/" portal={false} icon={ArrowUpFromLine} label="Choisir mon abonnement" className="cs-act is-primary" />
+          <Action href="/agents-ia#tarifs" portal={false} icon={ArrowUpFromLine} label="Choisir mon abonnement" className="cs-act is-primary" />
           <Action href="/agents-ia" portal={false} icon={Puzzle} label="Découvrir les agents IA" className="cs-act" />
         </div>
       )}

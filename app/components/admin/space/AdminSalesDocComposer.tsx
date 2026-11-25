@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, FilePlus2, FileText, Lock, Minus, Pencil, PenLine, Plus, Receipt, Trash2, X } from "lucide-react";
+import { Eye, FilePlus2, FileText, Lock, Mail, Minus, Pencil, PenLine, Plus, Receipt, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "@/components/ui/LangSwitch";
 import { useToast } from "@/components/ui/Toast";
 import {
   deleteAdminSalesDocument,
+  emailAdminSalesDocument,
   getAdminSalesDocument,
   saveAdminSalesDocument,
   updateAdminSalesDocument,
@@ -23,6 +25,7 @@ import {
 } from "@/lib/commercial/commission-rules";
 import type { DocInput, LineInput } from "@/lib/commercial/sales-doc-actions";
 import type { SalesDoc } from "@/lib/commercial/sales-docs";
+import { dashTextFor } from "./dashText";
 
 const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const ERRORS: Record<string, string> = {
@@ -31,6 +34,10 @@ const ERRORS: Record<string, string> = {
   notFound: "Document introuvable.",
   locked: "Ce document ne peut plus être modifié ou supprimé.",
   failed: "Enregistrement impossible. Réessayez.",
+  draft: "Émettez d'abord le document avant de l'envoyer par e-mail.",
+  cancelled: "Un document annulé ne peut pas être envoyé.",
+  no_email: "Le client n'a pas d'adresse e-mail.",
+  no_share: "Lien de partage indisponible.",
 };
 
 type EditLine = LineInput & { key: number };
@@ -115,15 +122,25 @@ export function AdminDocRowActions({
   rates: Record<ProductType, number>;
   reps: { id: string; name: string; active: boolean }[];
   clients: { id: string; name: string; email: string; phone?: string }[];
-  labels: { edit: string; delete: string; deleteConfirm: (n: string) => string; deleted: string; view: string };
+  labels: {
+    edit: string;
+    delete: string;
+    deleted: string;
+    view: string;
+    sendEmail: string;
+    emailed: string;
+  };
 }) {
   const activeReps = reps.filter((r) => r.active);
   const [modal, setModal] = useState<ModalState | null>(null);
   const [pending, start] = useTransition();
   const [toast, toastNode] = useToast();
   const router = useRouter();
+  const [lang] = useLang();
+  const deleteConfirm = dashTextFor(lang).crm.quotes.deleteConfirm;
   const editable = status === "brouillon" || status === "en_attente";
   const deletable = status === "brouillon";
+  const emailable = status !== "brouillon" && status !== "annulee";
 
   const openEdit = () => {
     start(async () => {
@@ -141,7 +158,7 @@ export function AdminDocRowActions({
   };
 
   const remove = () => {
-    if (!window.confirm(labels.deleteConfirm(number))) return;
+    if (!window.confirm(deleteConfirm(number))) return;
     start(async () => {
       const res = await deleteAdminSalesDocument(id);
       if (!res.success) {
@@ -150,6 +167,17 @@ export function AdminDocRowActions({
       }
       toast(labels.deleted);
       router.refresh();
+    });
+  };
+
+  const sendEmail = () => {
+    start(async () => {
+      const res = await emailAdminSalesDocument(id);
+      if (!res.success) {
+        toast(ERRORS[res.error] ?? ERRORS.failed);
+        return;
+      }
+      toast(labels.emailed);
     });
   };
 
@@ -162,6 +190,11 @@ export function AdminDocRowActions({
         {editable && (
           <button type="button" className="adm-icon-btn sm" title={labels.edit} aria-label={`${labels.edit} ${number}`} disabled={pending} onClick={openEdit}>
             <Pencil size={15} />
+          </button>
+        )}
+        {emailable && (
+          <button type="button" className="adm-icon-btn sm" title={labels.sendEmail} aria-label={`${labels.sendEmail} ${number}`} disabled={pending} onClick={sendEmail}>
+            <Mail size={15} />
           </button>
         )}
         {deletable && (

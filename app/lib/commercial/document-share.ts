@@ -108,6 +108,52 @@ ${body}
   });
 }
 
+export type SendDocumentEmailResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "draft" | "cancelled" | "no_email" | "no_share" | "failed" };
+
+/**
+ * Ensure a public share link and e-mail it to the client.
+ * Works for issued documents (not brouillon / annulee). Safe to call again to resend.
+ */
+export async function sendDocumentEmailToClient(docId: string): Promise<SendDocumentEmailResult> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from("sales_documents").select(SHARE_COLUMNS).eq("id", docId).maybeSingle();
+    if (error || !data) {
+      if (error) console.error("sendDocumentEmailToClient load failed:", error.message);
+      return { ok: false, reason: "not_found" };
+    }
+    if (data.status === "brouillon") return { ok: false, reason: "draft" };
+    if (data.status === "annulee") return { ok: false, reason: "cancelled" };
+
+    const kind = data.kind as "devis" | "facture";
+    const number = (data.number as string | null) ?? null;
+    const clientName = String(data.client_name ?? "");
+    const clientEmail = (data.client_email as string | null)?.trim().toLowerCase() || null;
+    const totalHtCents = Number(data.total_ht_cents ?? 0);
+    if (!clientEmail) return { ok: false, reason: "no_email" };
+
+    const token = await ensureShareToken(docId, (data.share_token as string | null) ?? null);
+    const shareUrl = token ? `${getSiteUrl()}/d/${token}` : null;
+    if (!shareUrl) return { ok: false, reason: "no_share" };
+
+    const mailed = await sendClientDocumentEmail({
+      kind,
+      number,
+      clientName,
+      clientEmail,
+      totalHtCents,
+      shareUrl,
+    });
+    if (!mailed) return { ok: false, reason: "failed" };
+    return { ok: true };
+  } catch (cause) {
+    console.error("sendDocumentEmailToClient failed:", cause);
+    return { ok: false, reason: "failed" };
+  }
+}
+
 /**
  * After a devis/facture is issued (status en_attente): ensure a share token, mail the client
  * a download link, and keep the existing team “envoyé” notice for devis.
@@ -125,11 +171,7 @@ export async function notifyDocumentIssued(docId: string) {
     const kind = data.kind as "devis" | "facture";
     const number = (data.number as string | null) ?? null;
     const clientName = String(data.client_name ?? "");
-    const clientEmail = (data.client_email as string | null)?.trim().toLowerCase() || null;
     const totalHtCents = Number(data.total_ht_cents ?? 0);
-
-    const token = await ensureShareToken(docId, (data.share_token as string | null) ?? null);
-    const shareUrl = token ? `${getSiteUrl()}/d/${token}` : null;
 
     if (kind === "devis") {
       await notifyQuoteSent({ number, clientName, totalHtCents });
@@ -138,19 +180,11 @@ export async function notifyDocumentIssued(docId: string) {
       await sendTeamNotice("quote", `Facture émise ${number ?? ""}`.trim(), [clientName, amount]);
     }
 
-    if (clientEmail && shareUrl) {
-      await sendClientDocumentEmail({
-        kind,
-        number,
-        clientName,
-        clientEmail,
-        totalHtCents,
-        shareUrl,
-      });
-    } else if (!clientEmail) {
-      console.warn(`Document ${number ?? docId} issued without client e-mail: download link not sent`);
-    } else if (!shareUrl) {
-      console.warn(`Document ${number ?? docId}: share_token unavailable (apply migration 016?)`);
+    const sent = await sendDocumentEmailToClient(docId);
+    if (!sent.ok) {
+      if (sent.reason === "no_email") console.warn(`Document ${number ?? docId} issued without client e-mail: download link not sent`);
+      else if (sent.reason === "no_share") console.warn(`Document ${number ?? docId}: share_token unavailable (apply migration 016?)`);
+      else if (sent.reason === "failed") console.warn(`Document ${number ?? docId}: client e-mail failed to send`);
     }
   } catch (cause) {
     console.error("notifyDocumentIssued failed:", cause);

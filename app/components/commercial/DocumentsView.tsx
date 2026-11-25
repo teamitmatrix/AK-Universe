@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, FilePlus2, FileText, Lock, Minus, Pencil, PenLine, Plus, Receipt, Search, Trash2, X } from "lucide-react";
+import { Eye, FilePlus2, FileText, Lock, Mail, Minus, Pencil, PenLine, Plus, Receipt, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useToast } from "@/components/ui/Toast";
 import type { SalesCatalogueItem } from "@/lib/commercial/catalogue";
@@ -17,7 +17,16 @@ import {
   type DocStatus,
   type ProductType,
 } from "@/lib/commercial/commission-rules";
-import { collectSalesDocument, deleteSalesDocument, invoiceFromQuote, saveSalesDocument, setSalesDocumentStatus, type DocInput, type LineInput } from "@/lib/commercial/sales-doc-actions";
+import {
+  collectSalesDocument,
+  deleteSalesDocument,
+  emailSalesDocument,
+  invoiceFromQuote,
+  saveSalesDocument,
+  setSalesDocumentStatus,
+  type DocInput,
+  type LineInput,
+} from "@/lib/commercial/sales-doc-actions";
 import type { SalesDoc } from "@/lib/commercial/sales-docs";
 
 /*
@@ -49,6 +58,10 @@ const ERRORS: Record<string, string> = {
   locked: "Ce document est verrouillé (accepté, payé ou annulé).",
   transition: "Ce changement de statut n'est pas possible.",
   failed: "L'opération a échoué. Réessayez.",
+  draft: "Émettez d'abord le document avant de l'envoyer par e-mail.",
+  cancelled: "Un document annulé ne peut pas être envoyé.",
+  no_email: "Le client n'a pas d'adresse e-mail.",
+  no_share: "Lien de partage indisponible. Contactez l'administrateur.",
 };
 
 type Props = {
@@ -183,6 +196,18 @@ export function DocumentsView({ docs, catalogue, rates, clients, initialNew, ini
                           {editable && (
                             <button type="button" className="adm-icon-btn sm" title="Modifier" aria-label={`Modifier ${d.number}`} onClick={() => setModal({ kind: d.kind, doc: d })}>
                               <Pencil size={15} />
+                            </button>
+                          )}
+                          {d.status !== "brouillon" && d.status !== "annulee" && (
+                            <button
+                              type="button"
+                              className="adm-icon-btn sm"
+                              title="Envoyer par e-mail"
+                              aria-label={`Envoyer ${d.number} par e-mail`}
+                              disabled={pending}
+                              onClick={() => run(() => emailSalesDocument(d.id), "E-mail envoyé au client.")}
+                            >
+                              <Mail size={15} />
                             </button>
                           )}
                           {next

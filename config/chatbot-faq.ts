@@ -133,7 +133,7 @@ export const CHATBOT_FAQ: { topic: string; entries: FaqEntry[] }[] = [
       },
       {
         q: "Les prix incluent-ils la TVA ?",
-        a: "Non, les prix sont indiqués en euros hors taxes (HT). La TVA applicable est ajoutée au moment du paiement ou sur la facture (elle peut être non applicable ou autoliquidée selon votre statut).",
+        a: "Non, les prix sont indiqués en euros hors taxes (HT). Au paiement : TVA 20 % pour un client en France (ou Monaco), TVA 0 % hors France. Sur les devis/factures commerciaux, la TVA est calculée selon les règles du document.",
         url: "/cgv",
       },
       {

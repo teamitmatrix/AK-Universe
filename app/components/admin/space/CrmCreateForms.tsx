@@ -18,6 +18,12 @@ function useOpenOnMount(open: boolean, dialog: React.RefObject<HTMLDialogElement
   }, [open, dialog]);
 }
 
+/** Serializable subset — never pass dashText function fields (fromSite / assign) into this client component. */
+export type CreateProspectLabels = Pick<
+  DashText["crm"]["prospects"],
+  "create" | "createTitle" | "createSubmit" | "creating" | "created" | "close" | "noReps" | "fields" | "sources" | "createErrors"
+>;
+
 export function CreateProspectButton({
   reps,
   autoOpen = false,
@@ -25,7 +31,7 @@ export function CreateProspectButton({
 }: {
   reps: Rep[];
   autoOpen?: boolean;
-  labels: DashText["crm"]["prospects"];
+  labels: CreateProspectLabels;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const router = useRouter();
