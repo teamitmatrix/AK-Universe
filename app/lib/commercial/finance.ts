@@ -100,7 +100,7 @@ function buildSales(ctx: Ctx): SaleRow[] {
       commissionCents: amount,
       commissionStatus: c?.status ?? null,
       invoicePaid: true,
-      byType: amount !== null ? { videos: amount } : {},
+      byType: amount !== null ? { digital: amount } : {},
     });
   }
   return rows.sort((a, b) => b.date.localeCompare(a.date));
