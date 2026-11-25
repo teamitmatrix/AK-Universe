@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AccountBillingCard, NotificationsCard, OtherActionsCard, ProfileBlocks, SecurityCard } from "@/components/client/AccountClient";
 import { RefreshOnFocus } from "@/components/client/RefreshOnFocus";
 import { Swoosh } from "@/components/client/Swoosh";
@@ -42,6 +43,16 @@ export default async function AccountPage() {
           <SecurityCard hasPassword={account.hasPassword} mfaEnabled={account.mfaEnabled} />
           <NotificationsCard key={JSON.stringify(account.prefs)} prefs={account.prefs} ready={account.profileReady} />
           <OtherActionsCard hasPassword={account.hasPassword} hasSubscription={hasSubscription} />
+          <section className="cs-card">
+            <h2 className="cs-card-title is-sm">Mes accords</h2>
+            <p className="cs-card-sub">
+              Conditions Générales de Vente et d&apos;Utilisation, Politique de confidentialité et contrat d&apos;abonnement acceptés
+              lors de vos paiements.
+            </p>
+            <Link href="/client/dashboard/accords" className="cs-act">
+              Consulter et télécharger
+            </Link>
+          </section>
         </div>
       </div>
     </main>

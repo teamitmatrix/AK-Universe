@@ -6,6 +6,8 @@ import { ArrowRight, ArrowUpFromLine, Check, CircleAlert, LoaderCircle, SlidersV
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useToast } from "@/components/ui/Toast";
+import { PRIVACY, PRIVACY_CHECKBOX } from "@/config/privacy";
+import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import {
   cancelScheduledChange,
   cancelSubscription,
@@ -58,6 +60,7 @@ const ERRORS: Record<string, string> = {
   busy: "Une modification est déjà en cours de traitement. Réessayez dans un instant.",
   payment_failed: "Le paiement a été refusé. Aucun changement n'a été appliqué.",
   payment_required: "Le paiement n'a pas abouti : le changement sera appliqué dès que la facture sera réglée.",
+  legal_required: "Vous devez accepter les Conditions Générales de Vente et d'Utilisation et la Politique de confidentialité pour continuer.",
   failed: "Une erreur est survenue. Aucun changement n'a été appliqué. Réessayez dans un instant.",
 };
 const errorText = (code: string) => ERRORS[code] ?? ERRORS.failed;
@@ -120,6 +123,8 @@ export function ChangeReview({
   const [error, setError] = useState<{ code: string; invoiceUrl?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, startSubmit] = useTransition();
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,8 +145,14 @@ export function ChangeReview({
     return () => clearTimeout(first);
   }, [load]);
 
+  const paysNow = preview?.mode === "immediate";
+
   function confirm() {
     if (!preview) return;
+    if (paysNow && (!termsAccepted || !privacyAccepted)) {
+      setError({ code: "legal_required" });
+      return;
+    }
     startSubmit(async () => {
       try {
         const res = await confirmPlanChange({
@@ -150,6 +161,8 @@ export function ChangeReview({
           cycle: preview.cycle,
           basis: preview.basis,
           prorationDate: preview.prorationDate,
+          termsAccepted: paysNow ? termsAccepted : undefined,
+          privacyAccepted: paysNow ? privacyAccepted : undefined,
         });
         if (res.success) {
           onDone(
@@ -249,6 +262,30 @@ export function ChangeReview({
           )}
         </p>
       )}
+      {paysNow && (
+        <div className="cs-review-note">
+          <label className="terms-accept">
+            <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} aria-required="true" />
+            <span>
+              {TERMS_CHECKBOX.fr.before}
+              <a href={TERMS.href} target="_blank" rel="noopener noreferrer">
+                {TERMS_CHECKBOX.fr.link}
+              </a>
+              {TERMS_CHECKBOX.fr.after}
+            </span>
+          </label>
+          <label className="terms-accept">
+            <input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} aria-required="true" />
+            <span>
+              {PRIVACY_CHECKBOX.fr.before}
+              <a href={PRIVACY.href} target="_blank" rel="noopener noreferrer">
+                {PRIVACY_CHECKBOX.fr.link}
+              </a>
+              {PRIVACY_CHECKBOX.fr.after}
+            </span>
+          </label>
+        </div>
+      )}
       <div className="cs-modal-actions">
         {onBack && (
           <button type="button" className="cs-btn-outline" onClick={onBack} disabled={submitting}>
@@ -260,7 +297,7 @@ export function ChangeReview({
             Réessayer
           </button>
         )}
-        <button type="button" className="cs-act is-primary cs-act-fit" onClick={confirm} disabled={!preview || loading || submitting || error?.code === "payment_required"}>
+        <button type="button" className="cs-act is-primary cs-act-fit" onClick={confirm} disabled={!preview || loading || submitting || error?.code === "payment_required" || (paysNow && (!termsAccepted || !privacyAccepted))}>
           {submitting && <LoaderCircle className="cs-spin" size={18} aria-hidden="true" />}
           <span>{submitting ? "Traitement…" : preview?.mode === "renewal" ? "Programmer le changement" : "Confirmer et payer"}</span>
         </button>

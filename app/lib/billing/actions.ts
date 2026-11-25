@@ -10,6 +10,7 @@ import { ensureProfile } from "@/lib/auth/session";
 import { requireClient } from "@/lib/client/session";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { getPrivacy } from "@/lib/privacy";
 import { getTerms } from "@/lib/terms";
 import { recordSubscriptionTermsAcceptance } from "@/lib/terms-acceptance";
 
@@ -29,13 +30,15 @@ export async function startSubscriptionCheckout(input: {
   lang?: string;
   /** Mandatory CGV checkbox — must be true or the checkout is refused. */
   termsAccepted?: boolean;
+  /** Mandatory privacy-policy checkbox — must be true or the checkout is refused. */
+  privacyAccepted?: boolean;
 }) {
   const stripe = getStripe();
   if (!stripe) {
     return { success: false as const, code: "not_configured" as const };
   }
-  if (input.termsAccepted !== true) {
-    return { success: false as const, code: "terms_required" as const };
+  if (input.termsAccepted !== true || input.privacyAccepted !== true) {
+    return { success: false as const, code: "legal_required" as const };
   }
 
   const selection = sanitizeSelection(input.selection);
@@ -46,7 +49,7 @@ export async function startSubscriptionCheckout(input: {
   await ensureProfile(auth.user);
 
   // Never trust client totals: recompute from the chosen plan + live catalogue prices.
-  const [quoteRates, terms] = await Promise.all([getAgentsPricing(), getTerms()]);
+  const [quoteRates, terms, privacy] = await Promise.all([getAgentsPricing(), getTerms(), getPrivacy()]);
   const plan = checkoutPlan(input.planId, quoteRates);
   if (!plan) return { success: false as const, code: "prepare_failed" as const };
   const quote = quoteCheckout(plan, selection, quoteRates);
@@ -86,6 +89,10 @@ export async function startSubscriptionCheckout(input: {
       terms_version: terms.version,
       terms_label: terms.label,
       terms_accepted_at: termsAcceptedAt,
+      privacy_accepted: true,
+      privacy_version: privacy.version,
+      privacy_label: privacy.label,
+      privacy_accepted_at: termsAcceptedAt,
     })
     .select("id")
     .single();
@@ -94,7 +101,7 @@ export async function startSubscriptionCheckout(input: {
     return { success: false as const, code: "prepare_failed" as const };
   }
 
-  await recordSubscriptionTermsAcceptance({
+  const recorded = await recordSubscriptionTermsAcceptance({
     userId: auth.user.id,
     subscriptionId: subscription.id,
     plan: plan.id,
@@ -104,7 +111,13 @@ export async function startSubscriptionCheckout(input: {
     acceptedAt: termsAcceptedAt,
     termsVersion: terms.version,
     termsLabel: terms.label,
+    privacyVersion: privacy.version,
+    privacyLabel: privacy.label,
   });
+  if (!recorded) {
+    await admin.from("subscriptions").delete().eq("id", subscription.id);
+    return { success: false as const, code: "prepare_failed" as const };
+  }
 
   const site = getSiteUrl();
   const annual = selection.cycle === "annuel";

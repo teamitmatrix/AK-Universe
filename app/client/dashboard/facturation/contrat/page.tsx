@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PrintButton } from "@/components/client/BillingClient";
 import { longDate, money } from "@/components/client/format";
-import { COMPANY } from "@/config/company";
 import { getCompany } from "@/lib/company";
 import { loadClientBilling } from "@/lib/client/billing";
 import { countryLabel } from "@/lib/client/countries";
@@ -145,9 +144,10 @@ export default async function ContractPage() {
 
         <h2>Article 6 — Conditions générales</h2>
         <p>
-          Le présent contrat est régi par les <Link href="/cgv">conditions générales de vente</Link> d&apos;AK Universe (version du{" "}
-          {COMPANY.updatedAt}), que le client a acceptées lors de sa souscription. En cas de contradiction, les stipulations du présent contrat
-          prévalent pour ce qui concerne l&apos;abonnement.
+          Le présent contrat est régi par les <Link href="/cgv">conditions générales de vente et d&apos;utilisation</Link> et la{" "}
+          <Link href="/confidentialite">politique de confidentialité</Link> d&apos;AK Universe, acceptées avant le paiement. La version, la date
+          et l&apos;heure de chaque acceptation sont conservées dans <Link href="/client/dashboard/accords">Mes accords</Link>. En cas de
+          contradiction, les stipulations du présent contrat prévalent pour ce qui concerne l&apos;abonnement.
         </p>
 
         <footer className="cs-contract-foot">

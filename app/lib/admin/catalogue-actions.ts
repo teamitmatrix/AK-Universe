@@ -130,7 +130,7 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
       else if (kind === "addon" && AGENT_ADDONS.some((a) => a.id === id)) agents.addons![id!] = v;
       else if (kind === "tier" && AGENT_TIERS.some((t) => t.name === id && t.price !== null) && (part === "price" || part === "setup"))
         agents.tiers[id!] = { ...agents.tiers[id!], [part === "price" ? "price" : "setupFrom"]: v };
-      else if (kind === "solo" && id && (part === "price" || part === "setup") && id in AGENT_SUBSCRIPTIONS) {
+      else if (kind === "solo" && id && (part === "price" || part === "setup" || part === "annual") && id in AGENT_SUBSCRIPTIONS) {
         const prev = agents.solo?.[id] ?? {
           price: AGENT_SUBSCRIPTIONS[id]!.price,
           priceAnnual: AGENT_SUBSCRIPTIONS[id]!.priceAnnual,
@@ -141,7 +141,9 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
           [id]:
             part === "price"
               ? { ...prev, price: v, priceAnnual: agentAnnualFromMonthly(v) }
-              : { ...prev, setupFrom: v },
+              : part === "annual"
+                ? { ...prev, priceAnnual: v }
+                : { ...prev, setupFrom: v },
         };
       } else return { success: false, error: "invalid" };
     } else if (scope === "d") {

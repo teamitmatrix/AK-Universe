@@ -7,8 +7,10 @@ import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/supabase/env";
+import { privacyContactFields } from "@/config/privacy";
 import { termsContactFields } from "@/config/terms";
 import { buildEarlyStartRecord, earlyStartContactFields } from "@/config/withdrawal";
+import { getPrivacy } from "@/lib/privacy";
 import { getTerms } from "@/lib/terms";
 import { recordProjectTermsAcceptance } from "@/lib/terms-acceptance";
 
@@ -38,6 +40,8 @@ type Body = {
   earlyStartAccepted?: boolean;
   /** Mandatory CGV checkbox for acompte — must be true or the request is refused. */
   termsAccepted?: boolean;
+  /** Mandatory privacy-policy checkbox — must be true or the request is refused. */
+  privacyAccepted?: boolean;
 };
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -127,11 +131,11 @@ export async function POST(request: Request) {
   if (auth.user) await ensureProfile(auth.user);
   const reference = `AKU-${randomBytes(4).toString("hex").toUpperCase()}`;
 
-  if (kind === "acompte" && body.termsAccepted !== true) {
+  if (kind === "acompte" && (body.termsAccepted !== true || body.privacyAccepted !== true)) {
     return NextResponse.json(
       {
         error:
-          "Vous devez accepter les Conditions Générales de Vente et d'Utilisation pour continuer.",
+          "Vous devez accepter les Conditions Générales de Vente et d'Utilisation et la Politique de confidentialité pour continuer.",
       },
       { status: 400 }
     );
@@ -139,13 +143,14 @@ export async function POST(request: Request) {
 
   const earlyStart = kind === "acompte" ? buildEarlyStartRecord(body.earlyStartAccepted === true) : null;
   const termsAcceptedAt = kind === "acompte" ? new Date().toISOString() : null;
-  const terms = kind === "acompte" ? await getTerms() : null;
+  const [terms, privacy] = kind === "acompte" ? await Promise.all([getTerms(), getPrivacy()]) : [null, null];
   const storedContact =
-    kind === "acompte" && terms && termsAcceptedAt
+    kind === "acompte" && terms && privacy && termsAcceptedAt
       ? {
           ...contact,
           ...(earlyStart ? earlyStartContactFields(earlyStart) : {}),
           ...termsContactFields(terms, termsAcceptedAt),
+          ...privacyContactFields(privacy, termsAcceptedAt),
         }
       : contact;
 
@@ -168,8 +173,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Enregistrement impossible. Veuillez réessayer." }, { status: 500 });
   }
 
-  if (kind === "acompte" && termsAcceptedAt && terms) {
-    await recordProjectTermsAcceptance({
+  if (kind === "acompte" && termsAcceptedAt && terms && privacy) {
+    const recorded = await recordProjectTermsAcceptance({
       userId: auth.user?.id ?? null,
       projectId: project.id,
       plan: reference,
@@ -177,7 +182,16 @@ export async function POST(request: Request) {
       acceptedAt: termsAcceptedAt,
       termsVersion: terms.version,
       termsLabel: terms.label,
+      privacyVersion: privacy.version,
+      privacyLabel: privacy.label,
     });
+    if (!recorded) {
+      await admin.from("video_projects").delete().eq("id", project.id);
+      return NextResponse.json(
+        { error: "L'acceptation des documents n'a pas pu être enregistrée. Aucun paiement n'a été effectué." },
+        { status: 500 }
+      );
+    }
   }
 
   const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? charge : 0 };

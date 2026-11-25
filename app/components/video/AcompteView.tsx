@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PRIVACY, PRIVACY_CHECKBOX } from "@/config/privacy";
 import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { EARLY_START_CONSENT, EARLY_START_HINT } from "@/config/withdrawal";
 import { euro } from "@/lib/projects/quote-math";
@@ -34,6 +35,7 @@ export function AcompteView() {
   const [alert, setAlert] = useState(false);
   const [earlyStart, setEarlyStart] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [termsError, setTermsError] = useState(false);
   const client = mounted ? readClient() : null;
 
@@ -107,7 +109,7 @@ export function AcompteView() {
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
-                  if (!termsAccepted) {
+                  if (!termsAccepted || !privacyAccepted) {
                     setTermsError(true);
                     return;
                   }
@@ -118,6 +120,7 @@ export function AcompteView() {
                   submitProject(config, "acompte", cart.items, client, payment, {
                     earlyStartAccepted: earlyStart,
                     termsAccepted: true,
+                    privacyAccepted: true,
                   })
                     .then((data) => {
                       if (payment === "virement") {
@@ -212,7 +215,7 @@ export function AcompteView() {
                     checked={termsAccepted}
                     onChange={(e) => {
                       setTermsAccepted(e.target.checked);
-                      if (e.target.checked) setTermsError(false);
+                      if (e.target.checked && privacyAccepted) setTermsError(false);
                     }}
                     aria-required="true"
                   />{" "}
@@ -224,12 +227,30 @@ export function AcompteView() {
                     {TERMS_CHECKBOX.fr.after}
                   </span>
                 </label>
+                <label className="cgv">
+                  <input
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(e) => {
+                      setPrivacyAccepted(e.target.checked);
+                      if (e.target.checked && termsAccepted) setTermsError(false);
+                    }}
+                    aria-required="true"
+                  />{" "}
+                  <span>
+                    {PRIVACY_CHECKBOX.fr.before}
+                    <a href={PRIVACY.href} target="_blank" rel="noopener noreferrer">
+                      {PRIVACY_CHECKBOX.fr.link}
+                    </a>
+                    {PRIVACY_CHECKBOX.fr.after}
+                  </span>
+                </label>
                 {termsError ? (
                   <p className="terms-accept-error" role="alert">
-                    {TERMS_CHECKBOX.fr.required}
+                    Vous devez accepter les Conditions Générales de Vente et d&apos;Utilisation et la Politique de confidentialité pour continuer.
                   </p>
                 ) : null}
-                <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={sending}>
+                <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={sending || !termsAccepted || !privacyAccepted}>
                   {sending ? (
                     "Paiement en cours…"
                   ) : (

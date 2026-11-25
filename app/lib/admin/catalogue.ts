@@ -1,5 +1,5 @@
 import "server-only";
-import { AGENT_SUBSCRIPTIONS } from "@/config/agent-subscriptions";
+import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { agents as staticAgents } from "@/config/agents";
 import { DIGITAL_WEBSITES } from "@/config/digital";
 import { AGENT_ADDON_LIST, isAddonId } from "@/config/agent-addons";
@@ -21,7 +21,13 @@ import { applyOverrides, getPricingOverrides, loadDefaultConfig } from "@/lib/vi
  */
 
 export type CatalogueCategory = "agents" | "addons" | "abonnement" | "marketing" | "videos" | "options" | "digital" | "regles";
-export type CatalogueField = { key: string; label: "price" | "setup" | "percent" | "monthly"; value: number; default: number; unit: "eur" | "eurMonth" | "pct" };
+export type CatalogueField = {
+  key: string;
+  label: "price" | "setup" | "percent" | "monthly" | "annual";
+  value: number;
+  default: number;
+  unit: "eur" | "eurMonth" | "eurYear" | "pct";
+};
 
 /** Cost + discount caps for rows that sell in € (not percent rules). */
 export type CatalogueCommercial = {
@@ -52,7 +58,8 @@ export type CatalogueRow = {
 
 function withCommercial(id: string, fields: CatalogueField[], meta: CatalogueCommercialEntry | undefined): CatalogueCommercial | null {
   if (fields.every((f) => f.unit === "pct")) return null;
-  const hasMonthly = fields.some((f) => f.label === "monthly");
+  // Monthly + annual share the "recurring" commercial caps (cost / max discount).
+  const hasMonthly = fields.some((f) => f.label === "monthly" || f.label === "annual");
   // One-off "price" sits in the set-up / mise-en-place column (same as explicit setup).
   const hasSetup = fields.some((f) => f.label === "setup" || f.label === "price");
   return {
@@ -111,7 +118,8 @@ export async function loadCatalogue() {
           id,
           category: "agents",
           name: `Agent IA — ${agent.name}`,
-          detail: `${def.credits} · ${def.capacity} · Annuel ${liveAnnual.toLocaleString("fr-FR")} € HT · Mise en place ${liveSetup.toLocaleString("fr-FR")} € HT`,
+          // Facts only — cycle prices are separate catalogue fields (mensuel / annuel / mise en place).
+          detail: `${def.credits} · ${def.capacity}`,
           href: `/agents-ia/${agent.id}`,
           fields: [
             {
@@ -120,6 +128,13 @@ export async function loadCatalogue() {
               value: livePrice,
               default: def.price,
               unit: "eurMonth",
+            },
+            {
+              key: `a:solo:${agent.id}:annual`,
+              label: "annual",
+              value: liveAnnual,
+              default: def.priceAnnual,
+              unit: "eurYear",
             },
             {
               key: `a:solo:${agent.id}:setup`,
@@ -140,6 +155,7 @@ export async function loadCatalogue() {
     const id = `agent:${agent.id}`;
     const fields: CatalogueField[] = [];
     const monthly = agent.priceMonthly ?? 0;
+    const annual = agentAnnualFromMonthly(monthly);
     const setup = agent.setupFrom ?? 199;
     fields.push({
       key: `s:agent:${agent.id}:price`,
@@ -148,6 +164,15 @@ export async function loadCatalogue() {
       default: monthly,
       unit: "eurMonth",
     });
+    if (annual > 0) {
+      fields.push({
+        key: `s:agent:${agent.id}:annual`,
+        label: "annual",
+        value: annual,
+        default: annual,
+        unit: "eurYear",
+      });
+    }
     fields.push({
       key: `s:agent:${agent.id}:setup`,
       label: "setup",
@@ -176,21 +201,29 @@ export async function loadCatalogue() {
     if (!cur || tier.price === null) continue;
     const id = `tier:${tier.name}`;
     const setupValue = tier.setupFrom !== null ? (cur.setupFrom ?? tier.setupFrom) : null;
-    const annualNote =
-      "priceAnnual" in tier && tier.priceAnnual != null
-        ? ` · Annuel ${tier.priceAnnual.toLocaleString("fr-FR")} € HT`
-        : "";
-    const setupNote = setupValue != null ? ` · Mise en place ${setupValue.toLocaleString("fr-FR")} € HT` : "";
+    const annualValue = "priceAnnual" in tier && tier.priceAnnual != null ? tier.priceAnnual : null;
     rows.push(
       row(
         {
           id,
           category: "agents",
           name: `Agents IA — ${tier.name}`,
-          detail: `${tier.features.slice(0, 3).join(" · ")}${annualNote}${setupNote}`,
+          // Features only — mensuel / annuel / mise en place are separate lines in devis.
+          detail: tier.features.slice(0, 3).join(" · "),
           href: "/agents-ia#tarifs",
           fields: [
             { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
+            ...(annualValue != null
+              ? [
+                  {
+                    key: `a:tier:${tier.name}:annual`,
+                    label: "annual" as const,
+                    value: annualValue,
+                    default: annualValue,
+                    unit: "eurYear" as const,
+                  },
+                ]
+              : []),
             ...(setupValue != null
               ? [{ key: `a:tier:${tier.name}:setup`, label: "setup" as const, value: setupValue, default: tier.setupFrom!, unit: "eur" as const }]
               : []),
@@ -269,15 +302,13 @@ export async function loadCatalogue() {
     const d = def.marketing?.plans?.find((p) => p.key === plan.key);
     const id = `plan:${plan.key}`;
     const setupPrice = plan.setupPrice ?? null;
-    const setupNote =
-      setupPrice != null ? ` · Mise en place ${setupPrice.toLocaleString("fr-FR")} € HT` : "";
     rows.push(
       row(
         {
           id,
           category: "marketing",
           name: `Forfait Marketing — ${plan.name}`,
-          detail: `${plan.tagline}${setupNote}`,
+          detail: plan.tagline,
           href: "/marketing/forfaits",
           fields: [
             { key: `v:plan:${plan.key}:price`, label: "monthly", value: plan.price, default: d?.price ?? plan.price, unit: "eurMonth" },

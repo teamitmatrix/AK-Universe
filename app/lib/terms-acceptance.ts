@@ -1,55 +1,84 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/server";
-import { getTerms } from "@/lib/terms";
+import { getPrivacy, renderPrivacyHtml } from "@/lib/privacy";
+import { getTerms, renderTermsHtml } from "@/lib/terms";
 
-type SubscriptionProof = {
+type LegalProof = {
+  userId: string | null;
+  plan: string;
+  acceptedAt?: string;
+  termsVersion?: string;
+  termsLabel?: string;
+  privacyVersion?: string;
+  privacyLabel?: string;
+  termsSnapshot?: string;
+  privacySnapshot?: string;
+};
+
+type SubscriptionProof = LegalProof & {
   userId: string;
   subscriptionId: string;
-  plan: string;
   cycle: string;
   extraUsers: number;
   options: string[];
-  acceptedAt?: string;
-  termsVersion?: string;
-  termsLabel?: string;
+  kind?: "subscription" | "plan_change";
 };
 
-type ProjectProof = {
-  userId: string | null;
+type ProjectProof = LegalProof & {
   projectId: string;
-  /** Free-form plan label for deposits (e.g. project reference / kind). */
-  plan: string;
   options?: unknown;
-  acceptedAt?: string;
-  termsVersion?: string;
-  termsLabel?: string;
 };
 
-/** Persists CGV acceptance proof (audit row). Failures are logged; caller still owns the checkout. */
-export async function recordSubscriptionTermsAcceptance(proof: SubscriptionProof) {
+async function snapshots(proof: LegalProof) {
   const at = proof.acceptedAt ?? new Date().toISOString();
-  const terms = proof.termsVersion && proof.termsLabel ? null : await getTerms();
+  const [terms, privacy, termsHtml, privacyHtml] = await Promise.all([
+    proof.termsVersion && proof.termsLabel ? null : getTerms(),
+    proof.privacyVersion && proof.privacyLabel ? null : getPrivacy(),
+    proof.termsSnapshot ? Promise.resolve(proof.termsSnapshot) : renderTermsHtml(),
+    proof.privacySnapshot ? Promise.resolve(proof.privacySnapshot) : renderPrivacyHtml(),
+  ]);
+  return {
+    at,
+    termsVersion: proof.termsVersion ?? terms!.version,
+    termsLabel: proof.termsLabel ?? terms!.label,
+    privacyVersion: proof.privacyVersion ?? privacy!.version,
+    privacyLabel: proof.privacyLabel ?? privacy!.label,
+    termsSnapshot: termsHtml,
+    privacySnapshot: privacyHtml,
+  };
+}
+
+/** Stores the terms and privacy acceptance. Returns false when the row could not be saved. */
+export async function recordSubscriptionTermsAcceptance(proof: SubscriptionProof) {
+  const snap = await snapshots(proof);
   const admin = createAdminClient();
   const { error } = await admin.from("terms_acceptances").insert({
     user_id: proof.userId,
-    kind: "subscription",
+    kind: proof.kind ?? "subscription",
     subscription_id: proof.subscriptionId,
     plan: proof.plan,
     cycle: proof.cycle,
     extra_users: proof.extraUsers,
     options: proof.options,
-    terms_version: proof.termsVersion ?? terms!.version,
-    terms_label: proof.termsLabel ?? terms!.label,
+    terms_version: snap.termsVersion,
+    terms_label: snap.termsLabel,
+    terms_snapshot: snap.termsSnapshot,
+    privacy_version: snap.privacyVersion,
+    privacy_label: snap.privacyLabel,
+    privacy_snapshot: snap.privacySnapshot,
+    privacy_accepted_at: snap.at,
     accepted: true,
-    accepted_at: at,
+    accepted_at: snap.at,
   });
-  if (error) console.error("terms_acceptances subscription insert failed:", error.message);
-  return at;
+  if (error) {
+    console.error("terms_acceptances subscription insert failed:", error.message);
+    return false;
+  }
+  return true;
 }
 
 export async function recordProjectTermsAcceptance(proof: ProjectProof) {
-  const at = proof.acceptedAt ?? new Date().toISOString();
-  const terms = proof.termsVersion && proof.termsLabel ? null : await getTerms();
+  const snap = await snapshots(proof);
   const admin = createAdminClient();
   const { error } = await admin.from("terms_acceptances").insert({
     user_id: proof.userId,
@@ -57,11 +86,19 @@ export async function recordProjectTermsAcceptance(proof: ProjectProof) {
     project_id: proof.projectId,
     plan: proof.plan,
     options: proof.options ?? [],
-    terms_version: proof.termsVersion ?? terms!.version,
-    terms_label: proof.termsLabel ?? terms!.label,
+    terms_version: snap.termsVersion,
+    terms_label: snap.termsLabel,
+    terms_snapshot: snap.termsSnapshot,
+    privacy_version: snap.privacyVersion,
+    privacy_label: snap.privacyLabel,
+    privacy_snapshot: snap.privacySnapshot,
+    privacy_accepted_at: snap.at,
     accepted: true,
-    accepted_at: at,
+    accepted_at: snap.at,
   });
-  if (error) console.error("terms_acceptances project insert failed:", error.message);
-  return at;
+  if (error) {
+    console.error("terms_acceptances project insert failed:", error.message);
+    return false;
+  }
+  return true;
 }

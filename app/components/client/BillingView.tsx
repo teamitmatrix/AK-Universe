@@ -289,6 +289,14 @@ export function BillingView({
                   </span>
                 </span>
               )}
+              <Link href="/client/dashboard/accords" className="cs-act">
+                <Download className="cs-act-icon" size={22} strokeWidth={1.8} aria-hidden="true" />
+                <span>
+                  Conditions et confidentialité
+                  <small>Versions acceptées, date et heure</small>
+                </span>
+                <ArrowRight className="cs-act-arrow" size={20} aria-hidden="true" />
+              </Link>
               {plan ? (
                 <Link href="/client/dashboard/facturation/contrat" className="cs-act">
                   <Download className="cs-act-icon" size={22} strokeWidth={1.8} aria-hidden="true" />

@@ -423,7 +423,7 @@ function AdminDocumentModal({
                   {g.items.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.label} — {euros(i.unitCents)}
-                      {i.recurring ? " / mois" : ""}
+                      {i.cycle === "mensuel" ? " / mois" : i.cycle === "annuel" ? " / an" : ""}
                     </option>
                   ))}
                 </optgroup>

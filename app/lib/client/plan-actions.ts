@@ -11,6 +11,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { basePriceCents, planInfo, sanitizeOptions, subscriptionBasis, subscriptionTotals } from "./plans";
 import { notifyClient } from "./client-notify";
 import { getClientMe } from "./session";
+import { recordSubscriptionTermsAcceptance } from "@/lib/terms-acceptance";
 import { planProduct } from "./stripe-products";
 import { CLEARED_PENDING } from "./subscription-sync";
 
@@ -46,6 +47,7 @@ type Fail = {
     | "busy"
     | "payment_failed"
     | "payment_required"
+    | "legal_required"
     | "failed";
   invoiceUrl?: string | null;
 };
@@ -314,6 +316,8 @@ export async function confirmPlanChange(input: {
   cycle?: Cycle;
   basis?: string;
   prorationDate?: number | null;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
 }): Promise<{ success: true; mode: "immediate" | "renewal"; effectiveAt: string | null } | Fail> {
   const ctx = await context();
   if ("fail" in ctx) return ctx.fail!;
@@ -325,6 +329,9 @@ export async function confirmPlanChange(input: {
 
   const now = Math.floor(Date.now() / 1000);
   const prorationDate = Number(input.prorationDate);
+  if (p.mode === "immediate" && (input.termsAccepted !== true || input.privacyAccepted !== true)) {
+    return { success: false, error: "legal_required" };
+  }
   if (p.mode === "immediate" && (!Number.isInteger(prorationDate) || prorationDate > now + 60 || now - prorationDate > PRORATION_MAX_AGE_S)) {
     // The amount shown is too old to be guaranteed: review again.
     return { success: false, error: "stale" };
@@ -347,6 +354,19 @@ export async function confirmPlanChange(input: {
 
   try {
     if (p.mode === "immediate") {
+      const recorded = await recordSubscriptionTermsAcceptance({
+        userId: ctx.row.user_id,
+        subscriptionId: ctx.row.id,
+        kind: "plan_change",
+        plan: p.planId,
+        cycle: p.cycle,
+        extraUsers: ctx.row.extra_users,
+        options: p.options,
+      });
+      if (!recorded) {
+        await unlock(db, ctx.row);
+        return { success: false, error: "failed" };
+      }
       let updated: Stripe.Subscription;
       try {
         updated = await ctx.stripe.subscriptions.update(

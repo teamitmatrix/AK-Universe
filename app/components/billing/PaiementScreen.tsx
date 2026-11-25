@@ -10,6 +10,7 @@ import {
   type CheckoutPlan,
   type Selection,
 } from "@/config/pricing";
+import { LEGAL_REQUIRED, PRIVACY, PRIVACY_CHECKBOX } from "@/config/privacy";
 import { TERMS, TERMS_CHECKBOX } from "@/config/terms";
 import { checkPromoCode, startSubscriptionCheckout } from "@/lib/billing/actions";
 import { Icon } from "@/components/ui/Icon";
@@ -62,6 +63,9 @@ const TEXT = {
     termsLink: TERMS_CHECKBOX.fr.link,
     termsAfter: TERMS_CHECKBOX.fr.after,
     termsRequired: TERMS_CHECKBOX.fr.required,
+    privacyBefore: PRIVACY_CHECKBOX.fr.before,
+    privacyLink: PRIVACY_CHECKBOX.fr.link,
+    privacyAfter: PRIVACY_CHECKBOX.fr.after,
     note: TERMS_CHECKBOX.fr.recurring,
     errors: {
       not_configured: "Le paiement en ligne n'est pas encore configuré. Aucun montant n'a été débité.",
@@ -69,6 +73,7 @@ const TEXT = {
       prepare_failed: "Impossible de préparer le paiement. Veuillez réessayer.",
       method_unavailable: "Ce moyen de paiement n'est pas disponible. Choisissez la carte bancaire.",
       terms_required: TERMS_CHECKBOX.fr.required,
+      legal_required: LEGAL_REQUIRED.fr,
     },
     success: {
       heading: ["Merci, votre abonnement est ", "confirmé"],
@@ -121,6 +126,9 @@ const TEXT = {
     termsLink: TERMS_CHECKBOX.en.link,
     termsAfter: TERMS_CHECKBOX.en.after,
     termsRequired: TERMS_CHECKBOX.en.required,
+    privacyBefore: PRIVACY_CHECKBOX.en.before,
+    privacyLink: PRIVACY_CHECKBOX.en.link,
+    privacyAfter: PRIVACY_CHECKBOX.en.after,
     note: TERMS_CHECKBOX.en.recurring,
     errors: {
       not_configured: "Online payment is not configured yet. You have not been charged.",
@@ -128,6 +136,7 @@ const TEXT = {
       prepare_failed: "Unable to prepare the payment. Please try again.",
       method_unavailable: "This payment method is not available. Please choose a credit card.",
       terms_required: TERMS_CHECKBOX.en.required,
+      legal_required: LEGAL_REQUIRED.en,
     },
     success: {
       heading: ["Thank you, your subscription is ", "confirmed"],
@@ -206,6 +215,7 @@ export function PaiementScreen({
   const [promoMsg, setPromoMsg] = useState<PromoMsg | null>(null);
   const [promotionCodeId, setPromotionCodeId] = useState<string>();
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState<keyof typeof TEXT.fr.errors | "">("");
   const [pending, startTransition] = useTransition();
 
@@ -230,8 +240,8 @@ export function PaiementScreen({
       input.reportValidity();
       return;
     }
-    if (!termsAccepted) {
-      setError("terms_required");
+    if (!termsAccepted || !privacyAccepted) {
+      setError("legal_required");
       return;
     }
     setMethod(payMethod === "apple_pay" || payMethod === "google_pay" ? "card" : payMethod);
@@ -245,6 +255,7 @@ export function PaiementScreen({
         promotionCodeId,
         lang,
         termsAccepted: true,
+        privacyAccepted: true,
       });
       if (result && !result.success) setError(result.code);
     });
@@ -419,7 +430,7 @@ export function PaiementScreen({
               ))}
             </div>
 
-            {error && error !== "terms_required" ? (
+            {error && error !== "legal_required" ? (
               <p key={error} className="auth-error" role="alert" style={{ marginTop: 16 }}>
                 {t.errors[error]}
               </p>
@@ -431,7 +442,7 @@ export function PaiementScreen({
                 checked={termsAccepted}
                 onChange={(e) => {
                   setTermsAccepted(e.target.checked);
-                  if (e.target.checked && error === "terms_required") setError("");
+                  if (e.target.checked && privacyAccepted && error === "legal_required") setError("");
                 }}
                 aria-required="true"
               />
@@ -443,13 +454,31 @@ export function PaiementScreen({
                 {t.termsAfter}
               </span>
             </label>
-            {error === "terms_required" ? (
+            <label className="terms-accept">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => {
+                  setPrivacyAccepted(e.target.checked);
+                  if (e.target.checked && termsAccepted && error === "legal_required") setError("");
+                }}
+                aria-required="true"
+              />
+              <span>
+                {t.privacyBefore}
+                <a href={PRIVACY.href} target="_blank" rel="noopener noreferrer">
+                  {t.privacyLink}
+                </a>
+                {t.privacyAfter}
+              </span>
+            </label>
+            {error === "legal_required" ? (
               <p className="terms-accept-error" role="alert">
-                {t.termsRequired}
+                {t.errors.legal_required}
               </p>
             ) : null}
 
-            <button type="submit" className="btn btn-light-primary btn-block" style={{ marginTop: 18, fontSize: "1.35rem" }} disabled={pending}>
+            <button type="submit" className="btn btn-light-primary btn-block" style={{ marginTop: 18, fontSize: "1.35rem" }} disabled={pending || !termsAccepted || !privacyAccepted}>
               <span key={String(pending)}>{pending ? t.submitting : t.submit}</span> <Icon name="arrow" />
             </button>
             <p className="secure">

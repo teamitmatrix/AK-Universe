@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Headphones, House, Layers, Puzzle, User, type LucideIcon } from "lucide-react";
+import { CreditCard, FileText, Headphones, House, Layers, Puzzle, User, type LucideIcon } from "lucide-react";
 import { CLIENT_NAV, type ClientNavId } from "@/lib/client/nav";
 
 const ICONS: Record<ClientNavId, LucideIcon> = {
   accueil: House,
   offre: Layers,
   facturation: CreditCard,
+  accords: FileText,
   options: Puzzle,
   compte: User,
   support: Headphones,
