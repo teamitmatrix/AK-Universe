@@ -70,6 +70,7 @@ export default async function Page({ params }: Props) {
                     capacityLabel={agent.capacityLabel}
                     addonPrices={pricing.addons}
                     hiddenAddonIds={[...hidden]}
+                    signedIn={!!user}
                   />
                 ) : null}
               </div>

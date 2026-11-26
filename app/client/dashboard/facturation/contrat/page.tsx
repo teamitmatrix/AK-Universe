@@ -146,7 +146,7 @@ export default async function ContractPage() {
         <p>
           Le présent contrat est régi par les <Link href="/cgv">conditions générales de vente et d&apos;utilisation</Link> et la{" "}
           <Link href="/confidentialite">politique de confidentialité</Link> d&apos;AK Universe, acceptées avant le paiement. La version, la date
-          et l&apos;heure de chaque acceptation sont conservées dans <Link href="/client/dashboard/accords">Mes accords</Link>. En cas de
+          et l&apos;heure de chaque acceptation sont conservées dans <Link href="/client/dashboard/accords">Contrats</Link>. En cas de
           contradiction, les stipulations du présent contrat prévalent pour ce qui concerne l&apos;abonnement.
         </p>
 

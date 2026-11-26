@@ -1,11 +1,12 @@
 import "server-only";
-import { AGENT_TIERS, OPTIONS, computeQuote, isRetiredOption, toCents, type AgentsPricing, type Cycle } from "@/config/pricing";
+import { agents as SITE_AGENTS } from "@/config/agents";
+import { AGENT_SUBSCRIPTIONS } from "@/config/agent-subscriptions";
+import { AGENT_TIERS, OPTIONS, PLAN, computeQuote, isRetiredOption, toCents, type AgentsPricing, type Cycle } from "@/config/pricing";
 
 /*
- * Plans of the client space = the Agents IA offers of /agents-ia#tarifs (config AGENT_TIERS, prices editable in
- * the admin catalogue), lower → higher. "Sur devis" has no price: it is shown with a contact link, never sold here.
- * Every amount a customer pays is computed here, on the server, with the same formula as /abonnement checkout
- * (computeQuote): base plan + extra users + options, annual discount applied.
+ * Plans of the client space = package tiers on /agents-ia#tarifs (AGENT_TIERS) plus solo agents
+ * (AGENT_SUBSCRIPTIONS / milo…). "Sur devis" has no price: contact link only, never sold here.
+ * Amounts use the same formula as /paiement (computeQuote): base + users + options, annual discount.
  */
 
 export type PlanInfo = {
@@ -29,6 +30,7 @@ export type SubscriptionPricingRow = {
 
 const LEGACY_PLAN = "pro";
 
+/** Package tiers only — used by Mon offre plan picker (upgrade / downgrade). */
 export function planCatalogue(pricing: AgentsPricing): PlanInfo[] {
   return AGENT_TIERS.map((t, rank) => {
     const live = pricing.tiers[t.name]?.price ?? t.price;
@@ -45,12 +47,58 @@ export function planCatalogue(pricing: AgentsPricing): PlanInfo[] {
   });
 }
 
+function soloPlanInfo(planId: string, pricing: AgentsPricing): PlanInfo | null {
+  const def = AGENT_SUBSCRIPTIONS[planId];
+  const live = pricing.solo[planId];
+  if (!def && !live) return null;
+  const monthly = live?.price ?? def!.price;
+  const site = SITE_AGENTS.find((a) => a.id === planId);
+  const name = site?.name ?? planId.charAt(0).toUpperCase() + planId.slice(1);
+  return {
+    id: planId,
+    name: `Agent IA — ${name}`,
+    // Below package ranks so mon-offre upgrades still move toward Starter+.
+    rank: -1,
+    desc: def?.capacity ?? site?.role ?? "Abonnement solo Agents IA",
+    monthlyCents: toCents(monthly),
+    agents: 1,
+    automations: "Solo",
+    features: [
+      `1 agent inclus : ${name}`,
+      ...(def?.credits ? [`${def.credits} / mois`] : []),
+      ...(def?.capacity ? [def.capacity] : []),
+    ],
+  };
+}
+
 export function planInfo(planId: string, pricing: AgentsPricing): PlanInfo {
   const found = planCatalogue(pricing).find((p) => p.id === planId);
   if (found) return found;
-  // Unknown id (should not happen): readable name, ranked like Pro.
-  const pro = planCatalogue(pricing).find((p) => p.id === LEGACY_PLAN)!;
-  return { ...pro, id: planId, name: `AK Universe ${planId.charAt(0).toUpperCase()}${planId.slice(1)}`, monthlyCents: null };
+  const solo = soloPlanInfo(planId, pricing);
+  if (solo) return solo;
+  if (planId === LEGACY_PLAN) {
+    return {
+      id: LEGACY_PLAN,
+      name: PLAN.name,
+      rank: 0,
+      desc: PLAN.features.join(" · "),
+      monthlyCents: toCents(pricing.planMonthly),
+      agents: null,
+      automations: "Complètes",
+      features: [...PLAN.features],
+    };
+  }
+  // Unknown id: readable fallback without crashing.
+  return {
+    id: planId,
+    name: `AK Universe ${planId.charAt(0).toUpperCase()}${planId.slice(1)}`,
+    rank: 0,
+    desc: "",
+    monthlyCents: null,
+    agents: null,
+    automations: "—",
+    features: [],
+  };
 }
 
 /**

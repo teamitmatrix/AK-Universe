@@ -78,28 +78,33 @@ export async function startSubscriptionCheckout(input: {
     .limit(1)
     .maybeSingle();
 
-  const { data: subscription, error } = await admin
-    .from("subscriptions")
-    .insert({
-      user_id: auth.user.id,
-      organization_id: membership?.organization_id ?? null,
-      plan: plan.id,
-      cycle: selection.cycle,
-      extra_users: selection.users,
-      options: selection.options,
-      monthly_total_cents: toCents(quote.monthly),
-      status: "pending",
-      terms_accepted: true,
-      terms_version: terms.version,
-      terms_label: terms.label,
-      terms_accepted_at: termsAcceptedAt,
-      privacy_accepted: true,
-      privacy_version: privacy.version,
-      privacy_label: privacy.label,
-      privacy_accepted_at: termsAcceptedAt,
-    })
-    .select("id")
-    .single();
+  const subscriptionRow = {
+    user_id: auth.user.id,
+    organization_id: membership?.organization_id ?? null,
+    plan: plan.id,
+    cycle: selection.cycle,
+    extra_users: selection.users,
+    options: selection.options,
+    monthly_total_cents: toCents(quote.monthly),
+    // Lock catalogue base (excl. VAT, before annual discount) for client-space display / changes.
+    plan_price_cents: toCents(plan.monthly),
+    status: "pending",
+    terms_accepted: true,
+    terms_version: terms.version,
+    terms_label: terms.label,
+    terms_accepted_at: termsAcceptedAt,
+    privacy_accepted: true,
+    privacy_version: privacy.version,
+    privacy_label: privacy.label,
+    privacy_accepted_at: termsAcceptedAt,
+  };
+  let { data: subscription, error } = await admin.from("subscriptions").insert(subscriptionRow).select("id").single();
+  // Before migration 016, plan_price_cents does not exist yet.
+  if (error && /plan_price_cents/.test(error.message)) {
+    const { plan_price_cents: _locked, ...legacy } = subscriptionRow;
+    void _locked;
+    ({ data: subscription, error } = await admin.from("subscriptions").insert(legacy).select("id").single());
+  }
   if (error || !subscription) {
     console.error("subscription insert failed:", error?.message);
     return { success: false as const, code: "prepare_failed" as const };

@@ -2,12 +2,13 @@ import "server-only";
 import { emailLayout as layout, escapeHtml, sendEmail, teamAddresses } from "@/lib/email";
 import { readEarlyStartFromContact, type EarlyStartRecord } from "@/config/withdrawal";
 import { getTeamNotifications } from "@/lib/notifications";
+import { isAgentProjectItems } from "@/lib/projects/universe";
 
 /*
- * Video project e-mails, sent when a project is confirmed:
- *   "received"     quote request, or booking paid by bank transfer (finaliser.html / acompte.html)
+ * Project e-mails, sent when a project is confirmed:
+ *   "received"     quote request, or booking paid by bank transfer
  *   "deposit_paid" deposit paid by card (Stripe webhook)
- * Each event sends a notification to AK Universe and a summary to the client.
+ * Copy adapts when the order is Agents IA (no “tournage / vidéos” wording).
  */
 
 export type ProjectEvent = "received" | "deposit_paid";
@@ -33,6 +34,9 @@ const TEXT = {
       devis: (ref: string) => `Votre demande de devis ${ref} — AK Universe`,
       acompte: (ref: string) => `Votre réservation ${ref} — AK Universe`,
       deposit_paid: (ref: string) => `Acompte reçu, réservation confirmée ${ref} — AK Universe`,
+      agent_devis: (ref: string) => `Votre demande Agents IA ${ref} — AK Universe`,
+      agent_acompte: (ref: string) => `Votre commande Agents IA ${ref} — AK Universe`,
+      agent_deposit_paid: (ref: string) => `Paiement reçu, Agents IA confirmés ${ref} — AK Universe`,
     },
     hello: (name: string) => `Bonjour ${name},`,
     intro: {
@@ -40,6 +44,12 @@ const TEXT = {
       acompte:
         "Merci pour votre réservation. Elle sera confirmée dès réception de votre virement de l'acompte. Notre équipe vous contacte rapidement pour la suite.",
       deposit_paid: "Nous avons bien reçu votre acompte : votre réservation est confirmée. Notre équipe vous contacte rapidement pour planifier le tournage.",
+      agent_devis:
+        "Merci pour votre demande Agents IA. Notre équipe revient vers vous sous 24 h avec la suite de l'activation.",
+      agent_acompte:
+        "Merci pour votre commande Agents IA. Elle sera confirmée dès réception de votre virement. Vous pourrez ensuite gérer votre offre dans l'espace client.",
+      agent_deposit_paid:
+        "Nous avons bien reçu votre paiement : votre commande Agents IA est confirmée. Connectez-vous à l'espace client pour suivre l'activation de vos agents. Notre équipe reste disponible pour l'onboarding.",
     },
     reference: "Référence",
     total: "Total estimé (HT)",
@@ -59,6 +69,9 @@ const TEXT = {
       devis: (ref: string) => `Your quote request ${ref} — AK Universe`,
       acompte: (ref: string) => `Your booking ${ref} — AK Universe`,
       deposit_paid: (ref: string) => `Deposit received, booking confirmed ${ref} — AK Universe`,
+      agent_devis: (ref: string) => `Your AI Agents request ${ref} — AK Universe`,
+      agent_acompte: (ref: string) => `Your AI Agents order ${ref} — AK Universe`,
+      agent_deposit_paid: (ref: string) => `Payment received, AI Agents confirmed ${ref} — AK Universe`,
     },
     hello: (name: string) => `Hello ${name},`,
     intro: {
@@ -66,6 +79,11 @@ const TEXT = {
       acompte:
         "Thank you for your booking. It will be confirmed as soon as we receive your bank transfer for the deposit. Our team will contact you shortly.",
       deposit_paid: "We have received your deposit: your booking is confirmed. Our team will contact you shortly to schedule the shoot.",
+      agent_devis: "Thank you for your AI Agents request. Our team will get back to you within 24 hours about activation.",
+      agent_acompte:
+        "Thank you for your AI Agents order. It will be confirmed as soon as we receive your bank transfer. You can then manage your offer in the client space.",
+      agent_deposit_paid:
+        "We have received your payment: your AI Agents order is confirmed. Sign in to the client space to follow activation. Our team remains available for onboarding.",
     },
     reference: "Reference",
     total: "Estimated total (excl. VAT)",
@@ -94,10 +112,30 @@ const CONTACT_LABELS: [string, string][] = [
   ["entreprise", "Entreprise"],
   ["email", "E-mail"],
   ["tel", "Téléphone"],
-  ["lieu", "Lieu du tournage"],
+  ["lieu", "Lieu"],
   ["date", "Date souhaitée"],
   ["message", "Message"],
 ];
+
+function mailKeys(p: ProjectMail, event: ProjectEvent) {
+  const agents = isAgentProjectItems(p.items);
+  if (event === "deposit_paid") {
+    return {
+      subject: agents ? ("agent_deposit_paid" as const) : ("deposit_paid" as const),
+      intro: agents ? ("agent_deposit_paid" as const) : ("deposit_paid" as const),
+    };
+  }
+  if (p.kind === "devis") {
+    return {
+      subject: agents ? ("agent_devis" as const) : ("devis" as const),
+      intro: agents ? ("agent_devis" as const) : ("devis" as const),
+    };
+  }
+  return {
+    subject: agents ? ("agent_acompte" as const) : ("acompte" as const),
+    intro: agents ? ("agent_acompte" as const) : ("acompte" as const),
+  };
+}
 
 function resolveEarlyStart(p: ProjectMail): EarlyStartRecord | null {
   return p.earlyStart ?? readEarlyStartFromContact(p.contact);
@@ -145,7 +183,8 @@ function paidInFull(p: ProjectMail) {
 function clientEmail(p: ProjectMail, event: ProjectEvent) {
   const t = p.lang === "en" ? TEXT.en : TEXT.fr;
   const full = paidInFull(p);
-  const step = event === "deposit_paid" ? "deposit_paid" : p.kind;
+  const agents = isAgentProjectItems(p.items);
+  const keys = mailKeys(p, event);
   const name = p.contact.prenom || p.contact.nom || "";
   const depositLabel = full
     ? event === "deposit_paid"
@@ -158,18 +197,20 @@ function clientEmail(p: ProjectMail, event: ProjectEvent) {
     : event === "deposit_paid"
       ? t.paid
       : t.deposit;
-  const intro = full
-    ? event === "deposit_paid"
-      ? p.lang === "en"
-        ? "We have received your payment: your order is confirmed. Our team will contact you shortly."
-        : "Nous avons bien reçu votre paiement : votre commande est confirmée. Notre équipe vous contacte rapidement."
-      : p.lang === "en"
-        ? "Thank you for your order. It will be confirmed as soon as we receive your bank transfer for the amount due. Our team will contact you shortly."
-        : "Merci pour votre commande. Elle sera confirmée dès réception de votre virement du montant indiqué. Notre équipe vous contacte rapidement."
-    : t.intro[step];
+  const intro =
+    full && !agents
+      ? event === "deposit_paid"
+        ? p.lang === "en"
+          ? "We have received your payment: your order is confirmed. Our team will contact you shortly."
+          : "Nous avons bien reçu votre paiement : votre commande est confirmée. Notre équipe vous contacte rapidement."
+        : p.lang === "en"
+          ? "Thank you for your order. It will be confirmed as soon as we receive your bank transfer for the amount due. Our team will contact you shortly."
+          : "Merci pour votre commande. Elle sera confirmée dès réception de votre virement du montant indiqué. Notre équipe vous contacte rapidement."
+      : t.intro[keys.intro];
   const withdrawal = withdrawalBlock(p, t);
+  const subject = t.subject[keys.subject](p.reference);
   const html = layout(
-    t.subject[step](p.reference).replace(/ — AK Universe$/, ""),
+    subject.replace(/ — AK Universe$/, ""),
     `<p style="margin:0 0 12px">${escapeHtml(t.hello(name))}</p>
 <p style="margin:0 0 12px">${escapeHtml(intro)}</p>
 <p style="margin:0">${t.reference} : <strong style="color:#fdb942">${escapeHtml(p.reference)}</strong></p>
@@ -193,7 +234,14 @@ ${withdrawal.html}
     t.outro,
     t.signature,
   ].join("\n");
-  return { to: p.contact.email, subject: t.subject[step](p.reference), html, text, replyTo: teamAddresses()[0] };
+  return {
+    to: p.contact.email,
+    subject,
+    html,
+    text,
+    replyTo: teamAddresses()[0],
+    idempotencyKey: `project-client:${event}:${p.reference}`,
+  };
 }
 
 function teamEmail(p: ProjectMail, event: ProjectEvent) {
@@ -223,7 +271,14 @@ ${itemsTable(p, { total: "Total (HT)", deposit: event === "deposit_paid" ? "Acom
     `Total (HT) : ${euros(p.total)}`,
     p.deposit ? `Acompte : ${euros(p.deposit)}` : "",
   ].join("\n");
-  return { to: teamAddresses(), subject: TEAM_SUBJECT[step](p.reference, who), html, text, replyTo: p.contact.email };
+  return {
+    to: teamAddresses(),
+    subject: TEAM_SUBJECT[step](p.reference, who),
+    html,
+    text,
+    replyTo: p.contact.email,
+    idempotencyKey: `project-team:${event}:${p.reference}`,
+  };
 }
 
 export async function sendProjectEmails(project: ProjectMail, event: ProjectEvent) {

@@ -12,6 +12,8 @@ export type Email = {
   html: string;
   text: string;
   replyTo?: string;
+  /** Resend Idempotency-Key — same key within 24 h is not sent twice. */
+  idempotencyKey?: string;
 };
 
 export function emailConfigured() {
@@ -33,9 +35,14 @@ export async function sendEmail(email: Email) {
     return false;
   }
   try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    };
+    if (email.idempotencyKey) headers["Idempotency-Key"] = email.idempotencyKey.slice(0, 256);
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         from: process.env.EMAIL_FROM,
         to: email.to,

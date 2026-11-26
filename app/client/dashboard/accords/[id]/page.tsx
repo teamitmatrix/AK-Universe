@@ -5,7 +5,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import { acceptedWhen, agreementKind, myAgreement } from "@/lib/client/agreements";
 import { requireClient } from "@/lib/client/session";
 
-export const metadata: Metadata = { title: { absolute: "Accord accepté — AK Universe" } };
+export const metadata: Metadata = { title: { absolute: "Contrat accepté — AK Universe" } };
 
 export default async function AgreementPage({
   params,
@@ -32,7 +32,7 @@ export default async function AgreementPage({
     <main className="cs-page cs-contract-page">
       <div className="cs-doc-bar">
         <Link href="/client/dashboard/accords" className="cs-btn-outline">
-          <ArrowLeft size={16} aria-hidden="true" /> Mes accords
+          <ArrowLeft size={16} aria-hidden="true" /> Contrats
         </Link>
         <a className="cs-btn-outline" href={`/client/dashboard/accords/${row.id}/fichier?doc=${privacy ? "privacy" : "terms"}`}>
           <Download size={16} aria-hidden="true" /> Télécharger

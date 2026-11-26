@@ -1,5 +1,6 @@
 import { AGENT_ADDONS, type AddonId } from "@/config/agent-addons";
 import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
+import { agents as SITE_AGENTS } from "@/config/agents";
 
 /** Agents IA subscription pricing (from abonnement.html / main.js). Amounts are EUR excl. VAT. */
 export const PLAN = {
@@ -267,17 +268,43 @@ export function checkoutPlan(id: string | null | undefined, pricing: AgentsPrici
     };
   }
   const tier = AGENT_TIERS.find((item) => item.id === id);
-  if (!tier || tier.price == null) return null;
-  const live = rates.tiers[tier.name];
-  const monthly = live?.price ?? tier.price;
-  if (monthly == null) return null;
+  if (tier) {
+    if (tier.price == null) return null;
+    const live = rates.tiers[tier.name];
+    const monthly = live?.price ?? tier.price;
+    if (monthly == null) return null;
+    return {
+      id: tier.id,
+      name: tier.name,
+      monthly,
+      annualPackage: tier.priceAnnual,
+      setup: live?.setupFrom ?? tier.setupFrom ?? 0,
+      features: tier.features,
+    };
+  }
+  // Solo agent (e.g. milo) — same Stripe subscription path as package tiers.
+  const def = AGENT_SUBSCRIPTIONS[id];
+  const live = rates.solo[id];
+  if (!def && !live) return null;
+  const monthly = live?.price ?? def!.price;
+  const annual = live?.priceAnnual ?? def?.priceAnnual ?? agentAnnualFromMonthly(monthly);
+  const setup = live?.setupFrom ?? def?.setupFrom ?? 0;
+  const site = SITE_AGENTS.find((a) => a.id === id);
+  const name = site?.name ?? id.charAt(0).toUpperCase() + id.slice(1);
+  const credits = def?.credits;
+  const capacity = def?.capacity ?? site?.role;
   return {
-    id: tier.id,
-    name: tier.name,
+    id,
+    name: `Agent IA — ${name}`,
     monthly,
-    annualPackage: tier.priceAnnual,
-    setup: live?.setupFrom ?? tier.setupFrom ?? 0,
-    features: tier.features,
+    annualPackage: annual,
+    setup,
+    features: [
+      `1 agent inclus : ${name}`,
+      ...(credits ? [`${credits} / mois`] : []),
+      ...(capacity ? [capacity] : []),
+      "Onboarding inclus dans la mise en place",
+    ],
   };
 }
 

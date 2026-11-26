@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { ensureProfile } from "@/lib/auth/session";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
+import { isAgentProjectItems } from "@/lib/projects/universe";
 import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -194,7 +195,13 @@ export async function POST(request: Request) {
     }
   }
 
-  const summary = { ref: reference, total: priced.total, acompte: kind === "acompte" ? charge : 0 };
+  const agents = isAgentProjectItems(priced.items);
+  const summary = {
+    ref: reference,
+    total: priced.total,
+    acompte: kind === "acompte" ? charge : 0,
+    universe: agents ? ("agents" as const) : ("marketing" as const),
+  };
   const lang = body.lang === "en" ? "en" : "fr";
   if (!byCard) {
     // Card deposits are confirmed (and e-mailed) by the Stripe webhook once paid.
@@ -217,6 +224,8 @@ export async function POST(request: Request) {
   }
 
   const site = getSiteUrl();
+  const successQs = new URLSearchParams({ paid: "1", ref: reference });
+  if (agents) successQs.set("universe", "agents");
   let session;
   try {
     session = await stripe!.checkout.sessions.create({
@@ -232,18 +241,28 @@ export async function POST(request: Request) {
             currency: "eur",
             unit_amount: charge * 100,
             product_data: {
-              name: priced.fixed
-                ? `Paiement — ${reference}`
-                : `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`,
+              name: agents
+                ? `Paiement Agents IA — ${reference}`
+                : priced.fixed
+                  ? `Paiement — ${reference}`
+                  : `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`,
               description: priced.items.map((i) => i.service).join(", ").slice(0, 500),
             },
           },
         },
       ],
-      metadata: { kind: "deposit", project_id: project.id, reference, lang },
-      payment_intent_data: { metadata: { kind: "deposit", project_id: project.id, reference } },
-      success_url: `${site}/confirmation?paid=1`,
-      cancel_url: `${site}/acompte`,
+      metadata: {
+        kind: "deposit",
+        project_id: project.id,
+        reference,
+        lang,
+        universe: agents ? "agents" : "marketing",
+      },
+      payment_intent_data: {
+        metadata: { kind: "deposit", project_id: project.id, reference, universe: agents ? "agents" : "marketing" },
+      },
+      success_url: `${site}/confirmation?${successQs.toString()}`,
+      cancel_url: agents ? `${site}/agents-ia` : `${site}/acompte`,
     });
   } catch (cause) {
     console.error("Stripe deposit checkout failed:", cause);

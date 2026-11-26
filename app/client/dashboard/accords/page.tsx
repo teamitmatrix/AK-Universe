@@ -4,7 +4,7 @@ import { Download } from "lucide-react";
 import { acceptedWhen, agreementKind, listMyAgreements } from "@/lib/client/agreements";
 import { requireClient } from "@/lib/client/session";
 
-export const metadata: Metadata = { title: { absolute: "Mes accords — AK Universe" } };
+export const metadata: Metadata = { title: { absolute: "Contrats — AK Universe" } };
 
 /** Accepted terms, privacy policy and the subscription contract, for this customer only. */
 export default async function AgreementsPage() {
@@ -15,7 +15,7 @@ export default async function AgreementsPage() {
     <main className="cs-page">
       <header className="cs-hello">
         <p className="cs-eyebrow">Espace client</p>
-        <h1>Mes accords</h1>
+        <h1>Contrats</h1>
         <p>
           Chaque paiement enregistre la version des Conditions Générales de Vente et d&apos;Utilisation et de la Politique de
           confidentialité que vous avez acceptées, avec la date et l&apos;heure.
@@ -37,7 +37,7 @@ export default async function AgreementsPage() {
       <section className="cs-card">
         <h2 className="cs-card-title is-sm">Acceptations enregistrées</h2>
         {rows.length === 0 ? (
-          <p className="cs-card-sub">Aucun accord enregistré pour le moment. Ils apparaissent ici après un paiement.</p>
+          <p className="cs-card-sub">Aucun contrat enregistré pour le moment. Ils apparaissent ici après un paiement.</p>
         ) : (
           <ul className="cs-terms">
             {rows.map((row) => (

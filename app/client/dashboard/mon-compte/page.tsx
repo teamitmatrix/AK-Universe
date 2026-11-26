@@ -44,7 +44,7 @@ export default async function AccountPage() {
           <NotificationsCard key={JSON.stringify(account.prefs)} prefs={account.prefs} ready={account.profileReady} />
           <OtherActionsCard hasPassword={account.hasPassword} hasSubscription={hasSubscription} />
           <section className="cs-card">
-            <h2 className="cs-card-title is-sm">Mes accords</h2>
+            <h2 className="cs-card-title is-sm">Contrats</h2>
             <p className="cs-card-sub">
               Conditions Générales de Vente et d&apos;Utilisation, Politique de confidentialité et contrat d&apos;abonnement acceptés
               lors de vos paiements.

@@ -75,6 +75,8 @@ export type LastRequest = {
   depositPercent: number;
   /** Optional early-start withdrawal consent recorded at checkout (acompte only). */
   earlyStartAccepted?: boolean;
+  /** Dominant product line for confirmation CTA (agents vs marketing/video). */
+  universe?: "agents" | "marketing";
 };
 
 const CLIENT_FIELDS = ["prenom", "nom", "entreprise", "email", "tel", "lieu", "date", "message"] as const;
@@ -507,8 +509,16 @@ export async function submitProject(
     total?: number;
     acompte?: number;
     checkoutUrl?: string;
+    universe?: "agents" | "marketing";
   };
   if (!res.ok || !data.ref) throw new Error(data.error || "Une erreur est survenue. Veuillez réessayer.");
+  const agentOnly = items.length > 0 && items.every((entry) => isAgent(entry));
+  const universe =
+    data.universe === "agents" || data.universe === "marketing"
+      ? data.universe
+      : agentOnly
+        ? "agents"
+        : "marketing";
   writeLast({
     type: kind,
     ref: data.ref,
@@ -517,6 +527,7 @@ export async function submitProject(
     total: data.total ?? 0,
     acompte: data.acompte ?? 0,
     depositPercent: config.depositPercent,
+    universe,
     ...(kind === "acompte" ? { earlyStartAccepted } : {}),
   });
   return data;
