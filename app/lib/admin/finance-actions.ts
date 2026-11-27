@@ -89,37 +89,36 @@ export async function generateCommissions(): Promise<{ success: true; created: n
   if (!(await isAdmin())) return fail("forbidden");
   const supabase = await createClient();
 
-  const projectSelect = "id, status, total_cents, commercial_id, universe, items";
-  let projectsRes = await supabase
+  type ProjectRow = {
+    id: string;
+    status: string;
+    total_cents: number;
+    commercial_id: string;
+    universe?: string | null;
+    items?: { service?: string }[] | null;
+  };
+  const withUniverse = await supabase
     .from("video_projects")
-    .select(projectSelect)
+    .select("id, status, total_cents, commercial_id, universe, items")
     .not("commercial_id", "is", null)
     .in("status", [...PAID])
     .limit(10000);
-  if (projectsRes.error && /universe/i.test(projectsRes.error.message)) {
-    projectsRes = await supabase
-      .from("video_projects")
-      .select("id, status, total_cents, commercial_id, items")
-      .not("commercial_id", "is", null)
-      .in("status", [...PAID])
-      .limit(10000);
-  }
+  const projectsRes =
+    withUniverse.error && /universe/i.test(withUniverse.error.message)
+      ? await supabase
+          .from("video_projects")
+          .select("id, status, total_cents, commercial_id, items")
+          .not("commercial_id", "is", null)
+          .in("status", [...PAID])
+          .limit(10000)
+      : withUniverse;
   const [{ data: existing, error: cErr }, { data: reps }, { data: subPays }] = await Promise.all([
     supabase.from("commissions").select("project_id").not("project_id", "is", null).limit(10000),
     supabase.from("profiles").select("*").eq("role", "commercial"),
     supabase.from("payments").select("id").eq("kind", "subscription").in("status", ["paid", "complete"]).limit(10000),
   ]);
   const pErr = projectsRes.error;
-  const projects = projectsRes.data as
-    | {
-        id: string;
-        status: string;
-        total_cents: number;
-        commercial_id: string;
-        universe?: string | null;
-        items?: { service?: string }[] | null;
-      }[]
-    | null;
+  const projects = (projectsRes.data ?? null) as ProjectRow[] | null;
   if (pErr || cErr) {
     console.error("generateCommissions failed:", (pErr ?? cErr)?.message);
     return fail("failed");
