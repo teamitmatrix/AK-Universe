@@ -15,13 +15,13 @@ export const AGENTS_PRICING_KEY = "agents_pricing";
 export type AgentsPricingOverrides = {
   planMonthly?: number;
   userPrice?: number;
-  /** Percent (20 = -20 %). */
+  /** Percent (20 = -20 %). Saved from catalogue « Remise paiement annuel ». */
   annualDiscountPercent?: number;
   options?: Record<string, number>;
   /** Pay-as-you-go + monthly AI add-ons (config/agent-addons.ts). */
   addons?: Record<string, number>;
   tiers?: Record<string, { price?: number; setupFrom?: number }>;
-  /** Per-agent solo monthly HT (annual derived as 10 × monthly) + onboarding. */
+  /** Per-agent solo monthly HT (annual = 12 × monthly × (1 − discount)) + onboarding. */
   solo?: Record<string, { price?: number; priceAnnual?: number; setupFrom?: number }>;
 };
 
@@ -54,12 +54,14 @@ export function applyAgentsOverrides(o: AgentsPricingOverrides | null | undefine
       const to = o.solo[id];
       const cur = p.solo[id];
       if (!to || !cur) continue;
-      if (isPrice(to.price)) {
-        cur.price = to.price;
-        cur.priceAnnual = isPrice(to.priceAnnual) ? to.priceAnnual : agentAnnualFromMonthly(to.price);
-      }
+      if (isPrice(to.price)) cur.price = to.price;
       if (isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
     }
+  }
+  // Annual packages always follow the live discount rate.
+  for (const id of Object.keys(p.solo)) {
+    const cur = p.solo[id];
+    if (cur) cur.priceAnnual = agentAnnualFromMonthly(cur.price, p.annualDiscount);
   }
   return p;
 }

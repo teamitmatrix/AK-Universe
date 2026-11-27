@@ -11,6 +11,7 @@ import {
   AGENTS_CATALOG_KEY,
   type CatalogAgent,
 } from "@/config/agents-catalog";
+import { agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { createPublicClient } from "@/lib/supabase/server";
 
 export { AGENT_ICON_CHOICES, AGENTS_CATALOG_KEY, type CatalogAgent } from "@/config/agents-catalog";
@@ -180,7 +181,7 @@ export function catalogAgentToAgent(c: CatalogAgent): Agent {
     integrations: c.integrations,
     demo: c.demo,
     priceMonthly: priceMonthly ?? null,
-    priceAnnual: priceMonthly != null ? Math.round(priceMonthly * 10 * 100) / 100 : null,
+    priceAnnual: priceMonthly != null ? agentAnnualFromMonthly(priceMonthly) : null,
     setupFrom: c.setupFrom ?? null,
     creditsLabel: undefined,
     capacityLabel: undefined,
@@ -202,13 +203,13 @@ async function withSoloPrices(list: Agent[]): Promise<Agent[]> {
     }
     const live = pricing.solo[agent.id] ?? {
       price: def.price,
-      priceAnnual: def.priceAnnual,
+      priceAnnual: agentAnnualFromMonthly(def.price, pricing.annualDiscount),
       setupFrom: def.setupFrom,
     };
     return {
       ...agent,
       priceMonthly: live.price,
-      priceAnnual: live.priceAnnual,
+      priceAnnual: agentAnnualFromMonthly(live.price, pricing.annualDiscount),
       setupFrom: live.setupFrom,
       creditsLabel: def.credits,
       capacityLabel: def.capacity,

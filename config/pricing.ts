@@ -1,5 +1,5 @@
 import { AGENT_ADDONS, type AddonId } from "@/config/agent-addons";
-import { AGENT_SUBSCRIPTIONS, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
+import { AGENT_SUBSCRIPTIONS, DEFAULT_ANNUAL_DISCOUNT, agentAnnualFromMonthly } from "@/config/agent-subscriptions";
 import { agents as SITE_AGENTS } from "@/config/agents";
 
 /** Agents IA subscription pricing (from abonnement.html / main.js). Amounts are EUR excl. VAT. */
@@ -12,7 +12,7 @@ export const PLAN = {
 
 /**
  * Offers shown on /agents-ia#tarifs (also read by the site chatbot + admin catalogue).
- * price / setupFrom null = on quote. priceAnnual is the billed yearly package (HT).
+ * price / setupFrom null = on quote. priceAnnual is the billed yearly package (HT, −20 % by default).
  * The client space (/client/dashboard/mon-offre) switches between these plans, lower → higher.
  * `id` is stored in subscriptions.plan; `agents` = AI agents included (null = unlimited / on quote).
  */
@@ -24,7 +24,7 @@ export const AGENT_TIERS = [
     automations: "Essentielles",
     desc: "Nora : jusqu'à 500 interactions support · Léa : jusqu'à 250 tâches d'assistant · Éva : jusqu'à 1 250 requêtes knowledge.",
     price: 89,
-    priceAnnual: 890,
+    priceAnnual: agentAnnualFromMonthly(89),
     setupFrom: 290,
     features: [
       "Agents inclus : Nora, Léa, Éva",
@@ -40,7 +40,7 @@ export const AGENT_TIERS = [
     automations: "Avancées",
     desc: "Adam : jusqu'à 200 prospects recherchés · Hugo : jusqu'à 250 suivis · Jade : jusqu'à 50 posts sociaux · Sacha : jusqu'à 25 tâches SEO.",
     price: 169,
-    priceAnnual: 1690,
+    priceAnnual: agentAnnualFromMonthly(169),
     setupFrom: 490,
     popular: true,
     features: [
@@ -57,7 +57,7 @@ export const AGENT_TIERS = [
     automations: "Personnalisées",
     desc: "Nora : 500 interactions support · Léa : 250 tâches · Adam : 150 prospects · Hugo : 200 suivis · Inès : 100 candidatures · Noé : 200 factures · Éva : 1 000 requêtes knowledge.",
     price: 249,
-    priceAnnual: 2490,
+    priceAnnual: agentAnnualFromMonthly(249),
     setupFrom: 690,
     features: [
       "Agents inclus : Nora, Léa, Adam, Hugo, Inès, Noé, Éva",
@@ -73,7 +73,7 @@ export const AGENT_TIERS = [
     automations: "Complètes",
     desc: "8 000 crédits partagés sur les 11 agents, plus 350 minutes voix Milo. Caps indicatifs : 200 prospects, 50 tâches SEO, 50 documents juridiques et 350 minutes voix ; le reste est flexible.",
     price: 499,
-    priceAnnual: 4990,
+    priceAnnual: agentAnnualFromMonthly(499),
     setupFrom: 990,
     features: [
       "Les 11 agents inclus",
@@ -104,7 +104,7 @@ export const AGENT_TIERS = [
 
 export const USER_PRICE = 9.9;
 export const MAX_EXTRA_USERS = 500;
-export const ANNUAL_DISCOUNT = 0.2;
+export const ANNUAL_DISCOUNT = DEFAULT_ANNUAL_DISCOUNT;
 
 export type Cycle = "mensuel" | "annuel";
 
@@ -147,7 +147,7 @@ export type AgentsPricing = {
   addons: Record<AddonId, number>;
   /** Tier name → monthly price and set-up fee (null = on quote). */
   tiers: Record<string, { price: number | null; setupFrom: number | null }>;
-  /** Per-agent solo subscription (monthly HT); annual = 10 × monthly; setupFrom = onboarding. */
+  /** Per-agent solo subscription (monthly HT); annual = 12 × monthly × (1 − annualDiscount); setupFrom = onboarding. */
   solo: Record<string, { price: number; priceAnnual: number; setupFrom: number }>;
 };
 
@@ -203,14 +203,16 @@ export function normalizeAgentsPricing(input?: Partial<AgentsPricing> | null): A
       )[id];
       const cur = base.solo[id];
       if (!to || !cur) continue;
-      if (isPrice(to.price)) {
-        cur.price = to.price;
-        cur.priceAnnual = isPrice(to.priceAnnual) ? to.priceAnnual : agentAnnualFromMonthly(to.price);
-      } else if (isPrice(to.priceAnnual)) {
-        cur.priceAnnual = to.priceAnnual;
-      }
+      if (isPrice(to.price)) cur.price = to.price;
       if (isPrice(to.setupFrom)) cur.setupFrom = to.setupFrom;
+      // Annual always follows the catalogue discount (ignore stale stored priceAnnual).
+      cur.priceAnnual = agentAnnualFromMonthly(cur.price, base.annualDiscount);
     }
+  }
+  // Keep every solo annual in sync when only the discount changed.
+  for (const id of Object.keys(base.solo)) {
+    const cur = base.solo[id];
+    if (cur) cur.priceAnnual = agentAnnualFromMonthly(cur.price, base.annualDiscount);
   }
   return base;
 }
@@ -247,7 +249,7 @@ export type CheckoutPlan = {
   id: string;
   name: string;
   monthly: number;
-  /** Yearly package HT. Null = monthly × 12 with the annual discount. */
+  /** Yearly package HT (monthly × 12 × (1 − discount)). Null = compute at quote time. */
   annualPackage: number | null;
   setup: number;
   features: readonly string[];
@@ -277,7 +279,7 @@ export function checkoutPlan(id: string | null | undefined, pricing: AgentsPrici
       id: tier.id,
       name: tier.name,
       monthly,
-      annualPackage: tier.priceAnnual,
+      annualPackage: agentAnnualFromMonthly(monthly, rates.annualDiscount),
       setup: live?.setupFrom ?? tier.setupFrom ?? 0,
       features: tier.features,
     };
@@ -287,7 +289,7 @@ export function checkoutPlan(id: string | null | undefined, pricing: AgentsPrici
   const live = rates.solo[id];
   if (!def && !live) return null;
   const monthly = live?.price ?? def!.price;
-  const annual = live?.priceAnnual ?? def?.priceAnnual ?? agentAnnualFromMonthly(monthly);
+  const annual = agentAnnualFromMonthly(monthly, rates.annualDiscount);
   const setup = live?.setupFrom ?? def?.setupFrom ?? 0;
   const site = SITE_AGENTS.find((a) => a.id === id);
   const name = site?.name ?? id.charAt(0).toUpperCase() + id.slice(1);

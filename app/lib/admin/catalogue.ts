@@ -109,7 +109,7 @@ export async function loadCatalogue() {
     if (!def) continue;
     const stored = agents.solo[agent.id];
     const livePrice = stored?.price ?? def.price;
-    const liveAnnual = stored?.priceAnnual ?? def.priceAnnual;
+    const liveAnnual = agentAnnualFromMonthly(livePrice, agents.annualDiscount);
     const liveSetup = stored?.setupFrom ?? def.setupFrom;
     const id = `solo:${agent.id}`;
     rows.push(
@@ -133,7 +133,7 @@ export async function loadCatalogue() {
               key: `a:solo:${agent.id}:annual`,
               label: "annual",
               value: liveAnnual,
-              default: def.priceAnnual,
+              default: agentAnnualFromMonthly(def.price),
               unit: "eurYear",
             },
             {
@@ -155,7 +155,7 @@ export async function loadCatalogue() {
     const id = `agent:${agent.id}`;
     const fields: CatalogueField[] = [];
     const monthly = agent.priceMonthly ?? 0;
-    const annual = agentAnnualFromMonthly(monthly);
+    const annual = agentAnnualFromMonthly(monthly, agents.annualDiscount);
     const setup = agent.setupFrom ?? 199;
     fields.push({
       key: `s:agent:${agent.id}:price`,
@@ -201,7 +201,8 @@ export async function loadCatalogue() {
     if (!cur || tier.price === null) continue;
     const id = `tier:${tier.name}`;
     const setupValue = tier.setupFrom !== null ? (cur.setupFrom ?? tier.setupFrom) : null;
-    const annualValue = "priceAnnual" in tier && tier.priceAnnual != null ? tier.priceAnnual : null;
+    const monthlyValue = cur.price ?? tier.price ?? 0;
+    const annualValue = tier.price != null ? agentAnnualFromMonthly(monthlyValue, agents.annualDiscount) : null;
     rows.push(
       row(
         {
@@ -212,14 +213,14 @@ export async function loadCatalogue() {
           detail: tier.features.slice(0, 3).join(" · "),
           href: "/agents-ia#tarifs",
           fields: [
-            { key: `a:tier:${tier.name}:price`, label: "monthly", value: cur.price ?? 0, default: tier.price, unit: "eurMonth" },
+            { key: `a:tier:${tier.name}:price`, label: "monthly", value: monthlyValue, default: tier.price, unit: "eurMonth" },
             ...(annualValue != null
               ? [
                   {
                     key: `a:tier:${tier.name}:annual`,
                     label: "annual" as const,
                     value: annualValue,
-                    default: annualValue,
+                    default: agentAnnualFromMonthly(tier.price),
                     unit: "eurYear" as const,
                   },
                 ]
@@ -406,7 +407,7 @@ export async function loadCatalogue() {
       id: "rule:annual",
       category: "regles" as const,
       name: "Remise paiement annuel",
-      detail: "Abonnement Agents IA, 12 mois payés d'avance",
+      detail: "Appliquée à tous les abonnements Agents IA (annuel = 12 × mensuel × (1 − remise))",
       fields: [{ key: "a:annual", label: "percent" as const, value: Math.round(agents.annualDiscount * 100), default: 20, unit: "pct" as const }],
     },
   ]) {

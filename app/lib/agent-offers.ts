@@ -26,14 +26,14 @@ export async function getAgentOffers(): Promise<AgentOffer[]> {
     if (commercial[`solo:${agent.id}`]?.hidden) continue;
     const live = pricing.solo[agent.id] ?? {
       price: def.price,
-      priceAnnual: def.priceAnnual,
+      priceAnnual: agentAnnualFromMonthly(def.price, pricing.annualDiscount),
       setupFrom: def.setupFrom,
     };
     offers.push({
       id: agent.id,
       name: agent.name,
       price: live.price,
-      priceAnnual: live.priceAnnual,
+      priceAnnual: agentAnnualFromMonthly(live.price, pricing.annualDiscount),
       setupFrom: live.setupFrom,
       credits: def.credits,
       capacity: def.capacity,
@@ -48,7 +48,7 @@ export async function getAgentOffers(): Promise<AgentOffer[]> {
       id: agent.id,
       name: agent.name,
       price: agent.priceMonthly,
-      priceAnnual: agentAnnualFromMonthly(agent.priceMonthly),
+      priceAnnual: agentAnnualFromMonthly(agent.priceMonthly, pricing.annualDiscount),
       setupFrom: agent.setupFrom ?? 199,
       credits: "Crédits selon offre",
       capacity: agent.role,

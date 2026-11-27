@@ -56,15 +56,10 @@ export function AgentPricing({
     const live = rates.tiers[tier.name] ?? { price: tier.price, setupFrom: tier.setupFrom };
     const monthly = live.price;
     const setupFrom = live.setupFrom;
-    const annualPrice = "priceAnnual" in tier ? tier.priceAnnual : null;
-    const display =
-      monthly == null ? null : annual && annualPrice != null ? annualPrice : monthly;
-    const yearlyNote =
-      monthly != null && annualPrice != null
-        ? formatTierPrice(annualPrice)
-        : monthly != null
-          ? formatTierPrice(Math.round(monthly * 12 * (1 - rates.annualDiscount) * 100) / 100)
-          : "";
+    const annualPrice =
+      monthly == null ? null : Math.round(monthly * 12 * (1 - rates.annualDiscount) * 100) / 100;
+    const display = monthly == null ? null : annual && annualPrice != null ? annualPrice : monthly;
+    const yearlyNote = annualPrice != null ? formatTierPrice(annualPrice) : "";
     return [
       {
         ...tier,

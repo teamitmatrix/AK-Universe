@@ -125,25 +125,39 @@ async function writeCatalogue(entries: [string, number][]): Promise<Result> {
       agentsTouched = true;
       if (kind === "plan") agents.planMonthly = v;
       else if (kind === "user") agents.userPrice = v;
-      else if (kind === "annual") agents.annualDiscountPercent = Math.min(90, v);
-      else if (kind === "opt" && OPTIONS.some((o) => o.id === id)) agents.options[id!] = v;
+      else if (kind === "annual" && !id) {
+        // Catalogue rule « Remise paiement annuel » (a:annual) — percent 0–90.
+        agents.annualDiscountPercent = Math.min(90, v);
+        const discount = agents.annualDiscountPercent / 100;
+        if (agents.solo) {
+          for (const soloId of Object.keys(agents.solo)) {
+            const s = agents.solo[soloId];
+            if (s && typeof s.price === "number") {
+              agents.solo[soloId] = { ...s, priceAnnual: agentAnnualFromMonthly(s.price, discount) };
+            }
+          }
+        }
+      } else if (kind === "opt" && OPTIONS.some((o) => o.id === id)) agents.options[id!] = v;
       else if (kind === "addon" && AGENT_ADDONS.some((a) => a.id === id)) agents.addons![id!] = v;
       else if (kind === "tier" && AGENT_TIERS.some((t) => t.name === id && t.price !== null) && (part === "price" || part === "setup"))
         agents.tiers[id!] = { ...agents.tiers[id!], [part === "price" ? "price" : "setupFrom"]: v };
-      else if (kind === "solo" && id && (part === "price" || part === "setup" || part === "annual") && id in AGENT_SUBSCRIPTIONS) {
+      else if (kind === "tier" && part === "annual") {
+        // Annual is derived from monthly × discount — ignore direct edits.
+        continue;
+      } else if (kind === "solo" && id && (part === "price" || part === "setup" || part === "annual") && id in AGENT_SUBSCRIPTIONS) {
+        if (part === "annual") continue; // derived from monthly + Remise paiement annuel
+        const discount = Math.min(90, agents.annualDiscountPercent ?? 20) / 100;
         const prev = agents.solo?.[id] ?? {
           price: AGENT_SUBSCRIPTIONS[id]!.price,
-          priceAnnual: AGENT_SUBSCRIPTIONS[id]!.priceAnnual,
+          priceAnnual: agentAnnualFromMonthly(AGENT_SUBSCRIPTIONS[id]!.price, discount),
           setupFrom: AGENT_SUBSCRIPTIONS[id]!.setupFrom,
         };
         agents.solo = {
           ...(agents.solo ?? {}),
           [id]:
             part === "price"
-              ? { ...prev, price: v, priceAnnual: agentAnnualFromMonthly(v) }
-              : part === "annual"
-                ? { ...prev, priceAnnual: v }
-                : { ...prev, setupFrom: v },
+              ? { ...prev, price: v, priceAnnual: agentAnnualFromMonthly(v, discount) }
+              : { ...prev, setupFrom: v },
         };
       } else return { success: false, error: "invalid" };
     } else if (scope === "d") {
