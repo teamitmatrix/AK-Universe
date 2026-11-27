@@ -28,20 +28,21 @@ export function AgreementsTable({ rows }: { rows: AgreementSummary[] }) {
   const [query, setQuery] = useState("");
   const [type, setType] = useState<(typeof TYPES)[number]["id"]>("all");
   const [period, setPeriod] = useState<(typeof DATES)[number]["id"]>("all");
+  const [now] = useState(() => Date.now());
 
   const orders = rows.filter((row) => agreementType(row.kind) === "commande").length;
   const plans = rows.length - orders;
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const cutoff = period === "all" ? null : Date.now() - Number(period) * 24 * 60 * 60 * 1000;
+    const cutoff = period === "all" ? null : now - Number(period) * 24 * 60 * 60 * 1000;
     return rows.filter((row) => {
       if (type !== "all" && agreementType(row.kind) !== type) return false;
       if (cutoff !== null && new Date(row.accepted_at).getTime() < cutoff) return false;
       if (!needle) return true;
       return agreementReference(row).toLowerCase().includes(needle);
     });
-  }, [rows, query, type, period]);
+  }, [rows, query, type, period, now]);
 
   return (
     <div className="cs-contracts">

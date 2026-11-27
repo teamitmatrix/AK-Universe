@@ -413,7 +413,7 @@ function marginPct(
 }
 
 /** Same mapping as sales catalogue: Agents IA · Marketing · Digital. */
-function productTypeFor(category: string, _monthly: boolean): ProductType | null {
+function productTypeFor(category: string): ProductType | null {
   if (category === "regles") return null;
   if (category === "agents" || category === "abonnement" || category === "addons") return "agents";
   if (category === "marketing") return "marketing";
@@ -725,8 +725,8 @@ export function CatalogueEditor({
                   : 0;
                 const showMonthly = !!(com?.hasMonthly || monthlyField);
                 const showSetup = !!(com?.hasSetup || setupField);
-                const typeMonthly = productTypeFor(r.category, true);
-                const typeSetup = productTypeFor(r.category, false);
+                const typeMonthly = productTypeFor(r.category);
+                const typeSetup = productTypeFor(r.category);
                 const commissionMonthly = showMonthly && typeMonthly ? rates[typeMonthly] : null;
                 const commissionSetup = showSetup && typeSetup ? rates[typeSetup] : null;
 

@@ -16,7 +16,6 @@ const euros = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 
  */
 export function AgentAddToCart({
   agentId,
-  name,
   priceMonthly,
   priceAnnual,
   setupFrom,
@@ -26,7 +25,8 @@ export function AgentAddToCart({
   signedIn = false,
 }: {
   agentId: string;
-  name: string;
+  /** Kept for callers; display name lives on the agent page around this box. */
+  name?: string;
   priceMonthly: number;
   priceAnnual: number | null;
   setupFrom?: number | null;
