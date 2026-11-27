@@ -79,3 +79,32 @@ export function thumbnailOf(raw: string, provider: Provider = providerOf(raw) ??
   }
   return null;
 }
+
+/** Best-effort download URL for an external storage link (AK Universe never hosts the file). */
+export function downloadUrlOf(raw: string, provider: Provider = providerOf(raw) ?? "google_drive"): string {
+  const value = String(raw ?? "").trim();
+  if (!value) return value;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return value;
+  }
+  if (provider === "google_drive") {
+    const fromPath = url.pathname.match(/\/(?:file|document|presentation|spreadsheets)\/d\/([^/]+)/)?.[1];
+    const id = fromPath || url.searchParams.get("id");
+    return id ? `https://drive.google.com/uc?export=download&id=${encodeURIComponent(id)}` : value;
+  }
+  if (provider === "dropbox") {
+    url.searchParams.set("dl", "1");
+    url.searchParams.delete("raw");
+    return url.toString();
+  }
+  if (provider === "onedrive") {
+    // Shared OneDrive links often accept download=1.
+    if (!url.searchParams.has("download")) url.searchParams.set("download", "1");
+    return url.toString();
+  }
+  // Frame.io / WeTransfer: open the provider page (no stable public download rewrite).
+  return value;
+}

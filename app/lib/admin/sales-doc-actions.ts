@@ -7,7 +7,8 @@ import { notifyDocumentIssued, sendDocumentEmailToClient } from "@/lib/commercia
 import { ensureCustomerForRep } from "@/lib/commercial/ensure-customer";
 import { parseSalesDocInput, type DocInput } from "@/lib/commercial/sales-doc-actions";
 import { loadSalesDocById, type SalesDoc } from "@/lib/commercial/sales-docs";
-import { createClient } from "@/lib/supabase/server";
+import { audit } from "@/lib/admin/audit";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 /*
  * Admin create/update for devis & factures. Same validation as the commercial space; the admin
@@ -65,6 +66,7 @@ export async function saveAdminSalesDocument(
   const customer_id = await ensureCustomerForRep({
     salespersonId,
     name: row.client_name,
+    company: row.client_name,
     email: row.client_email,
   });
   const { data, error } = await supabase
@@ -111,6 +113,7 @@ export async function updateAdminSalesDocument(
   const customer_id = await ensureCustomerForRep({
     salespersonId,
     name: row.client_name,
+    company: row.client_name,
     email: row.client_email,
   });
   const { kind: _kind, ...changes } = row;
@@ -134,17 +137,41 @@ export async function updateAdminSalesDocument(
   return { success: true, id };
 }
 
-/** Delete a draft devis/facture (issued documents stay for accounting history). */
+/** Delete a draft, or an accepted quote (admin tests). Issued invoices stay. */
 export async function deleteAdminSalesDocument(id: string): Promise<{ success: true } | Fail> {
   if (!(await getAdminIdentity())) return fail("forbidden");
   if (!isUuid(id)) return fail("invalid");
   const supabase = await createClient();
-  const { data, error } = await supabase.from("sales_documents").delete().eq("id", id).eq("status", "brouillon").select("id");
+  const { data: row, error: readError } = await supabase
+    .from("sales_documents")
+    .select("id, kind, status, number")
+    .eq("id", id)
+    .maybeSingle();
+  if (readError) {
+    console.error("deleteAdminSalesDocument read failed:", readError.message);
+    return fail("failed");
+  }
+  if (!row) return fail("notFound");
+  const acceptedQuote = row.kind === "devis" && row.status === "validee";
+  if (row.status !== "brouillon" && !acceptedQuote) return fail("locked");
+
+  // Accepted quotes are blocked by the draft-only RLS policy; the service role is used only after the admin check.
+  let writer = supabase;
+  if (acceptedQuote) {
+    try {
+      writer = createAdminClient();
+    } catch (cause) {
+      console.error("deleteAdminSalesDocument needs the service role:", cause);
+      return fail("failed");
+    }
+  }
+  const { data, error } = await writer.from("sales_documents").delete().eq("id", id).eq("status", row.status).select("id");
   if (error) {
     console.error("deleteAdminSalesDocument failed:", error.message);
     return fail("failed");
   }
   if (!data?.length) return fail("locked");
+  await audit("sales.delete", String(row.number ?? id), { id, kind: row.kind, status: row.status });
   revalidate();
   return { success: true };
 }

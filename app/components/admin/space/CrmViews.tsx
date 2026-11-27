@@ -417,7 +417,7 @@ export function VentesView({ lang, admin, data, filter }: { lang: Lang; admin: A
                       </td>
                       <td data-label={v.cols.product}>{r.product}</td>
                       <td data-label={v.cols.commercial}>
-                        {r.type === "abonnement" && r.subscriptionId ? (
+                        {r.type === "agents" && r.subscriptionId ? (
                           <SubscriptionAssign
                             subscriptionId={r.subscriptionId}
                             value={r.commercialId}

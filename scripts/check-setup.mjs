@@ -79,14 +79,25 @@ if (env.STRIPE_SECRET_KEY) {
 
     const hooks = await getJson("https://api.stripe.com/v1/webhook_endpoints?limit=100", headers);
     const target = `${site}/api/stripe/webhook`;
-    const hook = hooks.body?.data?.find((h) => h.url === target);
-    const needed = ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted"];
+    const hook = hooks.body?.data?.find((h) => h.url === target) ?? hooks.body?.data?.find((h) => /\/api\/stripe\/webhook\/?$/.test(h.url ?? ""));
+    const needed = ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"];
     if (!hook) fail(`aucun webhook vers ${target}`);
     else {
+      if (hook.url !== target) warn(`webhook URL = ${hook.url} (attendu : ${target})`);
+      try {
+        const siteHost = new URL(site).hostname;
+        const hookHost = new URL(hook.url).hostname;
+        if (siteHost !== hookHost) warn(`hôte webhook (${hookHost}) ≠ NEXT_PUBLIC_SITE_URL (${siteHost}) — Stripe échoue en TLS si le certificat ne couvre pas cet hôte`);
+        if (hookHost.startsWith("www.") && !siteHost.startsWith("www.")) {
+          warn("webhook en www. alors que le site est en apex — souvent hors certificat → TLS error Stripe");
+        }
+      } catch {
+        /* ignore bad URLs */
+      }
       const missing = hook.enabled_events.includes("*") ? [] : needed.filter((e) => !hook.enabled_events.includes(e));
       if (hook.status !== "enabled") fail("webhook désactivé");
       else if (missing.length) fail(`webhook sans les événements : ${missing.join(", ")}`);
-      else ok("webhook configuré (3 événements)");
+      else ok("webhook configuré (événements requis)");
     }
 
     const portal = await getJson("https://api.stripe.com/v1/billing_portal/configurations?limit=1", headers);

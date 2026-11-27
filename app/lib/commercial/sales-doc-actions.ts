@@ -155,10 +155,11 @@ export async function saveSalesDocument(id: string | null, input: DocInput): Pro
   const row = await parseSalesDocInput(input);
   if (!row) return fail("invalid");
   const supabase = await createClient();
-  // Register the client in « Customers » (create or reuse by e-mail) so the next devis can pick them.
+  // Register the client in « Customers » (reuse by company, else e-mail) so the next devis can pick them.
   const customer_id = await ensureCustomerForRep({
     salespersonId: me.id,
     name: row.client_name,
+    company: row.client_name,
     email: row.client_email,
   });
 

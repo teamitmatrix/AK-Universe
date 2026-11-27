@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Euro, FileText, FolderOpen, Layers, LayoutDashboard, Tag, User, Users, type LucideIcon } from "lucide-react";
+import { Calendar, Euro, ExternalLink, FileText, FolderOpen, Layers, LayoutDashboard, Tag, User, Users, type LucideIcon } from "lucide-react";
 import { useLang } from "@/components/ui/LangSwitch";
 import { COMMERCIAL_NAV, type CommercialNavId } from "@/lib/commercial/nav";
 import { comTextFor } from "./comText";
@@ -45,6 +45,10 @@ export function CommercialNav() {
           </Link>
         );
       })}
+      <Link href="/">
+        <ExternalLink size={17} aria-hidden="true" />
+        {t.nav.site}
+      </Link>
     </nav>
   );
 }

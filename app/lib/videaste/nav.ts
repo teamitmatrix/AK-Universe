@@ -9,6 +9,7 @@ export const VIDEASTE_NAV = [
   { id: "aMonter", label: "À monter", href: "/videaste/a-monter", ready: true },
   { id: "retours", label: "Retours clients", href: "/videaste/retours-clients", ready: true },
   { id: "fichiers", label: "Fichiers", href: "/videaste/fichiers", ready: true },
+  { id: "tarifs", label: "Tarifs", href: "/videaste/tarifs", ready: true },
   { id: "agenda", label: "Agenda", href: "/videaste/agenda", ready: true },
   { id: "profil", label: "Mon profil", href: "/videaste/mon-profil", ready: true },
 ] as const;

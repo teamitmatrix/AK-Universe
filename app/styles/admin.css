@@ -34,6 +34,7 @@ body:has(.adm) .lang-float {
   --adm-info-bg: #e8f1fe;
   --adm-radius: 14px;
   --adm-shadow: 0 1px 2px rgba(15, 27, 51, 0.05), 0 4px 16px rgba(15, 27, 51, 0.04);
+  --adm-row-hover: #f8fafd;
 
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
@@ -831,8 +832,13 @@ body:has(.adm) .lang-float {
 .adm-table tbody tr:last-child td {
   border-bottom: 0;
 }
-.adm-table tbody tr:hover td {
-  background: #f8fafd;
+.adm-table tbody tr:hover td,
+.adm-table tbody tr:active td,
+.adm-table tbody tr:focus-within td {
+  background: var(--adm-row-hover);
+}
+.adm-table tbody tr {
+  color: var(--adm-text);
 }
 .adm-table .num {
   text-align: right;
@@ -2150,6 +2156,30 @@ td > .adm-badge:first-child {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.adm-legacy .dur-extra {
+  gap: 12px;
+}
+.adm-legacy .dur-extra-label {
+  flex: 1 1 7.5rem;
+  min-width: 0;
+}
+.adm-legacy .dur-extra-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: 1 1 16rem;
+}
+.adm-legacy .dur-slider {
+  width: 140px;
+  max-width: 180px;
+  flex: 1 1 120px;
+  accent-color: var(--adm-accent);
+  cursor: pointer;
+}
+.adm-legacy .dur-extra-ctrl input[type="number"] {
+  width: 72px;
+}
 .adm-legacy .admin input[type="number"],
 .adm-legacy .admin input[type="date"],
 .adm-legacy .admin input[type="text"],
@@ -2512,4 +2542,79 @@ a.adm-me:focus-visible .adm-me-edit {
 @media (max-width: 720px) {
   .com-line { grid-template-columns: auto minmax(0, 1fr) auto; }
   .com-price, .com-fixed, .com-rate { grid-column: 2; }
+}
+
+/* Videaste rate cards (admin detail + shared class names with videaste.css) */
+.vid-rate-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--adm-line);
+}
+.vid-rate-drafts {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-drafts > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(100px, 0.6fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: var(--adm-surface);
+}
+.vid-rate-drafts .is-wide { grid-column: 1 / -2; }
+.vid-rate-cards {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-card > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.vid-rate-card > header > div { display: grid; gap: 2px; }
+.vid-rate-items {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-items > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: var(--adm-surface);
+}
+.vid-rate-items .adm-stack { flex: 1 1 160px; min-width: 0; }
+.vid-rate-amount {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-accent);
+}
+.vid-rate-items .adm-badge {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .vid-rate-drafts > li { grid-template-columns: minmax(0, 1fr); }
+  .vid-rate-drafts .is-wide { grid-column: auto; }
 }

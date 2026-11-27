@@ -1,5 +1,6 @@
 import "server-only";
 import { MARKETING_CATEGORIES } from "@/config/marketing";
+import { PROJECT_UNIVERSE_LABELS, resolveProjectUniverse } from "@/lib/projects/universe";
 import { createClient } from "@/lib/supabase/server";
 import { getVideoConfig } from "@/lib/video-config";
 import { loadCommerciaux, loadVideastes, PAID, selectProjects } from "./team";
@@ -10,6 +11,8 @@ import { loadCommerciaux, loadVideastes, PAID, selectProjects } from "./team";
  *                                         + paid subscription payments
  *   revenue trend                       ← paid payments per month (real, not simulated)
  *   team performance                    ← the same loaders as the Commerciaux / Vidéastes pages
+ *
+ * Top-level categories are the three site universes (Agents IA · Marketing · Digital).
  */
 
 export const REPORT_PERIODS = ["mois", "3m", "12m", "tout"] as const;
@@ -31,10 +34,10 @@ export async function loadReports(period: ReportPeriod, now = new Date()) {
   ]);
   const payments = (paymentsRes.data ?? []) as { kind: string; amount_cents: number; created_at: string; project_id: string | null; user_id: string | null }[];
 
-  // Category of each sold line: video service → its marketing category; "Forfait …" → marketing packages.
+  // Sub-label within Marketing for video services / forfaits (still rolled into Marketing totals).
   const slugByName = new Map(cfg.services.map((s) => [s.name, s.slug]));
   const categoryBySlug = new Map(MARKETING_CATEGORIES.flatMap((c) => c.slugs.map((slug) => [slug, c.name] as const)));
-  const categoryOf = (service: string) => {
+  const marketingDetailOf = (service: string) => {
     if (service.startsWith("Forfait ")) return "Forfaits marketing";
     const slug = slugByName.get(service);
     return (slug && categoryBySlug.get(slug)) || "Vidéos — autres";
@@ -59,9 +62,14 @@ export async function loadReports(period: ReportPeriod, now = new Date()) {
     if (!inPeriod(date)) continue;
     salesCount += 1;
     revenueCents += p.total_cents;
+    const universe = resolveProjectUniverse(p.universe, p.items);
+    const universeLabel = PROJECT_UNIVERSE_LABELS[universe];
     for (const item of p.items ?? []) {
       const cents = Math.round(Number(item.price) * 100) || 0;
-      const cat = categoryOf(item.service);
+      const cat =
+        universe === "marketing"
+          ? `${universeLabel} · ${marketingDetailOf(item.service)}`
+          : universeLabel;
       byCategory.set(cat, (byCategory.get(cat) ?? 0) + cents);
       const prod = byProduct.get(item.service) ?? { cents: 0, count: 0 };
       byProduct.set(item.service, { cents: prod.cents + cents, count: prod.count + 1 });
@@ -76,7 +84,8 @@ export async function loadReports(period: ReportPeriod, now = new Date()) {
     if (!inPeriod(pay.created_at)) continue;
     salesCount += 1;
     revenueCents += pay.amount_cents;
-    byCategory.set("Abonnements Agents IA", (byCategory.get("Abonnements Agents IA") ?? 0) + pay.amount_cents);
+    const agentsLabel = PROJECT_UNIVERSE_LABELS.agents;
+    byCategory.set(agentsLabel, (byCategory.get(agentsLabel) ?? 0) + pay.amount_cents);
     const prod = byProduct.get("Abonnement Agents IA") ?? { cents: 0, count: 0 };
     byProduct.set("Abonnement Agents IA", { cents: prod.cents + pay.amount_cents, count: prod.count + 1 });
   }

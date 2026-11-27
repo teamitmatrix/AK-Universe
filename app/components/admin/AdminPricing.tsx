@@ -8,6 +8,8 @@ import { useToast } from "@/components/ui/Toast";
 import { adminTextFor } from "./adminText";
 
 const num = (v: string) => Math.max(0, Number(v) || 0);
+/** Slider range for a duration supplement. Grows if a saved extra is already above the default cap. */
+const durationMax = (extra: number) => Math.max(2000, Math.ceil(extra / 10) * 10);
 
 /** admin.html rebuilt: same tables, but prices are saved to Supabase instead of downloading a file. */
 export function AdminPricing({ initial }: { initial: VideoConfig }) {
@@ -168,20 +170,32 @@ export function AdminPricing({ initial }: { initial: VideoConfig }) {
               <td>
                 {s.durations ? (
                   s.durations.map((dur, di) => (
-                    <div key={dur.label} className="opt-row">
-                      {dur.label}{" "}
-                      <span>
-                        +{" "}
+                    <div key={dur.label} className="opt-row dur-extra">
+                      <span className="dur-extra-label">{dur.label}</span>
+                      <span className="dur-extra-ctrl">
                         <input
-                          type="number"
+                          type="range"
+                          className="dur-slider"
                           min={0}
+                          max={durationMax(dur.extra)}
                           step={10}
-                          id={`duration-${s.slug}-${di}`}
-                          name={`duration-${s.slug}-${di}`}
                           value={dur.extra}
+                          aria-label={`${s.name} — ${dur.label}`}
                           onChange={(e) => update((d) => void (d.services[si].durations![di].extra = num(e.target.value)))}
-                        />{" "}
-                        €
+                        />
+                        <span>
+                          +{" "}
+                          <input
+                            type="number"
+                            min={0}
+                            step={10}
+                            id={`duration-${s.slug}-${di}`}
+                            name={`duration-${s.slug}-${di}`}
+                            value={dur.extra}
+                            onChange={(e) => update((d) => void (d.services[si].durations![di].extra = num(e.target.value)))}
+                          />{" "}
+                          €
+                        </span>
                       </span>
                     </div>
                   ))

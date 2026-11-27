@@ -42,7 +42,7 @@ export const getTerms = cache(async (): Promise<TermsDoc> => {
 export async function renderTermsHtml(bodyHtml?: string): Promise<string> {
   const [terms, company] = await Promise.all([getTerms(), getCompany()]);
   const html = sanitizeTermsHtml(bodyHtml ?? terms.bodyHtml);
-  const host = company.website.replace(/^https?:\/\//, "").replace(/\/$/, "") || "www.akuniverse.com";
+  const host = company.website.replace(/^https?:\/\//, "").replace(/\/$/, "") || "akuniverse.com";
   const map: Record<string, string> = {
     legalName: company.legalName,
     address: company.address,

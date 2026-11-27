@@ -99,10 +99,21 @@ export async function startSubscriptionCheckout(input: {
     privacy_accepted_at: termsAcceptedAt,
   };
   let { data: subscription, error } = await admin.from("subscriptions").insert(subscriptionRow).select("id").single();
-  // Before migration 016, plan_price_cents does not exist yet.
-  if (error && /plan_price_cents/.test(error.message)) {
-    const { plan_price_cents: _locked, ...legacy } = subscriptionRow;
+  // Older databases may still lack plan_price_cents (016) or privacy_* (025).
+  if (error && /plan_price_cents|privacy_/.test(error.message)) {
+    const {
+      plan_price_cents: _locked,
+      privacy_accepted: _pa,
+      privacy_version: _pv,
+      privacy_label: _pl,
+      privacy_accepted_at: _pat,
+      ...legacy
+    } = subscriptionRow;
     void _locked;
+    void _pa;
+    void _pv;
+    void _pl;
+    void _pat;
     ({ data: subscription, error } = await admin.from("subscriptions").insert(legacy).select("id").single());
   }
   if (error || !subscription) {

@@ -1,7 +1,10 @@
 import { euros } from "@/components/commercial/financeUi";
-import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/commercial/commission-rules";
+import { PRODUCT_TYPE_LABELS, type ProductType } from "@/lib/commercial/commission-rules";
 import { loadMyProfile } from "@/lib/commercial/finance";
 import { requireCommercial } from "@/lib/commercial/session";
+
+/** Rates shown to reps: site universes only (Agents IA, Marketing, Digital). */
+const PROFILE_RATE_TYPES = ["agents", "marketing", "digital"] as const satisfies readonly ProductType[];
 
 /**
  * commercial/mon-profil.html (handoff page 10): the rep's information, monthly target and commission rates.
@@ -72,21 +75,16 @@ export default async function MonProfilPage() {
           <h2 id="com-rates">Taux de commission</h2>
         </header>
         <p className="adm-muted">
-          Commission = montant réellement encaissé (HT, après remise) × taux, sauf commission fixe saisie sur une ligne. Le taux du type de produit
-          s&apos;applique en priorité ; votre taux personnel{p.ownRate !== null ? ` (${p.ownRate} %)` : ""} sert par défaut. Les abonnements IA
-          génèrent une commission à chaque paiement Stripe (taux « Agents IA »).
+          Commission = montant réellement encaissé (HT, après remise) × taux du type de produit, sauf commission fixe saisie sur une
+          ligne. Les abonnements IA génèrent une commission à chaque paiement Stripe (taux « Agents IA »).
         </p>
         <dl className="com-dl">
-          {PRODUCT_TYPES.map((t) => (
+          {PROFILE_RATE_TYPES.map((t) => (
             <div key={t}>
               <dt>{PRODUCT_TYPE_LABELS[t]}</dt>
               <dd>{p.rates[t]} %</dd>
             </div>
           ))}
-          <div>
-            <dt>Votre taux par défaut</dt>
-            <dd>{p.ownRate === null ? "Non défini" : `${p.ownRate} %`}</dd>
-          </div>
         </dl>
       </section>
     </div>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/auth/session";
-import { notifyProjectAssigned, notifyVersionReviewed } from "@/lib/notify";
+import { notifyProjectAssigned, notifyRateCardSent, notifyVersionReviewed } from "@/lib/notify";
 import { createClient } from "@/lib/supabase/server";
 import { parseProfileInput, type ProfileInput } from "@/lib/videaste/profile";
 import { isStage, type Stage } from "@/lib/videaste/stages";
@@ -25,7 +25,7 @@ function revalidateAll() {
   revalidatePath("/admin/videaste-detail");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin");
-  for (const p of ["dashboard", "mes-projets", "projet", "a-monter", "retours-clients", "fichiers", "agenda"]) revalidatePath(`/videaste/${p}`);
+  for (const p of ["dashboard", "mes-projets", "projet", "a-monter", "retours-clients", "fichiers", "agenda", "tarifs", "mon-profil"]) revalidatePath(`/videaste/${p}`);
 }
 
 function dbError(message: string, where: string): Result {
@@ -104,5 +104,81 @@ export async function updateVideasteProfile(id: string, input: ProfileInput): Pr
   if (!data?.length) return fail("notFound");
   revalidateAll();
   await audit("staff.profile", id, { phone: Boolean(row.phone), specialties: row.specialties.length });
+  return { success: true };
+}
+
+export type RateCardInput = {
+  title: string;
+  notes?: string;
+  items: { label: string; description?: string; amountEuros: string }[];
+};
+
+function parseAmountCents(raw: string): number | null {
+  const cleaned = String(raw ?? "")
+    .trim()
+    .replace(/\s/g, "")
+    .replace(",", ".");
+  if (!cleaned || !/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const cents = Math.round(Number(cleaned) * 100);
+  if (!Number.isFinite(cents) || cents < 0 || cents > 100_000_000) return null;
+  return cents;
+}
+
+/** Admin sends a proposed rate card; each line starts as Pending confirmation until the videographer confirms it. */
+export async function sendVideasteRateCard(videasteId: string, input: RateCardInput): Promise<Result> {
+  if (!(await isAdmin())) return fail("forbidden");
+  if (!isUuid(videasteId)) return fail("invalid");
+  const title = String(input.title ?? "").trim();
+  const notes = String(input.notes ?? "").trim();
+  if (!title || title.length > 160 || notes.length > 2000) return fail("invalid");
+  const parsed = (input.items ?? []).map((it) => ({
+    label: String(it.label ?? "").trim(),
+    description: String(it.description ?? "").trim(),
+    amountCents: parseAmountCents(it.amountEuros),
+  }));
+  const items: { label: string; description: string; amountCents: number }[] = [];
+  for (const it of parsed) {
+    if (!it.label || it.label.length > 160 || it.description.length > 1000 || it.amountCents === null) continue;
+    items.push({ label: it.label, description: it.description, amountCents: it.amountCents });
+  }
+  if (!items.length || items.length !== parsed.length) return fail("invalid");
+
+  const supabase = await createClient();
+  const { data: person } = await supabase.from("profiles").select("id, role, active").eq("id", videasteId).maybeSingle();
+  if (!person || person.role !== "videaste") return fail("notFound");
+
+  const { data: me } = await supabase.auth.getUser();
+  const { data: card, error: cardErr } = await supabase
+    .from("videaste_rate_cards")
+    .insert({
+      videaste_id: videasteId,
+      title,
+      notes: notes || null,
+      sent_by: me.user?.id ?? null,
+    })
+    .select("id")
+    .maybeSingle();
+  if (cardErr) return dbError(cardErr.message, "sendVideasteRateCard");
+  if (!card?.id) return fail("failed");
+
+  const { error: itemsErr } = await supabase.from("videaste_rate_items").insert(
+    items.map((it, i) => ({
+      card_id: card.id,
+      label: it.label,
+      description: it.description || null,
+      amount_cents: it.amountCents,
+      sort_order: i,
+      status: "pending",
+    })),
+  );
+  if (itemsErr) {
+    await supabase.from("videaste_rate_cards").delete().eq("id", card.id);
+    return dbError(itemsErr.message, "sendVideasteRateCard.items");
+  }
+
+  revalidateAll();
+  revalidatePath("/videaste/tarifs");
+  await audit("videaste.rate_card_sent", videasteId, { cardId: card.id, items: items.length });
+  await notifyRateCardSent(videasteId, card.id as string, title, items.length);
   return { success: true };
 }

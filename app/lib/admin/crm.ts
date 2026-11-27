@@ -1,6 +1,7 @@
 import "server-only";
 import { type DocKind, type DocStatus } from "@/lib/commercial/commission-rules";
 import { OPEN_STAGES, isStage, type Stage } from "@/lib/commercial/stages";
+import { PROJECT_UNIVERSE_LABELS, resolveProjectUniverse, type ProjectUniverse } from "@/lib/projects/universe";
 import { createClient } from "@/lib/supabase/server";
 import { PAID, displayName, isUuid, selectProjects, type Commission, type SchemaLevel, type StaffProfile, type TeamProject } from "./team";
 
@@ -335,7 +336,9 @@ export async function loadProspects(filter: ProspectFilter, now = new Date()) {
 
 export const LEDGER_PERIODS = ["mois", "mois-precedent", "30j", "12m", "tout"] as const;
 export type LedgerPeriod = (typeof LEDGER_PERIODS)[number];
-export type LedgerFilter = { period: LedgerPeriod; commercial: string; state: "" | "solde" | "a-encaisser"; type: "" | "video" | "abonnement" | "facture" };
+export const LEDGER_TYPES = ["agents", "marketing", "digital", "facture"] as const;
+export type LedgerType = (typeof LEDGER_TYPES)[number];
+export type LedgerFilter = { period: LedgerPeriod; commercial: string; state: "" | "solde" | "a-encaisser"; type: "" | LedgerType };
 
 function periodBounds(period: LedgerPeriod, now: Date): [Date | null, Date | null] {
   if (period === "mois") return [startOfMonth(now), null];
@@ -365,7 +368,7 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
     customerId: string | null;
     date: string;
     reference: string;
-    type: "video" | "abonnement" | "facture";
+    type: LedgerType;
     commercial: string | null;
     commercialId: string | null;
     client: string;
@@ -379,6 +382,8 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
   for (const p of ctx.projects) {
     if (!PAID.has(p.status)) continue;
     const collected = ctx.collectedByProject.get(p.id) ?? 0;
+    const universe: ProjectUniverse = resolveProjectUniverse(p.universe, p.items);
+    const lines = needOf(p);
     sales.push({
       id: `p:${p.id}`,
       projectId: p.id,
@@ -388,11 +393,11 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
       // The sale happens when the deposit is paid; older rows fall back to the request date.
       date: ctx.firstPaymentByProject.get(p.id) ?? p.created_at,
       reference: p.reference,
-      type: "video",
+      type: universe,
       commercialId: p.commercial_id ?? null,
       commercial: p.commercial_id ? (ctx.commercialName.get(p.commercial_id) ?? "—") : null,
       client: projectClient(p),
-      product: needOf(p),
+      product: lines === "—" ? PROJECT_UNIVERSE_LABELS[universe] : lines,
       amountCents: p.total_cents,
       collectedCents: collected,
       remainingCents: Math.max(0, p.total_cents - collected),
@@ -412,7 +417,7 @@ export async function loadLedger(filter: LedgerFilter, now = new Date()) {
       customerId: null,
       date: pay.created_at,
       reference: sub ? `${sub.plan} · ${sub.cycle}` : "—",
-      type: "abonnement",
+      type: "agents",
       commercialId: repId,
       commercial: repId ? (ctx.commercialName.get(repId) ?? "—") : null,
       client: personName(ctx, pay.user_id),

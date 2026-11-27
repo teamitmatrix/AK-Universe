@@ -14,6 +14,7 @@ export const PERSON_NOTIFICATION_IDS = [
   "reminder_due",
   "project_assigned",
   "version_reviewed",
+  "rate_card_sent",
 ] as const;
 export const NOTIFICATION_IDS = [...TEAM_NOTIFICATION_IDS, ...PERSON_NOTIFICATION_IDS] as const;
 export type NotificationId = (typeof NOTIFICATION_IDS)[number];

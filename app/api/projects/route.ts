@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { ensureProfile } from "@/lib/auth/session";
 import { sendProjectEmails } from "@/lib/projects/emails";
 import { priceProject, type ProjectItemInput } from "@/lib/projects/pricing";
-import { isAgentProjectItems } from "@/lib/projects/universe";
+import { projectUniverseFromCart, type ProjectUniverse } from "@/lib/projects/universe";
 import { allowedCheckoutMethods } from "@/lib/billing/payment-methods";
 import { checkoutLocale, getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -155,20 +155,25 @@ export async function POST(request: Request) {
         }
       : contact;
 
-  const { data: project, error } = await admin
-    .from("video_projects")
-    .insert({
-      reference,
-      user_id: auth.user?.id ?? null,
-      kind,
-      status: kind === "acompte" ? "acompte_en_attente" : "nouveau",
-      contact: storedContact,
-      items: priced.items,
-      total_cents: priced.total * 100,
-      deposit_cents: kind === "acompte" ? charge * 100 : 0,
-    })
-    .select("id")
-    .single();
+  const universe: ProjectUniverse = projectUniverseFromCart(body.items);
+  const row = {
+    reference,
+    user_id: auth.user?.id ?? null,
+    kind,
+    status: kind === "acompte" ? "acompte_en_attente" : "nouveau",
+    contact: storedContact,
+    items: priced.items,
+    total_cents: priced.total * 100,
+    deposit_cents: kind === "acompte" ? charge * 100 : 0,
+    universe,
+  };
+  let { data: project, error } = await admin.from("video_projects").insert(row).select("id").single();
+  // Before migration 029 the universe column does not exist — retry without it.
+  if (error && /universe/i.test(error.message)) {
+    const { universe: _u, ...legacy } = row;
+    void _u;
+    ({ data: project, error } = await admin.from("video_projects").insert(legacy).select("id").single());
+  }
   if (error || !project) {
     console.error("video_projects insert failed:", error?.message);
     return NextResponse.json({ error: "Enregistrement impossible. Veuillez réessayer." }, { status: 500 });
@@ -195,12 +200,11 @@ export async function POST(request: Request) {
     }
   }
 
-  const agents = isAgentProjectItems(priced.items);
   const summary = {
     ref: reference,
     total: priced.total,
     acompte: kind === "acompte" ? charge : 0,
-    universe: agents ? ("agents" as const) : ("marketing" as const),
+    universe,
   };
   const lang = body.lang === "en" ? "en" : "fr";
   if (!byCard) {
@@ -224,8 +228,17 @@ export async function POST(request: Request) {
   }
 
   const site = getSiteUrl();
-  const successQs = new URLSearchParams({ paid: "1", ref: reference });
-  if (agents) successQs.set("universe", "agents");
+  const successQs = new URLSearchParams({ paid: "1", ref: reference, universe });
+  const checkoutTitle =
+    universe === "agents"
+      ? `Paiement Agents IA — ${reference}`
+      : universe === "digital"
+        ? `Paiement Digital — ${reference}`
+        : priced.fixed
+          ? `Paiement Marketing — ${reference}`
+          : `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`;
+  const cancelUrl =
+    universe === "agents" ? `${site}/agents-ia` : universe === "digital" ? `${site}/digital` : `${site}/acompte`;
   let session;
   try {
     session = await stripe!.checkout.sessions.create({
@@ -241,11 +254,7 @@ export async function POST(request: Request) {
             currency: "eur",
             unit_amount: charge * 100,
             product_data: {
-              name: agents
-                ? `Paiement Agents IA — ${reference}`
-                : priced.fixed
-                  ? `Paiement — ${reference}`
-                  : `Acompte ${priced.depositPercent} % — projet vidéo ${reference}`,
+              name: checkoutTitle,
               description: priced.items.map((i) => i.service).join(", ").slice(0, 500),
             },
           },
@@ -256,13 +265,13 @@ export async function POST(request: Request) {
         project_id: project.id,
         reference,
         lang,
-        universe: agents ? "agents" : "marketing",
+        universe,
       },
       payment_intent_data: {
-        metadata: { kind: "deposit", project_id: project.id, reference, universe: agents ? "agents" : "marketing" },
+        metadata: { kind: "deposit", project_id: project.id, reference, universe },
       },
       success_url: `${site}/confirmation?${successQs.toString()}`,
-      cancel_url: agents ? `${site}/agents-ia` : `${site}/acompte`,
+      cancel_url: cancelUrl,
     });
   } catch (cause) {
     console.error("Stripe deposit checkout failed:", cause);

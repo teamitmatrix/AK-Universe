@@ -154,7 +154,7 @@ export default async function Page() {
               <p className="about-contacts">
                 <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
                 <a href={COMPANY.website} target="_blank" rel="noopener noreferrer">
-                  www.akuniverse.com
+                  akuniverse.com
                 </a>
               </p>
             </div>

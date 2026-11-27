@@ -20,7 +20,8 @@ const fr = {
     agenda: "Agenda",
     documents: "Documents",
     profil: "Mon profil",
-  } satisfies Record<CommercialNavId | "menu", string>,
+    site: "Voir le site",
+  } satisfies Record<CommercialNavId | "menu" | "site", string>,
   soon: "Bientôt",
   role: "Commercial",
   logout: "Déconnexion",
@@ -53,6 +54,10 @@ const fr = {
       version_reviewed: (d) => ({
         title: d.decision === "validee" ? "Version validée par le client" : "Modifications demandées",
         body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
+      rate_card_sent: (d) => ({
+        title: "Nouvelle grille tarifaire",
+        body: [d.title, d.itemCount != null ? `${d.itemCount} tarif${d.itemCount > 1 ? "s" : ""} à confirmer` : ""].filter(Boolean).join(" — "),
       }),
     } satisfies Record<NotificationType, NotifText>,
   },
@@ -177,6 +182,7 @@ const en: ComText = {
     agenda: "Calendar",
     documents: "Documents",
     profil: "My profile",
+    site: "View website",
   },
   soon: "Soon",
   role: "Sales rep",
@@ -210,6 +216,10 @@ const en: ComText = {
       version_reviewed: (d) => ({
         title: d.decision === "validee" ? "Version approved by the client" : "Changes requested",
         body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
+      rate_card_sent: (d) => ({
+        title: "New rate card",
+        body: [d.title, d.itemCount != null ? `${d.itemCount} rate${d.itemCount > 1 ? "s" : ""} to confirm` : ""].filter(Boolean).join(" — "),
       }),
     },
   },
@@ -320,6 +330,7 @@ const de: ComText = {
     agenda: "Kalender",
     documents: "Dokumente",
     profil: "Mein Profil",
+    site: "Website ansehen",
   },
   soon: "Bald",
   role: "Vertrieb",
@@ -353,6 +364,10 @@ const de: ComText = {
       version_reviewed: (d) => ({
         title: d.decision === "validee" ? "Version vom Kunden freigegeben" : "Änderungen angefordert",
         body: [d.reference, d.title, d.client].filter(Boolean).join(" — "),
+      }),
+      rate_card_sent: (d) => ({
+        title: "Neue Preisliste",
+        body: [d.title, d.itemCount != null ? `${d.itemCount} Preis${d.itemCount > 1 ? "e" : ""} zu bestätigen` : ""].filter(Boolean).join(" — "),
       }),
     },
   },

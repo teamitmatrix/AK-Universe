@@ -115,8 +115,8 @@ Work in **Test mode** first (toggle at the top of the dashboard), then repeat st
 1. **Activate the account** (Live mode only): business details, representative, bank IBAN.
 2. **Developers → API keys**: copy the **Secret key** (`sk_test_…` then `sk_live_…`) → `STRIPE_SECRET_KEY`.
 3. **Developers → Webhooks → Add endpoint**:
-   - URL: `https://<domain>/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - URL: `https://<domain>/api/stripe/webhook` — use the **exact** host on the TLS certificate (no `www.` if the cert is only for the apex domain). A host mismatch causes Stripe **TLS error** and deliveries never reach the app.
+   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`
    - After saving, reveal the **Signing secret** (`whsec_…`) → `STRIPE_WEBHOOK_SECRET`.
 4. **Settings → Billing → Customer portal**:
    - Enable "Cancel subscription", "Update payment method" and "Invoice history".

@@ -11,6 +11,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 /*
  * Stripe → Supabase sync. Configure in the Stripe dashboard:
  *   endpoint  https://<domain>/api/stripe/webhook
+ *             Use the host that matches the TLS certificate SANs (apex vs www). Stripe fails with
+ *             a TLS error if the webhook host is not on the cert — deliveries never reach this route.
  *   events    checkout.session.completed, customer.subscription.updated,
  *             customer.subscription.deleted, invoice.paid, invoice.payment_failed
  * invoice.paid also applies client-space plan changes waiting for a renewal or a prorated payment (/client/dashboard/mon-offre).
@@ -58,20 +60,28 @@ export async function POST(request: Request) {
 
       if (meta.kind === "subscription" && meta.subscription_id) {
         const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
-        // The renewal date shown on compte.html comes from the subscription itself.
-        const periodEnd = subscriptionId
-          ? (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0]?.current_period_end
-          : undefined;
-        await db
+        const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+        // Period end is nice-to-have: never block activation if retrieve fails.
+        let periodEnd: string | null = null;
+        if (subscriptionId) {
+          try {
+            const end = (await stripe.subscriptions.retrieve(subscriptionId)).items.data[0]?.current_period_end;
+            if (end) periodEnd = new Date(end * 1000).toISOString();
+          } catch (cause) {
+            console.error("webhook: could not read subscription period end:", cause);
+          }
+        }
+        const { error: activateErr } = await db
           .from("subscriptions")
           .update({
             status: "active",
-            stripe_customer_id: typeof session.customer === "string" ? session.customer : session.customer?.id,
-            stripe_subscription_id: subscriptionId,
-            current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+            stripe_customer_id: customerId ?? null,
+            stripe_subscription_id: subscriptionId ?? null,
+            current_period_end: periodEnd,
           })
           .eq("id", meta.subscription_id);
-        const { data: payment } = await db
+        if (activateErr) console.error("webhook: subscription activate failed:", activateErr.message);
+        const { data: payment, error: payErr } = await db
           .from("payments")
           .insert({
             kind: "subscription",
@@ -85,6 +95,7 @@ export async function POST(request: Request) {
           })
           .select("id")
           .single();
+        if (payErr) console.error("webhook: subscription payment insert failed:", payErr.message);
         // Recurring commission (Agents IA rate) when a sales rep is linked to the subscription / customer.
         if (payment?.id) await db.rpc("ensure_subscription_commission", { p_payment_id: payment.id });
       }
@@ -134,20 +145,39 @@ export async function POST(request: Request) {
     case "customer.subscription.deleted": {
       const sub = event.data.object;
       const periodEnd = sub.items.data[0]?.current_period_end;
-      await db
-        .from("subscriptions")
-        .update({
-          status: SUBSCRIPTION_STATUS[sub.status] ?? "incomplete",
-          current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-        })
-        .eq("stripe_subscription_id", sub.id);
+      const status = SUBSCRIPTION_STATUS[sub.status] ?? "incomplete";
+      const periodIso = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
+      // Prefer Stripe id; if checkout.session.completed never ran, fall back to our row id in subscription metadata.
+      let matched = (
+        await db
+          .from("subscriptions")
+          .update({ status, current_period_end: periodIso })
+          .eq("stripe_subscription_id", sub.id)
+          .select("id")
+      ).data;
+      if (!matched?.length && sub.metadata?.subscription_id) {
+        matched = (
+          await db
+            .from("subscriptions")
+            .update({
+              status,
+              current_period_end: periodIso,
+              stripe_subscription_id: sub.id,
+              stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null,
+            })
+            .eq("id", sub.metadata.subscription_id)
+            .select("id")
+        ).data;
+      }
       // Scheduled cancellation (client space or Stripe portal). Separate write: before migration 016 the column
       // does not exist and this update fails alone, without touching the status sync above.
-      const { error: cancelErr } = await db
-        .from("subscriptions")
-        .update({ cancel_at_period_end: Boolean(sub.cancel_at_period_end || sub.cancel_at) })
-        .eq("stripe_subscription_id", sub.id);
-      if (cancelErr && !/cancel_at_period_end/.test(cancelErr.message)) console.error("cancel_at_period_end sync failed:", cancelErr.message);
+      if (matched?.length) {
+        const { error: cancelErr } = await db
+          .from("subscriptions")
+          .update({ cancel_at_period_end: Boolean(sub.cancel_at_period_end || sub.cancel_at) })
+          .eq("id", matched[0].id);
+        if (cancelErr && !/cancel_at_period_end/.test(cancelErr.message)) console.error("cancel_at_period_end sync failed:", cancelErr.message);
+      }
       break;
     }
 
@@ -157,10 +187,32 @@ export async function POST(request: Request) {
         subscription?: string | { id: string } | null;
         parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null;
       };
-      if (invoice.billing_reason === "subscription_create") break; // first payment already handled by checkout.session.completed
       const subRef = invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
       const stripeSubId = typeof subRef === "string" ? subRef : subRef?.id;
-      if (stripeSubId) {
+      // First invoice used to be skipped (checkout.session.completed only). If that event never landed,
+      // activate from this paid invoice using the Stripe subscription metadata we set at checkout.
+      if (invoice.billing_reason === "subscription_create" && stripeSubId) {
+        try {
+          const live = await stripe.subscriptions.retrieve(stripeSubId);
+          const ourId = live.metadata?.subscription_id;
+          if (ourId) {
+            const end = live.items.data[0]?.current_period_end;
+            await db
+              .from("subscriptions")
+              .update({
+                status: "active",
+                stripe_subscription_id: stripeSubId,
+                stripe_customer_id: typeof live.customer === "string" ? live.customer : live.customer?.id ?? null,
+                current_period_end: end ? new Date(end * 1000).toISOString() : null,
+              })
+              .eq("id", ourId);
+          }
+        } catch (cause) {
+          console.error("webhook: subscription_create activate failed:", cause);
+        }
+        // Still record the payment below when we can resolve the row.
+      }
+      if (stripeSubId && invoice.billing_reason !== "subscription_create") {
         // Client-space plan changes (migration 016): a renewal applies the change scheduled for it; a paid prorated
         // invoice applies the upgrade that was waiting for its payment. No-op when nothing is pending.
         const { data: pendingRow } = await db
@@ -173,7 +225,19 @@ export async function POST(request: Request) {
         if (pend?.pending_kind === "payment" && pend.pending_invoice_id && pend.pending_invoice_id === invoice.id) await applyPendingChange(db, pend.id, "payment");
       }
       if (!stripeSubId || !invoice.amount_paid) break;
-      const { data: subRow } = await db.from("subscriptions").select("id, user_id").eq("stripe_subscription_id", stripeSubId).maybeSingle();
+      let { data: subRow } = await db.from("subscriptions").select("id, user_id").eq("stripe_subscription_id", stripeSubId).maybeSingle();
+      if (!subRow) {
+        try {
+          const live = await stripe.subscriptions.retrieve(stripeSubId);
+          const ourId = live.metadata?.subscription_id;
+          if (ourId) {
+            const found = await db.from("subscriptions").select("id, user_id").eq("id", ourId).maybeSingle();
+            subRow = found.data;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       if (!subRow) break;
       const { data: payment, error: payErr } = await db
         .from("payments")

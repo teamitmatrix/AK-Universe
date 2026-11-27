@@ -23,7 +23,7 @@ export const COMPANY = {
   publicationDirector: "Monsieur Sardar Aqil Iqbal, président de la société AK UNIVERSE",
   email: "Contact@akuniverse.com",
   phone: "+33 6 50 92 86 38",
-  website: "https://www.akuniverse.com",
+  website: "https://akuniverse.com",
   /** Last time the legal texts were reviewed (shown at the top of each page). */
   updatedAt: "10 novembre 2026",
   /** Consumer mediator (mandatory in France when selling to individuals). */

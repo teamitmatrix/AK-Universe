@@ -4,6 +4,7 @@ import { VideasteDetailView } from "@/components/admin/space/TeamViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
 import { loadVideasteDetail } from "@/lib/admin/team";
 import { loadTaskOptions } from "@/lib/admin/agenda";
+import { loadVideasteRates } from "@/lib/videaste/rates";
 import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
@@ -16,7 +17,13 @@ export default async function VideasteDetailPage({ searchParams }: { searchParam
   const admin = await getAdminIdentity();
   if (!admin) notFound();
   const { id } = await searchParams;
-  const [lang, data, taskOptions] = await Promise.all([getAdminLang(), loadVideasteDetail(String(id ?? "")), loadTaskOptions()]);
+  const videasteId = String(id ?? "");
+  const [lang, data, taskOptions, rates] = await Promise.all([
+    getAdminLang(),
+    loadVideasteDetail(videasteId),
+    loadTaskOptions(),
+    loadVideasteRates(videasteId),
+  ]);
   if (!data) notFound();
-  return <VideasteDetailView lang={lang} admin={admin} data={data} taskOptions={taskOptions} />;
+  return <VideasteDetailView lang={lang} admin={admin} data={data} taskOptions={taskOptions} rates={rates} />;
 }

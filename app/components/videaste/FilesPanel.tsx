@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { ExternalLink, FileText, FolderOpen, Image as ImageIcon, Info, Link2, Music, Shapes, Trash2, Video, X, type LucideIcon } from "lucide-react";
+import { Download, ExternalLink, FileText, FolderOpen, Image as ImageIcon, Info, Link2, Music, Shapes, Trash2, Video, X, type LucideIcon } from "lucide-react";
 import { addProjectFile, deleteProjectFile } from "@/lib/videaste/project-actions";
 import type { ProjectFile } from "@/lib/videaste/projects";
-import { FILE_CATEGORIES, PROVIDERS, providerOf, type FileCategory } from "@/lib/videaste/storage";
+import { downloadUrlOf, FILE_CATEGORIES, PROVIDERS, providerOf, type FileCategory } from "@/lib/videaste/storage";
 import { VID_ERRORS } from "./vidUi";
 
 export const CATEGORY_ICON: Record<FileCategory, LucideIcon> = {
@@ -35,6 +35,17 @@ export function FileTile({ file, meId, context, onDelete, pending }: { file: Pro
       </span>
       <a href={file.external_url} target="_blank" rel="noopener noreferrer nofollow" className="adm-icon-btn" aria-label={`Ouvrir « ${file.name} » sur ${PROVIDERS[file.provider]}`}>
         <ExternalLink size={15} />
+      </a>
+      <a
+        href={downloadUrlOf(file.external_url, file.provider)}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="adm-icon-btn"
+        download={file.name}
+        aria-label={`Télécharger « ${file.name} »`}
+        title="Télécharger"
+      >
+        <Download size={15} />
       </a>
       {onDelete && file.added_by === meId && (
         <button type="button" className="adm-icon-btn" disabled={pending} onClick={() => onDelete(file.id)} aria-label={`Retirer le lien « ${file.name} »`}>

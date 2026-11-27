@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { checkoutPlan, sanitizeSelection } from "@/config/pricing";
 import { PaiementScreen, PaiementSuccess } from "@/components/billing/PaiementScreen";
+import { reconcilePaidCheckouts } from "@/lib/billing/reconcile-checkout";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isCountry } from "@/lib/client/countries";
@@ -28,7 +29,11 @@ async function billingCountry(userId: string | undefined): Promise<string> {
 export default async function PaiementPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
 
-  if (one(params.success) === "1") return <PaiementSuccess />;
+  if (one(params.success) === "1") {
+    const user = await getCurrentUser();
+    if (user) await reconcilePaidCheckouts(user.id);
+    return <PaiementSuccess />;
+  }
 
   const [user, pricing] = await Promise.all([getCurrentUser(), getAgentsPricing()]);
   const plan = checkoutPlan(one(params.plan), pricing);

@@ -394,7 +394,7 @@ function DocumentModal({
           <legend>Client</legend>
           <div className="adm-form-grid">
             <label className="adm-field">
-              <span>Nom du client *</span>
+              <span>Entreprise *</span>
               <input required maxLength={160} list="com-client-list" value={form.clientName} onChange={(e) => chooseClient(e.target.value)} />
               <datalist id="com-client-list">
                 {clients.map((c) => (
@@ -405,7 +405,7 @@ function DocumentModal({
             <label className="adm-field">
               <span>E-mail du client</span>
               <input type="email" maxLength={254} value={form.clientEmail} onChange={set("clientEmail")} />
-              <small className="adm-muted">Avec un e-mail, le client est enregistré dans Clients et proposé au prochain devis.</small>
+              <small className="adm-muted">Le client est enregistré sous le nom d&apos;entreprise (un même compte pour tous les e-mails).</small>
             </label>
             <label className="adm-field">
               <span>SIRET</span>
@@ -555,18 +555,24 @@ function DocumentModal({
                       <input
                         aria-label="Remise commerciale (%)"
                         inputMode="decimal"
-                        placeholder="Remise %"
+                        placeholder="Discount %"
                         disabled={!fromCatalogue || maxDisc <= 0}
                         readOnly={!fromCatalogue || maxDisc <= 0}
                         min={0}
                         max={maxDisc || undefined}
-                        value={fromCatalogue ? String(remisePct) : ""}
+                        value={fromCatalogue && remisePct > 0 ? String(remisePct) : ""}
                         onChange={(e) => applyRemise(e.target.value)}
                         onBlur={(e) => {
                           if (!fromCatalogue || maxDisc <= 0) return;
-                          applyRemise(e.target.value);
+                          const raw = e.target.value.trim();
+                          if (raw === "") {
+                            applyRemise("0");
+                            return;
+                          }
+                          applyRemise(raw);
                         }}
                       />
+                      {fromCatalogue && remisePct > 0 ? <span aria-hidden="true">%</span> : null}
                     </label>
                     <span className="com-rate" title="Taux de commission selon le type de produit">
                       <Lock size={12} aria-hidden="true" /> {rates[type] ?? 10} %

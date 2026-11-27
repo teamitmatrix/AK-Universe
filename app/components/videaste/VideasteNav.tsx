@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Clapperboard, Film, FolderOpen, LayoutDashboard, MessageSquare, User, type LucideIcon } from "lucide-react";
+import { CalendarDays, Clapperboard, Euro, Film, FolderOpen, LayoutDashboard, MessageSquare, User, type LucideIcon } from "lucide-react";
 import { VIDEASTE_NAV, type VideasteNavId } from "@/lib/videaste/nav";
 
 const ICONS: Record<VideasteNavId, LucideIcon> = {
@@ -11,6 +11,7 @@ const ICONS: Record<VideasteNavId, LucideIcon> = {
   aMonter: Clapperboard,
   retours: MessageSquare,
   fichiers: FolderOpen,
+  tarifs: Euro,
   agenda: CalendarDays,
   profil: User,
 };

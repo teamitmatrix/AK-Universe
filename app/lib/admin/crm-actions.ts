@@ -92,8 +92,7 @@ export async function createAdminProspect(input: AdminProspectInput): Promise<{ 
 
 /**
  * Admin creates a customer record directly (service role: customers have no insert RLS policy;
- * normally they appear via convert_prospect). E-mail is required so the same fiche is reused on
- * devis / Mes clients (merge key = salesperson + e-mail).
+ * normally they appear via convert_prospect). Merge key = salesperson + company (preferred), else e-mail.
  */
 export async function createAdminCustomer(input: AdminCustomerInput): Promise<{ success: true; id: string } | Fail> {
   if (!(await isAdmin())) return fail("forbidden");
@@ -108,17 +107,27 @@ export async function createAdminCustomer(input: AdminCustomerInput): Promise<{ 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("invalid");
   if (phone && !/^[+0-9 ().-]{6,40}$/.test(phone)) return fail("invalid");
   const emailNorm = email.toLowerCase();
+  const orgKey = (company || name).trim().toLowerCase();
 
   try {
     const admin = createAdminClient();
-    const { data: existing } = await admin
+    const { data: existingEmail } = await admin
       .from("customers")
       .select("id")
       .eq("salesperson_id", salespersonId)
       .ilike("email", emailNorm)
       .limit(1)
       .maybeSingle();
-    if (existing) return fail("duplicate");
+    if (existingEmail) return fail("duplicate");
+
+    if (orgKey) {
+      const { data: peers } = await admin.from("customers").select("id, company, name").eq("salesperson_id", salespersonId).limit(500);
+      const sameCompany = (peers ?? []).find((r) => {
+        const label = ((r.company as string | null) || (r.name as string) || "").trim().toLowerCase();
+        return label === orgKey;
+      });
+      if (sameCompany) return fail("duplicate");
+    }
 
     const { data: profile } = await admin.from("profiles").select("id").ilike("email", emailNorm).limit(1).maybeSingle();
     const { data, error } = await admin
@@ -126,7 +135,7 @@ export async function createAdminCustomer(input: AdminCustomerInput): Promise<{ 
       .insert({
         salesperson_id: salespersonId,
         name,
-        company,
+        company: company || name,
         email: emailNorm,
         phone,
         profile_id: (profile?.id as string | undefined) ?? null,

@@ -6,6 +6,7 @@ import { isAdmin } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { syncProjectProspect } from "@/lib/commercial/project-prospects";
 import { notifyCommission, notifyLeadAssigned, notifyProjectPayment } from "@/lib/notify";
+import { resolveProjectUniverse } from "@/lib/projects/universe";
 import { PAID, isUuid } from "./team";
 
 /**
@@ -88,24 +89,62 @@ export async function generateCommissions(): Promise<{ success: true; created: n
   if (!(await isAdmin())) return fail("forbidden");
   const supabase = await createClient();
 
-  const [{ data: projects, error: pErr }, { data: existing, error: cErr }, { data: reps }, { data: subPays }] = await Promise.all([
-    supabase.from("video_projects").select("id, status, total_cents, commercial_id").not("commercial_id", "is", null).in("status", [...PAID]).limit(10000),
+  const projectSelect = "id, status, total_cents, commercial_id, universe, items";
+  let projectsRes = await supabase
+    .from("video_projects")
+    .select(projectSelect)
+    .not("commercial_id", "is", null)
+    .in("status", [...PAID])
+    .limit(10000);
+  if (projectsRes.error && /universe/i.test(projectsRes.error.message)) {
+    projectsRes = await supabase
+      .from("video_projects")
+      .select("id, status, total_cents, commercial_id, items")
+      .not("commercial_id", "is", null)
+      .in("status", [...PAID])
+      .limit(10000);
+  }
+  const [{ data: existing, error: cErr }, { data: reps }, { data: subPays }] = await Promise.all([
     supabase.from("commissions").select("project_id").not("project_id", "is", null).limit(10000),
     supabase.from("profiles").select("*").eq("role", "commercial"),
     supabase.from("payments").select("id").eq("kind", "subscription").in("status", ["paid", "complete"]).limit(10000),
   ]);
+  const pErr = projectsRes.error;
+  const projects = projectsRes.data as
+    | {
+        id: string;
+        status: string;
+        total_cents: number;
+        commercial_id: string;
+        universe?: string | null;
+        items?: { service?: string }[] | null;
+      }[]
+    | null;
   if (pErr || cErr) {
     console.error("generateCommissions failed:", (pErr ?? cErr)?.message);
     return fail("failed");
   }
   const done = new Set((existing ?? []).map((c) => c.project_id));
-  const rateOf = new Map((reps ?? []).map((r) => [r.id as string, r.commission_rate as number | null]));
+  type RepRates = {
+    commission_rate: number | null;
+    commission_rate_ai?: number | null;
+    commission_rate_marketing?: number | null;
+    commission_rate_digital?: number | null;
+  };
+  const rateOf = new Map((reps ?? []).map((r) => [r.id as string, r as RepRates]));
+  const pctFor = (rep: RepRates | undefined, universe: "agents" | "marketing" | "digital") => {
+    if (!rep) return null;
+    if (universe === "agents") return rep.commission_rate_ai ?? rep.commission_rate;
+    if (universe === "marketing") return rep.commission_rate_marketing ?? rep.commission_rate;
+    return rep.commission_rate_digital ?? rep.commission_rate;
+  };
 
   let skippedNoRate = 0;
   const rows: { commercial_id: string; project_id: string; amount_cents: number; status: "en_attente" }[] = [];
   for (const p of projects ?? []) {
     if (done.has(p.id)) continue;
-    const pct = rateOf.get(p.commercial_id);
+    const universe = resolveProjectUniverse(p.universe, p.items);
+    const pct = pctFor(rateOf.get(p.commercial_id), universe);
     if (pct == null) {
       skippedNoRate += 1;
       continue;

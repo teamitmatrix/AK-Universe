@@ -2964,3 +2964,250 @@ a.cs-resource:hover strong {
     max-width: 100%;
   }
 }
+
+/* Contrats — recorded acceptances */
+.cs-contracts-head h1 {
+  margin: 0;
+  color: var(--cs-ink);
+  font-family: var(--cs-serif);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.cs-contracts-head h1::after {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: var(--cs-orange);
+}
+.cs-contracts-head p {
+  margin: 14px 0 0;
+  color: var(--cs-muted);
+  font-size: 15.5px;
+}
+.cs-contracts-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+.cs-contracts-stats article {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 108px;
+  padding: 22px 24px;
+  border: 1px solid #eceef3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 64, 0.04);
+}
+.cs-contracts-stats p {
+  margin: 0;
+  color: #8b93a7;
+  font-size: 14.5px;
+}
+.cs-contracts-stats strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--cs-ink);
+  font-family: var(--cs-serif);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.cs-contracts-ic {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #fff1e8;
+  color: var(--cs-orange);
+}
+.cs-contracts-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px 210px;
+  gap: 14px;
+  margin-top: 22px;
+}
+.cs-contracts-search,
+.cs-contracts-toolbar select {
+  height: 52px;
+  border: 1px solid #e6e8ee;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--cs-ink);
+  font: inherit;
+  font-size: 15px;
+}
+.cs-contracts-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  color: #8b93a7;
+}
+.cs-contracts-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--cs-ink);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+.cs-contracts-toolbar label:not(.cs-contracts-search) {
+  display: block;
+}
+.cs-contracts-toolbar select {
+  width: 100%;
+  padding: 0 14px;
+  cursor: pointer;
+}
+.cs-contracts-table {
+  margin-top: 18px;
+  overflow: auto;
+  border: 1px solid #eceef3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 64, 0.04);
+}
+.cs-contracts-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cs-contracts-table th {
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef0f4;
+  color: #8b93a7;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+}
+.cs-contracts-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #f3f4f8;
+  color: var(--cs-ink);
+  font-size: 14.5px;
+  vertical-align: middle;
+}
+.cs-contracts-table tr:last-child td {
+  border-bottom: 0;
+}
+.cs-contracts-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.cs-contracts-type.is-commande {
+  background: #fff1e8;
+  color: var(--cs-orange);
+}
+.cs-contracts-type.is-abonnement {
+  border: 1.5px solid #ffd7bf;
+  background: #fff;
+  color: var(--cs-orange);
+}
+.cs-contracts-version {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f4f5f8;
+  color: #5c657a;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cs-contracts-missing {
+  color: #8b93a7;
+  font-size: 13.5px;
+}
+.cs-contracts-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.cs-contracts-actions a,
+.cs-contracts-actions span {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e6e8ee;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--cs-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cs-contracts-actions a:hover {
+  border-color: #d5d8e2;
+}
+.cs-contracts-actions .is-disabled {
+  color: #b6bccb;
+}
+.cs-contracts-actions a.cs-contracts-download {
+  display: grid;
+  width: 36px;
+  padding: 0;
+  place-items: center;
+}
+.cs-contracts-empty {
+  margin: 0;
+  padding: 28px 22px;
+  color: var(--cs-muted);
+}
+.cs .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+@media (max-width: 980px) {
+  .cs-contracts-stats,
+  .cs-contracts-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .cs-contracts-table table,
+  .cs-contracts-table thead,
+  .cs-contracts-table tbody,
+  .cs-contracts-table tr,
+  .cs-contracts-table td {
+    display: block;
+  }
+  .cs-contracts-table thead {
+    display: none;
+  }
+  .cs-contracts-table tr {
+    padding: 8px 0 14px;
+    border-bottom: 1px solid #eef0f4;
+  }
+  .cs-contracts-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
+    border: 0;
+  }
+  .cs-contracts-table td::before {
+    content: attr(data-label);
+    color: #8b93a7;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .cs-contracts-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

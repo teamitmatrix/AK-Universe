@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VentesView } from "@/components/admin/space/CrmViews";
 import { getAdminIdentity } from "@/lib/admin/identity";
-import { LEDGER_PERIODS, loadLedger, oneOf, repParam, type LedgerFilter } from "@/lib/admin/crm";
+import { LEDGER_PERIODS, LEDGER_TYPES, loadLedger, oneOf, repParam, type LedgerFilter } from "@/lib/admin/crm";
 import { getAdminLang } from "@/i18n/server";
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default async function VentesPage({ searchParams }: { searchParams: Promi
     period: oneOf(sp.periode, LEDGER_PERIODS) || "mois",
     commercial: repParam(sp.commercial),
     state: oneOf(sp.statut, ["solde", "a-encaisser"] as const),
-    type: oneOf(sp.type, ["video", "abonnement", "facture"] as const),
+    type: oneOf(sp.type, LEDGER_TYPES),
   };
   const [lang, data] = await Promise.all([getAdminLang(), loadLedger(filter)]);
   return <VentesView lang={lang} admin={admin} data={data} filter={filter} />;

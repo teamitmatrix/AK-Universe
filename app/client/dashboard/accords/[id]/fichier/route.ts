@@ -13,7 +13,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   if (!me) return redirectToPath(`/connexion?redirectTo=${encodeURIComponent(`/client/dashboard/accords/${id}`)}`, 303);
 
-  const doc = new URL(request.url).searchParams.get("doc") === "privacy" ? "privacy" : "terms";
+  const asked = new URL(request.url).searchParams.get("doc");
+  const doc = asked === "privacy" || asked === "all" ? asked : "terms";
   const row = await myAgreement(me.id, id);
   if (!row) return new NextResponse("Document introuvable.", { status: 404, headers: { "Cache-Control": "no-store" } });
 
@@ -22,11 +23,37 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return new NextResponse("Document introuvable.", { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
-  const title = privacy ? "Politique de confidentialité" : "Conditions Générales de Vente et d'Utilisation";
-  const label = (privacy ? row.privacy_label : row.terms_label) ?? "";
-  const version = (privacy ? row.privacy_version : row.terms_version) ?? "document";
-  const at = privacy ? (row.privacy_accepted_at ?? row.accepted_at) : row.accepted_at;
-  const body = (privacy ? row.privacy_snapshot : row.terms_snapshot) ?? `<p>${escapeHtml(label)}</p>`;
+  const section = (title: string, label: string, version: string, at: string, body: string) => `
+  <h1>${escapeHtml(title)}</h1>
+  <p><strong>Version :</strong> ${escapeHtml(label || version)}</p>
+  <p><strong>Accepté le :</strong> ${escapeHtml(acceptedWhen(at))} (heure de Paris)</p>
+  <hr />
+  ${body}`;
+
+  const termsBlock = section(
+    "Conditions Générales de Vente et d'Utilisation",
+    row.terms_label ?? "",
+    row.terms_version,
+    row.accepted_at,
+    row.terms_snapshot ?? `<p>${escapeHtml(row.terms_label ?? "")}</p>`
+  );
+  const privacyBlock = row.privacy_version
+    ? section(
+        "Politique de confidentialité",
+        row.privacy_label ?? "",
+        row.privacy_version,
+        row.privacy_accepted_at ?? row.accepted_at,
+        row.privacy_snapshot ?? `<p>${escapeHtml(row.privacy_label ?? "")}</p>`
+      )
+    : "";
+
+  const title =
+    doc === "all"
+      ? "Documents acceptés"
+      : privacy
+        ? "Politique de confidentialité"
+        : "Conditions Générales de Vente et d'Utilisation";
+  const version = privacy ? row.privacy_version : row.terms_version;
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -35,15 +62,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 </head>
 <body>
   <p>AK Universe</p>
-  <h1>${escapeHtml(title)}</h1>
-  <p><strong>Version :</strong> ${escapeHtml(label || version)}</p>
-  <p><strong>Accepté le :</strong> ${escapeHtml(acceptedWhen(at))} (heure de Paris)</p>
-  <hr />
-  ${body}
+  ${doc === "privacy" ? privacyBlock : doc === "all" ? `${termsBlock}${privacyBlock}` : termsBlock}
 </body>
 </html>`;
 
-  const filename = `${privacy ? "politique-confidentialite" : "cgv"}-ak-universe-${version}.html`;
+  const filename =
+    doc === "all"
+      ? `documents-acceptes-ak-universe-${row.terms_version}.html`
+      : `${privacy ? "politique-confidentialite" : "cgv"}-ak-universe-${version}.html`;
   return new NextResponse(html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",

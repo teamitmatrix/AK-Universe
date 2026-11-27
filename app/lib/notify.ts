@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/server";
  *   reminder_due          an open task is due within 24 h (created when the owner's feed is loaded)
  *   project_assigned      admin assigns a video project to a videographer (migration 013)
  *   version_reviewed      the client's answer on a sent version (validated / changes requested), recorded by an admin
+ *   rate_card_sent        admin sends a proposed rate card to a videographer (migration 026)
  * `data` holds only what the bell displays (reference, client, amount…); texts are rendered in the reader's language.
  * Every function swallows its errors: a notification must never make the real action fail. Before migration 010
  * the table does not exist and nothing is written.
@@ -29,9 +30,18 @@ export const NOTIFICATION_TYPES = [
   "reminder_due",
   "project_assigned",
   "version_reviewed",
+  "rate_card_sent",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
-export type NotificationData = { reference?: string; client?: string; amountCents?: number; title?: string; dueAt?: string; decision?: "validee" | "modifications" };
+export type NotificationData = {
+  reference?: string;
+  client?: string;
+  amountCents?: number;
+  title?: string;
+  dueAt?: string;
+  decision?: "validee" | "modifications";
+  itemCount?: number;
+};
 
 type NewNotification = { userId: string; type: NotificationType; data?: NotificationData; link?: string | null; ref: string };
 
@@ -66,6 +76,11 @@ const noticeCopy = (type: NotificationType, data: NotificationData): { subject: 
         lines: [who, data.title ?? "", decision],
       };
     }
+    case "rate_card_sent":
+      return {
+        subject: `Nouvelle grille tarifaire${data.title ? ` — ${data.title}` : ""}`.trim(),
+        lines: [data.title ?? "", data.itemCount != null ? `${data.itemCount} tarif${data.itemCount > 1 ? "s" : ""} à confirmer` : ""],
+      };
     default:
       return null;
   }
@@ -206,5 +221,15 @@ export async function notifyVersionReviewed(versionId: string, projectId: string
     ]);
   } catch (cause) {
     console.warn("notifyVersionReviewed failed:", cause);
+  }
+}
+
+/** Admin sent a proposed rate card to this videographer. */
+export async function notifyRateCardSent(videasteId: string, cardId: string, title: string, itemCount: number) {
+  if (!videasteId) return;
+  try {
+    await notify([{ userId: videasteId, type: "rate_card_sent", data: { title, itemCount }, link: "/videaste/tarifs", ref: cardId }]);
+  } catch (cause) {
+    console.warn("notifyRateCardSent failed:", cause);
   }
 }

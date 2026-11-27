@@ -1,6 +1,7 @@
 import "server-only";
 import type Stripe from "stripe";
 import { OFFERED_OPTIONS, OPTIONS, toCents, type Cycle } from "@/config/pricing";
+import { reconcilePaidCheckouts } from "@/lib/billing/reconcile-checkout";
 import { getAgentsPricing } from "@/lib/agents-pricing";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -190,6 +191,8 @@ async function reconcilePending(row: SubscriptionRow, live: Awaited<ReturnType<t
 }
 
 export async function loadClientSubscription(me: ClientMe, opts: { history: boolean }): Promise<ClientDashboard> {
+  // Webhook may still be on the way: activate any Stripe Checkout the customer already paid.
+  await reconcilePaidCheckouts(me.id);
   let row = await readRow(me.id);
   if (!row) return { plan: null, history: [], live: false };
 

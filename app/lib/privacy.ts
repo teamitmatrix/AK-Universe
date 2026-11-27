@@ -17,7 +17,7 @@ export const getPrivacy = cache(async (): Promise<PrivacyDoc> => ({
 export async function renderPrivacyHtml(bodyHtml?: string): Promise<string> {
   const [privacy, company] = await Promise.all([getPrivacy(), getCompany()]);
   const html = sanitizePrivacyHtml(bodyHtml ?? privacy.bodyHtml);
-  const host = company.website.replace(/^https?:\/\//, "").replace(/\/$/, "") || "www.akuniverse.com";
+  const host = company.website.replace(/^https?:\/\//, "").replace(/\/$/, "") || "akuniverse.com";
   const map: Record<string, string> = {
     legalName: company.legalName,
     address: company.address,

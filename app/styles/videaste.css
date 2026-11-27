@@ -863,3 +863,91 @@
     flex-wrap: wrap;
   }
 }
+
+/* Rates / Tarifs */
+.vid-rate-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--adm-line);
+}
+.vid-rate-drafts {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-drafts > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(100px, 0.6fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: var(--adm-navy);
+}
+.vid-rate-drafts .is-wide {
+  grid-column: 1 / -2;
+}
+.vid-rate-cards {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-card > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.vid-rate-card > header .adm-stack,
+.vid-rate-card > header > div {
+  display: grid;
+  gap: 2px;
+}
+.vid-rate-items {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.vid-rate-items > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: var(--adm-navy);
+}
+.vid-rate-items .adm-stack {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.vid-rate-amount {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--adm-accent-2);
+}
+.vid-rate-items .adm-badge {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .vid-rate-drafts > li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vid-rate-drafts .is-wide {
+    grid-column: auto;
+  }
+}

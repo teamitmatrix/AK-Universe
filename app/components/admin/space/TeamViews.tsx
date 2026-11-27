@@ -25,7 +25,9 @@ import { ProjectTable } from "./ProjectTable";
 import { CommerciauxRoster, VideastesRoster } from "./Roster";
 import { AddStaffButton, CommercialIdentityForm, StaffDetailActions, StaffSettings } from "./StaffManage";
 import { ProfileForm } from "@/components/videaste/ProfileForm";
+import { VideasteRatesPanel } from "@/components/admin/space/VideasteRatesPanel";
 import { updateVideasteProfile } from "@/lib/admin/videaste-actions";
+import type { RateCard } from "@/lib/videaste/rates";
 import { NewTaskButton, type TaskOptions } from "./ToolsClient";
 import { toolsTextFor } from "./toolsText";
 import { Kpi, LOAD_CLASS, MigrationNote, PageHead, formatters } from "./ui";
@@ -372,11 +374,13 @@ export function VideasteDetailView({
   admin,
   data,
   taskOptions = null,
+  rates = { ready: false, cards: [] },
 }: {
   lang: Lang;
   admin: Admin;
   data: NonNullable<Awaited<ReturnType<typeof loadVideasteDetail>>>;
   taskOptions?: TaskOptions | null;
+  rates?: { ready: boolean; cards: RateCard[] };
 }) {
   const t = dashTextFor(lang);
   const v = t.videastes;
@@ -433,6 +437,7 @@ export function VideasteDetailView({
               <Kpi Icon={CalendarX} label={v.detail.late} value={f.num(data.row.late)} />
               <Kpi Icon={MessageSquareWarning} label={v.detail.revisions} value={data.row.revisions === null ? t.unavailable : f.num(data.row.revisions)} />
             </section>
+            <VideasteRatesPanel videasteId={person.id} cards={rates.cards} ready={rates.ready} />
             <section className="adm-card" aria-labelledby="adm-projects-title">
               <header className="adm-card-head">
                 <h2 id="adm-projects-title">

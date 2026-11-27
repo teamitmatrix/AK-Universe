@@ -56,6 +56,8 @@ export type TeamProject = {
   videaste_id?: string | null;
   deadline?: string | null;
   revision_rounds?: number | null;
+  /** Site universe (migration 029). When null, infer from items. */
+  universe?: "agents" | "marketing" | "digital" | null;
   /** Only when requested with `extra: "items"`. */
   items?: { service: string; details?: string; price: number }[];
 };
@@ -86,9 +88,13 @@ export type ProjectFilter = {
 };
 
 export async function selectProjects(supabase: Supabase, filter: ProjectFilter = {}, limit = 5000) {
+  const withUniverse = ", universe";
   const attempts: [SchemaLevel, string][] = [
+    ["revisions", BASE_PROJECT_COLUMNS + ASSIGNMENT_COLUMNS + REVISION_COLUMNS + withUniverse],
     ["revisions", BASE_PROJECT_COLUMNS + ASSIGNMENT_COLUMNS + REVISION_COLUMNS],
+    ["assignment", BASE_PROJECT_COLUMNS + ASSIGNMENT_COLUMNS + withUniverse],
     ["assignment", BASE_PROJECT_COLUMNS + ASSIGNMENT_COLUMNS],
+    ["none", BASE_PROJECT_COLUMNS + withUniverse],
     ["none", BASE_PROJECT_COLUMNS],
   ];
   const extra = filter.extra ? `, ${filter.extra}` : "";
@@ -100,7 +106,9 @@ export async function selectProjects(supabase: Supabase, filter: ProjectFilter =
     const { data, error } = await q.order("created_at", { ascending: false }).limit(limit);
     if (!error) return { projects: (data ?? []) as unknown as TeamProject[], level };
     // A filter on assignment columns fails by design before migration 005: only log unexpected errors.
-    if (level === "none" && !filter.assigned) console.error("Admin: video_projects failed:", error.message);
+    if (level === "none" && !filter.assigned && !/universe/i.test(error.message)) {
+      console.error("Admin: video_projects failed:", error.message);
+    }
   }
   return { projects: [] as TeamProject[], level: "none" as SchemaLevel };
 }

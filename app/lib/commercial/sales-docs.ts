@@ -158,10 +158,19 @@ export async function loadClientChoices(me: CommercialMe) {
     .eq("salesperson_id", me.id)
     .order("created_at", { ascending: false })
     .limit(300);
-  return (data ?? []).map((c) => ({
-    id: c.id as string,
-    name: (c.company as string) || (c.name as string),
-    email: (c.email as string | null) ?? "",
-    phone: (c.phone as string | null) ?? "",
-  }));
+  const seen = new Set<string>();
+  const choices: { id: string; name: string; email: string; phone: string }[] = [];
+  for (const c of data ?? []) {
+    const name = ((c.company as string) || (c.name as string) || "").trim();
+    const key = name.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    choices.push({
+      id: c.id as string,
+      name,
+      email: (c.email as string | null) ?? "",
+      phone: (c.phone as string | null) ?? "",
+    });
+  }
+  return choices;
 }

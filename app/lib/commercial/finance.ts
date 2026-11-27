@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { PAID, selectProjects, type TeamProject } from "@/lib/admin/team";
+import { resolveProjectUniverse } from "@/lib/projects/universe";
 import { PRODUCT_TYPES, type ProductType } from "./commission-rules";
 import { loadRates, toDoc, type SalesDoc } from "./sales-docs";
 import type { CommercialMe } from "./session";
@@ -87,6 +88,8 @@ function buildSales(ctx: Ctx): SaleRow[] {
     if (!PAID.has(p.status)) continue;
     const c = byProject.get(p.id);
     const amount = c?.amount_cents ?? null;
+    const universe = resolveProjectUniverse(p.universe, p.items);
+    const productType: ProductType = universe;
     rows.push({
       key: `p:${p.id}`,
       source: "video",
@@ -94,13 +97,13 @@ function buildSales(ctx: Ctx): SaleRow[] {
       date: p.created_at,
       client: clientOf(p),
       clientEmail: p.email,
-      product: (p.items ?? []).map((i) => i.service).filter(Boolean).join(" + ") || "Vidéo",
+      product: (p.items ?? []).map((i) => i.service).filter(Boolean).join(" + ") || productType,
       amountHtCents: p.total_cents,
       rate: amount !== null && p.total_cents ? Math.round((amount / p.total_cents) * 1000) / 10 : null,
       commissionCents: amount,
       commissionStatus: c?.status ?? null,
       invoicePaid: true,
-      byType: amount !== null ? { digital: amount } : {},
+      byType: amount !== null ? { [productType]: amount } : {},
     });
   }
   return rows.sort((a, b) => b.date.localeCompare(a.date));
@@ -189,28 +192,95 @@ export async function loadMyClients(me: CommercialMe) {
   const supabase = await createClient();
   const { data: customers } = await supabase.from("customers").select("id, name, company, email, phone, created_at").eq("salesperson_id", me.id).limit(2000);
 
-  type Client = { key: string; name: string; contact: string | null; email: string | null; phone: string | null; sales: number; revenueCents: number; since: string; sources: Set<"prospect" | "facture" | "site"> };
+  type Client = {
+    key: string;
+    name: string;
+    contact: string | null;
+    email: string | null;
+    phone: string | null;
+    sales: number;
+    revenueCents: number;
+    since: string;
+    sources: Set<"prospect" | "facture" | "site">;
+    emails: Set<string>;
+    contacts: Set<string>;
+    phones: Set<string>;
+  };
   const map = new Map<string, Client>();
-  const keyOf = (email: string | null, name: string) => (email ? `e:${email.toLowerCase()}` : `n:${name.trim().toLowerCase()}`);
-  const upsert = (key: string, init: Omit<Client, "key" | "sales" | "revenueCents" | "sources">) => {
+  /** One card per company (or person name when no company) — never split the same firm across e-mails. */
+  const keyOf = (companyOrName: string, email: string | null) => {
+    const org = companyOrName.trim().toLowerCase();
+    if (org) return `c:${org}`;
+    if (email) return `e:${email.toLowerCase()}`;
+    return "n:unknown";
+  };
+  const upsert = (key: string, init: { name: string; contact: string | null; email: string | null; phone: string | null; since: string }) => {
     let c = map.get(key);
-    if (!c) map.set(key, (c = { key, ...init, sales: 0, revenueCents: 0, sources: new Set() }));
+    if (!c) {
+      map.set(
+        key,
+        (c = {
+          key,
+          name: init.name,
+          contact: init.contact,
+          email: init.email,
+          phone: init.phone,
+          sales: 0,
+          revenueCents: 0,
+          since: init.since,
+          sources: new Set(),
+          emails: new Set(),
+          contacts: new Set(),
+          phones: new Set(),
+        }),
+      );
+    }
     if (init.since < c.since) c.since = init.since;
+    if (init.name && (!c.name || c.name.length < init.name.length)) c.name = init.name;
+    if (init.contact) c.contacts.add(init.contact);
+    if (init.email) c.emails.add(init.email.toLowerCase());
+    if (init.phone) c.phones.add(init.phone);
     return c;
   };
 
   for (const cu of customers ?? []) {
-    const name = (cu.company as string) || (cu.name as string);
-    const c = upsert(keyOf(cu.email as string | null, name), { name, contact: cu.company ? (cu.name as string) : null, email: (cu.email as string | null) ?? null, phone: (cu.phone as string | null) ?? null, since: cu.created_at as string });
+    const company = ((cu.company as string | null) ?? "").trim();
+    const person = ((cu.name as string) ?? "").trim();
+    const name = company || person;
+    const contact = company && person && person.toLowerCase() !== company.toLowerCase() ? person : null;
+    const c = upsert(keyOf(name, cu.email as string | null), {
+      name,
+      contact,
+      email: (cu.email as string | null) ?? null,
+      phone: (cu.phone as string | null) ?? null,
+      since: cu.created_at as string,
+    });
     c.sources.add("prospect");
   }
   for (const s of sales) {
-    const c = upsert(keyOf(s.clientEmail, s.client), { name: s.client, contact: null, email: s.clientEmail, phone: null, since: s.date });
+    const c = upsert(keyOf(s.client, s.clientEmail), { name: s.client, contact: null, email: s.clientEmail, phone: null, since: s.date });
     c.sales += 1;
     c.revenueCents += s.amountHtCents;
     c.sources.add(s.source === "facture" ? "facture" : "site");
   }
-  const clients = [...map.values()].map((c) => ({ ...c, sources: [...c.sources] })).sort((a, b) => b.revenueCents - a.revenueCents || a.name.localeCompare(b.name));
+  const clients = [...map.values()]
+    .map((c) => {
+      const emails = [...c.emails];
+      const contacts = [...c.contacts];
+      const phones = [...c.phones];
+      return {
+        key: c.key,
+        name: c.name,
+        contact: contacts[0] ?? null,
+        email: emails.join(" · ") || null,
+        phone: phones[0] ?? null,
+        sales: c.sales,
+        revenueCents: c.revenueCents,
+        since: c.since,
+        sources: [...c.sources] as Array<"prospect" | "facture" | "site">,
+      };
+    })
+    .sort((a, b) => b.revenueCents - a.revenueCents || a.name.localeCompare(b.name));
   return { clients, totals: { count: clients.length, revenueCents: clients.reduce((s, c) => s + c.revenueCents, 0) } };
 }
 
